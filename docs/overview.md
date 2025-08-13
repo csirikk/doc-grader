@@ -90,3 +90,5 @@ Convert raw detector findings into actionable grading deductions. Inputs are `{c
 - How to handle image/diagram checks
 - Evaluation strategy. how to measure the accuracy and effectiveness of the detectors, and the final grading (precision/recall against manual grading)
 - Security/privacy
+- Handling different languages (cz/sk/en)
+- Possibility of constraining the documentation specification to help the automated evaluation process.
