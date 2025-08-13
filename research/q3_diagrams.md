@@ -66,8 +66,8 @@ Focus on required element presence (diagrams & required table categories) + basi
 
 ## 4. AI generated comparison summary
 
-| Approach | Scope (diagrams + tables) | Complexity | Cost | Data need | Reproducibility | Quality depth | Primary risk |
-|----------|---------------------------|------------|------|-----------|-----------------|---------------|--------------|
-| A Local fine-tune | Images + table_image | Med/High | Low runtime | Med/High | High | Low–Med | Insufficient labels |
-| B API vision LLM | Images + table_image | Very low | High/call | None | Medium | Medium | Cost / drift |
-| C Hybrid presence-only | Presence/types + text tables | Low | Low–Med | Low | High | Low | Limited feedback |
+| Approach               | Scope (diagrams + tables)    | Complexity | Cost        | Data need | Reproducibility | Quality depth | Primary risk        |
+|------------------------|------------------------------|------------|-------------|-----------|-----------------|---------------|---------------------|
+| A Local fine-tune      | Images + table_image         | Med/High   | Low runtime | Med/High  | High            | Low–Med       | Insufficient labels |
+| B API vision LLM       | Images + table_image         | Very low   | High/call   | None      | Medium          | Medium        | Cost / drift        |
+| C Hybrid presence-only | Presence/types + text tables | Low        | Low–Med     | Low       | High            | Low           | Limited feedback    |
