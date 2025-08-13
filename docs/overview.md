@@ -87,7 +87,7 @@ Convert raw detector findings into actionable grading deductions. Inputs are `{c
 ## 6. Design questions
 
 - Local models vs. OpenAI API for detectors
-- How to handle image/diagram checks
+- How to handle image/diagram/table checks
 - Evaluation strategy. how to measure the accuracy and effectiveness of the detectors, and the final grading (precision/recall against manual grading)
 - Security/privacy
 - Handling different languages (cz/sk/en)
