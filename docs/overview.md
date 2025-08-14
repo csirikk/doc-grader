@@ -21,7 +21,8 @@ The tool flags parts of the file which it thinks should affect the score negativ
 | --------------------- | ----------------------------------- | ------------------ |
 | Student documentation | .pdf or .md                         | required           |
 | Project assignment    | .pdf or .md                         | optional           |
-| Error-code table      | `.yaml`, `.json`, or other list     | required           |
+| Error-codes           | Based on grading rubrics, in list   | -                  |
+| Course configuration  | IFJ vs IPP detector sets            | different penalties and requirements |
 | Custom grading rules  | natural language/custom error codes | optional overrides |
 
 ## 4. Outputs
@@ -30,8 +31,8 @@ The tool flags parts of the file which it thinks should affect the score negativ
 | -------------------------------------------------------- | ----------------------------------------------------- |
 | List of deductions                                       | Plain-text list of approved deductions and reasonings |
 | Suggested total score and individual deduction weights   | Summary feedback                                      |
-| Highlighted sections in UI (optional)                    |                                                       |
-| Batch error summaries, trends across projects (optional) |                                                       |
+| Highlighted sections in UI (optional)                    | -                                                     |
+| Batch error summaries, trends across projects (optional) | -                                                     |
 
 ## 5. Design overview
 
@@ -51,18 +52,29 @@ The tool flags parts of the file which it thinks should affect the score negativ
 
 ### Detectors
 
-Automatically identify specific issues in student documentation (e.g., missing diagrams, copied spec text, incorrect structure). Each detector outputs `{code, evidence, confidence, location, ...}`. They should be optional, with easy enable/disable.
+Automatically identify specific issues in student documentation. Each detector outputs `{code, evidence, confidence, location, ...}`. Priority and implementation order based on past grading rubric analysis. Ranges are drafts.
 
-| Detector                    | Possible approach            | Notes                               |
-| --------------------------- | ---------------------------- | ------------------------------------|
-| Copied spec text            | SBERT embeddings?            | Source doc required                 |
-| Required sections structure | Markdown heading parser      | Allow config of required sections   |
-| Diagram presence            | Image tag detection or OCR?  | Vision model needed? needs research |
-| Language/formality          | Style check via LLM?         | Local or API? how to specify this?  |
-| Length/Completeness         | Heuristic (word count?)      | Project specific thresholds?        |
-| Plagiarism (optional)       | External API or local?       | out of scope probably?              |
+**High-priority detectors:**
 
-Confidence calibration method?
+| Detector                          | IFJ penalty | IPP penalty | Approach                         |
+|---------------------------------- | ----------- | ----------- | ---------------------------------|
+| Document structure (STRUCT)       | -           | -20 to -70  | Markdown heading parser enough?  |
+| Length/completeness (SHORT)       | -           | up to -150  | Word count                       |
+| Copied content (COPY)             | -           | up to -80   | SBERT embeddings vs specs        |
+| UML diagrams (NOUML/BADUML)       | -           | up to -100  | Image detection + classification |
+| Writing style (STYLE)             | -           | up to -80   | LLM                              |
+| Content appropriateness (CONTENT) | -           | up to -80   | LLM                              |
+
+**Medium-priority detectors:**
+
+| Detector                   | Penalty range | Notes                              |
+|--------------------------- | ------------- | -----------------------------------|
+| Language mixing (LANG)     | -20 to -30    | cz/sk/en detection                 |
+| Terminology (TERM)         | -5 to -20     | Domain-specific, OOP focus for IPP |
+| Format compliance (FORMAT) | -20 to -50    | PDF/markdown requirements          |
+
+**Low-priority:**
+Typography, spacing, font consistency - useful for comprehensive feedback but low scoring impact. (feedback value, small/non-existent penalties)
 
 ## Rule engine
 
