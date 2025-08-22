@@ -1,4 +1,4 @@
-# Tool overview - v0.2 (6. 8. 2025)
+# Tool overview - v0.3 (21. 8. 2025)
 
 Helper for grading IFJ/IPP project documentation.
 
@@ -9,7 +9,8 @@ The tool flags parts of the file which it thinks should affect the score negativ
 
 ## 2. Typical flow
 
-- Convert PDF to Markdown to paragraphs
+- Convert PDF to Markdown to paragraphs and extract assets (images, tables)
+- Statically parse source code to extract entities (classes, functions, etc.)
 - Run detectors, get list of findings `{code, evidence, confidence, location, ...}`
 - Rule engine transforms findings into error codes
 - Aggregate deductions and suggest score
@@ -20,7 +21,8 @@ The tool flags parts of the file which it thinks should affect the score negativ
 | Item                  | Format                              | Notes              |
 | --------------------- | ----------------------------------- | ------------------ |
 | Student documentation | .pdf or .md                         | required           |
-| Project assignment    | .pdf or .md                         | optional           |
+| Student source code   | .php, .py, etc.                     | optional, for diagram analysis |
+| Project assignment    | .pdf or .md                         | optional, for copied spec text detection |
 | Error-codes           | Based on grading rubrics, in list   | -                  |
 | Course configuration  | IFJ vs IPP detector sets            | different penalties and requirements |
 | Custom grading rules  | natural language/custom error codes | optional overrides |
@@ -38,63 +40,61 @@ The tool flags parts of the file which it thinks should affect the score negativ
 
 ### Key components
 
-1. PDF to markdown converter (pdfminer-six?)
-2. Local dataset of past docs/assignments/rules...
-   - for training/validation of models, few-shot examples for LLMs
-3. **Detectors**  
-   - copied spec text, required sections, required diagrams …  
-   - each returns `{code, evidence, confidence, location, ...}`
-4. **Rule engine**  
-   - maps detector output to a code table  
-   - applies default deduction, allows user override
-5. Scoring + export (JSON / plain text)
-6. CLI prototype (GUI later)
+1. **PDF/Markdown parser**
+   - Converts input documents into a unified format of text paragraphs and extracted assets (images, tables).
+2. **Source code parser**
+   - Statically analyzes student source code to extract key entities (class names, function signatures, relationships).
+   - This data provides ground truth for diagram and implementation-related detectors.
+3. **Local dataset** of past docs/code/assignments
+   - For training/validation of models, few-shot examples for LLMs.
+4. **Detectors**  
+   - A suite of specialized modules that identify specific issues.
+   - Each returns `{code, evidence, confidence, location, ...}`.
+5. **Rule engine**  
+   - Maps detector output to a code table.
+   - Applies default deduction, allows user override.
+6. **Scoring + export** (JSON / plain text).
+7. **CLI** prototype (GUI later).
 
-### Detectors
+### Detectors (WIP)
 
-Automatically identify specific issues in student documentation. Each detector outputs `{code, evidence, confidence, location, ...}`. Priority and implementation order based on past grading rubric analysis. Ranges are drafts.
+Automatically identify specific issues in student documentation. Each detector outputs `{code, evidence, confidence, location, ...}`.
 
-**High-priority detectors:**
-
-| Detector                          | IFJ penalty | IPP penalty | Approach                         |
-|---------------------------------- | ----------- | ----------- | ---------------------------------|
-| Document structure (STRUCT)       | -           | -20 to -70  | Markdown heading parser enough?  |
-| Length/completeness (SHORT)       | -           | up to -150  | Word count                       |
-| Copied content (COPY)             | -           | up to -80   | SBERT embeddings vs specs        |
-| UML diagrams (NOUML/BADUML)       | -           | up to -100  | Image detection + classification |
-| Writing style (STYLE)             | -           | up to -80   | LLM                              |
-| Content appropriateness (CONTENT) | -           | up to -80   | LLM                              |
-
-**Medium-priority detectors:**
-
-| Detector                   | Penalty range | Notes                              |
-|--------------------------- | ------------- | -----------------------------------|
-| Language mixing (LANG)     | -20 to -30    | cz/sk/en detection                 |
-| Terminology (TERM)         | -5 to -20     | Domain-specific, OOP focus for IPP |
-| Format compliance (FORMAT) | -20 to -50    | PDF/markdown requirements          |
-
-**Low-priority:**
-Typography, spacing, font consistency - useful for comprehensive feedback but low scoring impact. (feedback value, small/non-existent penalties)
+| Detector                          | Approach                                                     |
+|-----------------------------------|--------------------------------------------------------------|
+| Document structure (STRUCT)       | TBD                                                          |
+| Length/completeness (SHORT)       | TBD                                                          |
+| Copied content (COPY)             | SBERT embeddings vs specs? (TBD)                             |
+| Diagram Presence (NODIAGRAM)      | Heuristic image and vector graphics extraction.              |
+| Table Presence (NOTABLE)          | Parse Markdown tables and use PDF table extraction tools.    |
+| Diagram Quality (BADDIAGRAM)      | Vision API to classify type and compare against source code. |
+| Table Quality (BADTABLE)          | Vision API to classify type and compare against source code? |
+| Writing style (STYLE)             | Multilingual LLM                                             |
+| Content appropriateness (CONTENT) | Multilingual LLM                                             |
+| Generic Promptable (CUSTOM)       | single powerful LLM, custom prompt                           |
+| Language mixing (LANG)            | cz/sk/en detection                                           |
+| Terminology (TERM)                | Domain-specific, OOP focus for IPP                           |
+| Format compliance (FORMAT)        | PDF/markdown requirements                                    |
 
 ## Rule engine
 
-Convert raw detector findings into actionable grading deductions. Inputs are `{code, evidence, confidence, location, ...}` + error code definitions -> output = `{deduction, weight, reason, ...}`
+Convert raw detector findings into actionable grading deductions. Inputs are `{code, evidence, confidence, location, ...}` + error code definitions -> output = `{deduction, weight, reason, ...}`. The system is unified, with a single rule engine that applies different configurations (enabled detectors, penalty weights) for both IPP and IFJ.
 
 | Feature             | Possibly approach                 | Notes                                 |
 | ------------------- | --------------------------------- | ------------------------------------- |
-| Mapping method      | Static YAML/JSON config ?         | Learned mapping out of scope for now? |
-| Deduction weights   | Fixed vs. adaptive per doc?       | Allow per-project/ overrides?         |
-| Thresholds          | Confidence cut-off per detector ? | Manual tuning or learned thresholds?  |
-| Conflict resolution | Deduplication logic ?             | One deduction per issue type?         |
-| Grader overrides    | CLI flag?                         | File-based override format?           |
-| Batch scoring       | -                                 | out of scope probably                 |
-| Explainability      | -                                 | examples of evidence in reports?      |
+| Mapping method      | Static YAML/JSON config           | Learned mapping out of scope for now? |
+| Deduction weights   | Fixed vs. adaptive per doc?       | Allow per-project/ overrides.         |
+| Thresholds          | Confidence cut-off per detector   | Manual tuning or learned threshorlds? |
+| Conflict resolution | Deduplication logic               | One deduction per issue type?         |
+| Grader overrides    | CLI flag / config file            | File-based override format?           |
+| Batch scoring       | -                                 | Out of scope for now.                 |
+| Explainability      | -                                 | Include evidence snippets in reports. |
 
 - Possible feedback loop for tuning rule accuracy over time?
 
-### Design diag (v0.2)
+### Design diag
 
-![Design](img/design_v0_2.png)
+![Design (unchanged form v0.2)](img/design_v0_2.png)
 
 ## 6. Design questions
 
