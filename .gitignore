@@ -2,6 +2,21 @@ __pycache__/
 .venv/
 .vscode/
 .copilotignore
+
+# Messing around in here
 test/
+
+# Data
 data/*
 !data/overview.xlsx
+
+# LaTeX
+thesis/*.aux
+thesis/*.bbl
+thesis/*.blg
+thesis/*.lof
+thesis/*.log
+thesis/*.out
+thesis/*.ptc
+thesis/*.toc
+thesis/*.pdf
