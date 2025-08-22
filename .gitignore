@@ -1,5 +1,7 @@
 __pycache__/
-data/
 .venv/
 .vscode/
 .copilotignore
+test/
+data/*
+!data/overview.xlsx
