@@ -4,7 +4,7 @@ from typing import List
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
-from ..ir import Document, Paragraph, Span, Heading
+from ..ir import Document, Paragraph, Span, Heading, CodeBlock
 
 # global parser instance
 md = MarkdownIt("commonmark") # no plugins yet
@@ -74,6 +74,18 @@ def parse_markdown(path: Path) -> Document:
                 span=span,
             ))
             i += 3
+            continue
+        
+        # Codeblocks: fence
+        if t.type == "fence":
+            span = _span(path, t, bs)
+            blocks.append(CodeBlock(
+                id=f"c-{len(blocks)+1}",
+                language=(t.info or "").strip() or None,
+                text=t.content,
+                span=span,
+            ))
+            i += 1
             continue
 
         i += 1
