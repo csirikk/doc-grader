@@ -23,7 +23,7 @@ class Paragraph(BaseModel):
 
 class ListItem(BaseModel):
     text: str
-    children: Optional[List["ListItem"]] = None
+    sublists: Optional[List["ListBlock"]] = None
     span: Optional[Span] = None
 
 class ListBlock(BaseModel):
