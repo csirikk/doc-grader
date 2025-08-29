@@ -1,0 +1,3 @@
+pydantic
+unstructured
+markdown-it-py
