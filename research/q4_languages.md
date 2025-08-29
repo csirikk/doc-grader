@@ -17,7 +17,7 @@ The community of students at FIT is diverse, so IFJ and IPP allow submitting pro
 
 ## 3. Possible approaches
 
-### Approach A: Language-agnostic multilingual model
+### Approach A: Language-agnostic multilingual model [CHOSEN]
 
 A single powerful multilingual LLM processes all documents directly.
 

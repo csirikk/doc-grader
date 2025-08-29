@@ -42,7 +42,7 @@ Use a pre-trained vision model fine-tuned on labeled image elements, parse markd
 - **Pros:** Privacy, predictable cost.
 - **Cons:** Big dataset needed, separate handling for text tables. Unpredictable student designs.
 
-### Approach B: API-based vision LLMs
+### Approach B: API-based vision LLMs [CHOSEN]
 
 Use vision API for image elements, parse markdown/PDF text tables separately.
 
