@@ -1,10 +1,12 @@
 import pprint
+
 from pathlib import Path
 from typing import List, Tuple, Optional
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
 from ..ir import Document, Paragraph, Span, Heading, CodeBlock, ListBlock, ListItem, Quote
+from ..util import next_id
 
 # global parser instance
 md = MarkdownIt("commonmark") # no plugins yet
@@ -113,7 +115,7 @@ def parse_markdown(path: Path) -> Document:
             span = build_span(path, tok_outer, byte_starts)
             level = int(tok_outer.tag[1])  # 'h1' -> 1
             blocks.append(Heading(
-                id=f"h-{len(blocks)+1}",
+                id=next_id(blocks, "h"),
                 level=level,
                 text=title,
                 span=span,
@@ -129,7 +131,7 @@ def parse_markdown(path: Path) -> Document:
             # normalize internal whitespace a bit
             content = " ".join(content.split())
             blocks.append(Paragraph(
-                id=f"p-{len(blocks)+1}",
+                id=next_id(blocks, "p"),
                 text=content,
                 span=span,
             ))
@@ -140,7 +142,7 @@ def parse_markdown(path: Path) -> Document:
         if tok_outer.type == "fence":
             span = build_span(path, tok_outer, byte_starts)
             blocks.append(CodeBlock(
-                id=f"c-{len(blocks)+1}",
+                id=next_id(blocks, "c"),
                 language=(tok_outer.info or "").strip() or None,
                 text=tok_outer.content,
                 span=span,
@@ -151,6 +153,8 @@ def parse_markdown(path: Path) -> Document:
         # Lists
         if tok_outer.type in ("bullet_list_open", "ordered_list_open"):
             list_block, idx_after = _parse_list(tokens, idx_outer, path, byte_starts)
+            # assign id for top-level list block consistently
+            list_block.id = next_id(blocks, "l")
             blocks.append(list_block)
             idx_outer = idx_after
             continue
@@ -166,7 +170,7 @@ def parse_markdown(path: Path) -> Document:
                 idx_inner += 1
             text = " ".join(" ".join(text_parts).split())
             blocks.append(Quote(
-                id=f"q-{len(blocks)+1}",
+                id=next_id(blocks, "q"),
                 text=text,
                 span=span,
             ))
