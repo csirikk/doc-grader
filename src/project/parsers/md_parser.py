@@ -1,10 +1,10 @@
 import pprint
 from pathlib import Path
-from typing import List
+from typing import List, Tuple, Optional
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
-from ..ir import Document, Paragraph, Span, Heading, CodeBlock
+from ..ir import Document, Paragraph, Span, Heading, CodeBlock, ListBlock, ListItem
 
 # global parser instance
 md = MarkdownIt("commonmark") # no plugins yet
@@ -30,6 +30,65 @@ def _span(path: Path, tok: Token, byte_starts: List[int]) -> Span:
         byte_start=byte_starts[s],
         byte_end=byte_starts[e],
     )
+
+
+def _parse_list(tokens: List[Token], i: int, path: Path, bs: List[int]) -> Tuple[ListBlock, int]:
+    """Parse a list starting at tokens[i] (a list_open). Returns (ListBlock, index_after_close)."""
+    t = tokens[i]
+    is_ordered = (t.type == "ordered_list_open")
+    span = _span(path, t, bs)
+    start: Optional[int] = None
+    if is_ordered and getattr(t, "attrs", None):
+        try:
+            start = int(t.attrs.get("start")) if t.attrs.get("start") is not None else None
+        except Exception:
+            start = None
+
+    items: List[ListItem] = []
+    j = i + 1
+    close_type = "ordered_list_close" if is_ordered else "bullet_list_close"
+
+    while j < len(tokens) and tokens[j].type != close_type:
+        if tokens[j].type == "list_item_open":
+            item_span = _span(path, tokens[j], bs)
+            k = j + 1
+            depth = 0
+            parts: List[str] = []
+            sublists: List[ListBlock] = []
+
+            while k < len(tokens) and tokens[k].type != "list_item_close":
+                current_token = tokens[k]
+                if current_token.type in ("bullet_list_open", "ordered_list_open"):
+                    depth += 1
+                    if depth == 1:
+                        sublist, k = _parse_list(tokens, k, path, bs)
+                        sublists.append(sublist)
+                        continue
+                elif current_token.type in ("bullet_list_close", "ordered_list_close"):
+                    depth -= 1
+
+                if depth == 0 and current_token.type == "inline" and current_token.content:
+                    parts.append(current_token.content)
+                k += 1
+
+            item = ListItem(
+                text=" ".join(" ".join(parts).split()),
+                span=item_span,
+                sublists=sublists or None,
+            )
+            items.append(item)
+            j = k + 1
+        else:
+            j += 1
+
+    list_block = ListBlock(
+        id=f"l-{len(items)}-{(span.line_start or 0)}",
+        ordered=is_ordered,
+        start=start,
+        items=items,
+        span=span,
+    )
+    return list_block, j + 1
 
 def parse_markdown(path: Path) -> Document:
     text = path.read_text(encoding="utf-8")
@@ -88,6 +147,14 @@ def parse_markdown(path: Path) -> Document:
             i += 1
             continue
 
+        # Lists
+        if t.type in ("bullet_list_open", "ordered_list_open"):
+            list_block, new_i = _parse_list(tokens, i, path, bs)
+            blocks.append(list_block)
+            i = new_i
+            continue
+
+
         i += 1
 
     if not blocks: # just a fallback: whole doc becomes 1 block
@@ -99,7 +166,7 @@ def parse_markdown(path: Path) -> Document:
                 source_path=str(path),
                 line_start=1,
                 line_end=len(lines) if lines else 1,
-                byte_start=0,
+                byte_start=0,   
                 byte_end=len(text.encode("utf-8")),
             ),
         ))
