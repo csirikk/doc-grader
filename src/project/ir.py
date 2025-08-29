@@ -24,11 +24,13 @@ class Paragraph(BaseModel):
 class ListItem(BaseModel):
     text: str
     children: Optional[List["ListItem"]] = None
+    span: Optional[Span] = None
 
 class ListBlock(BaseModel):
     type: Literal["List"] = "List"
     id: str
     ordered: bool
+    start: Optional[int] = None
     items: List[ListItem]
     span: Span
 
