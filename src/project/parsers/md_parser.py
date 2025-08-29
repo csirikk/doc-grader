@@ -4,7 +4,7 @@ from typing import List, Tuple, Optional
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
-from ..ir import Document, Paragraph, Span, Heading, CodeBlock, ListBlock, ListItem
+from ..ir import Document, Paragraph, Span, Heading, CodeBlock, ListBlock, ListItem, Quote
 
 # global parser instance
 md = MarkdownIt("commonmark") # no plugins yet
@@ -152,6 +152,24 @@ def parse_markdown(path: Path) -> Document:
             list_block, new_i = _parse_list(tokens, i, path, bs)
             blocks.append(list_block)
             i = new_i
+            continue
+
+        # Quotes
+        if t.type == "blockquote_open":
+            span = _span(path, t, bs)
+            j = i + 1
+            text_parts: list[str] = []
+            while j < len(tokens) and tokens[j].type != "blockquote_close":
+                if tokens[j].type == "inline":
+                    text_parts.append(tokens[j].content)
+                j += 1
+            text = " ".join(" ".join(text_parts).split())
+            blocks.append(Quote(
+                id=f"q-{len(blocks)+1}",
+                text=text,
+                span=span,
+            ))
+            i = j + 1
             continue
 
 
