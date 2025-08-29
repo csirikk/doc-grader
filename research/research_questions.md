@@ -7,3 +7,4 @@
 5. What methods are most effective for evaluating the performance of this automated grading tool? How can its consistency, accuracy, and fairness be measured and compared to manual grading by humans?
 6. What are the trade-offs (cost, performance, privacy, and ease of use) between using local, open-source models versus API-based models for the different components of the evaluation pipeline?
 7. How can the system be designed to be adaptable to different project assignments and grading criteria from year to year with minimal reconfiguration?
+8. What unified intermediate representation (IR) can reliably normalize PDF and Markdown documents while preserving structure, layout, and location for detectors?
