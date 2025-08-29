@@ -9,7 +9,7 @@ from ..ir import Document, Paragraph, Span, Heading, CodeBlock, ListBlock, ListI
 # global parser instance
 md = MarkdownIt("commonmark") # no plugins yet
 
-def _byte_starts(text: str) -> List[int]:
+def compute_byte_starts(text: str) -> List[int]:
     """Return UTF-8 byte offsets at each line start (0-based)."""
     starts = [0]
     acc = 0
@@ -18,7 +18,7 @@ def _byte_starts(text: str) -> List[int]:
         starts.append(acc)
     return starts
 
-def _span(path: Path, tok: Token, byte_starts: List[int]) -> Span:
+def build_span(path: Path, tok: Token, byte_starts: List[int]) -> Span:
     """Build a Span from a token line map, falling back if absent."""
     if tok.map is None:
         return Span(source_path=str(path))
@@ -32,44 +32,44 @@ def _span(path: Path, tok: Token, byte_starts: List[int]) -> Span:
     )
 
 
-def _parse_list(tokens: List[Token], i: int, path: Path, bs: List[int]) -> Tuple[ListBlock, int]:
-    """Parse a list starting at tokens[i] (a list_open). Returns (ListBlock, index_after_close)."""
-    t = tokens[i]
-    is_ordered = (t.type == "ordered_list_open")
-    span = _span(path, t, bs)
+def _parse_list(tokens: List[Token], idx_outer: int, path: Path, byte_starts: List[int]) -> Tuple[ListBlock, int]:
+    """Parse a list starting at tokens[idx_outer] (a list_open). Returns (ListBlock, index_after_close)."""
+    tok_list_open = tokens[idx_outer]
+    is_ordered = (tok_list_open.type == "ordered_list_open")
+    span = build_span(path, tok_list_open, byte_starts)
     start: Optional[int] = None
-    if is_ordered and getattr(t, "attrs", None):
+    if is_ordered and getattr(tok_list_open, "attrs", None):
         try:
-            start = int(t.attrs.get("start")) if t.attrs.get("start") is not None else None
+            start = int(tok_list_open.attrs.get("start")) if tok_list_open.attrs.get("start") is not None else None
         except Exception:
             start = None
 
     items: List[ListItem] = []
-    j = i + 1
+    idx_inner = idx_outer + 1
     close_type = "ordered_list_close" if is_ordered else "bullet_list_close"
 
-    while j < len(tokens) and tokens[j].type != close_type:
-        if tokens[j].type == "list_item_open":
-            item_span = _span(path, tokens[j], bs)
-            k = j + 1
-            depth = 0
+    while idx_inner < len(tokens) and tokens[idx_inner].type != close_type:
+        if tokens[idx_inner].type == "list_item_open":
+            item_span = build_span(path, tokens[idx_inner], byte_starts)
+            idx_child = idx_inner + 1
+            nested_depth = 0
             parts: List[str] = []
             sublists: List[ListBlock] = []
 
-            while k < len(tokens) and tokens[k].type != "list_item_close":
-                current_token = tokens[k]
-                if current_token.type in ("bullet_list_open", "ordered_list_open"):
-                    depth += 1
-                    if depth == 1:
-                        sublist, k = _parse_list(tokens, k, path, bs)
+            while idx_child < len(tokens) and tokens[idx_child].type != "list_item_close":
+                tok_inner = tokens[idx_child]
+                if tok_inner.type in ("bullet_list_open", "ordered_list_open"):
+                    nested_depth += 1
+                    if nested_depth == 1:
+                        sublist, idx_child = _parse_list(tokens, idx_child, path, byte_starts)
                         sublists.append(sublist)
                         continue
-                elif current_token.type in ("bullet_list_close", "ordered_list_close"):
-                    depth -= 1
+                elif tok_inner.type in ("bullet_list_close", "ordered_list_close"):
+                    nested_depth -= 1
 
-                if depth == 0 and current_token.type == "inline" and current_token.content:
-                    parts.append(current_token.content)
-                k += 1
+                if nested_depth == 0 and tok_inner.type == "inline" and tok_inner.content:
+                    parts.append(tok_inner.content)
+                idx_child += 1
 
             item = ListItem(
                 text=" ".join(" ".join(parts).split()),
@@ -77,9 +77,9 @@ def _parse_list(tokens: List[Token], i: int, path: Path, bs: List[int]) -> Tuple
                 sublists=sublists or None,
             )
             items.append(item)
-            j = k + 1
+            idx_inner = idx_child + 1
         else:
-            j += 1
+            idx_inner += 1
 
     list_block = ListBlock(
         id=f"l-{len(items)}-{(span.line_start or 0)}",
@@ -88,43 +88,44 @@ def _parse_list(tokens: List[Token], i: int, path: Path, bs: List[int]) -> Tuple
         items=items,
         span=span,
     )
-    return list_block, j + 1
+    idx_after = idx_inner + 1
+    return list_block, idx_after
 
 def parse_markdown(path: Path) -> Document:
     text = path.read_text(encoding="utf-8")
     tokens = md.parse(text)
-    bs = _byte_starts(text)
+    byte_starts = compute_byte_starts(text)
 
     # DEBUG
-    for idx, t in enumerate(tokens):
+    for idx, tok_outer in enumerate(tokens):
         print(f"--- token {idx} ---")
-        pprint.pp(t.as_dict())
+        pprint.pp(tok_outer.as_dict())
 
     blocks = []
-    i = 0
-    while i < len(tokens):
-        t = tokens[i]
+    idx_outer = 0
+    while idx_outer < len(tokens):
+        tok_outer = tokens[idx_outer]
 
         # Headings: heading_open, inline, heading_close
-        if t.type == "heading_open":
-            inline = tokens[i + 1] if i + 1 < len(tokens) and tokens[i + 1].type == "inline" else None
+        if tok_outer.type == "heading_open":
+            inline = tokens[idx_outer + 1] if idx_outer + 1 < len(tokens) and tokens[idx_outer + 1].type == "inline" else None
             title = inline.content if inline else ""
-            span = _span(path, t, bs)
-            level = int(t.tag[1])  # 'h1' -> 1
+            span = build_span(path, tok_outer, byte_starts)
+            level = int(tok_outer.tag[1])  # 'h1' -> 1
             blocks.append(Heading(
                 id=f"h-{len(blocks)+1}",
                 level=level,
                 text=title,
                 span=span,
             ))
-            i += 3
+            idx_outer += 3
             continue
 
         # Paragraphs: paragraph_open, inline, paragraph_close
-        if t.type == "paragraph_open":
-            inline = tokens[i + 1] if i + 1 < len(tokens) and tokens[i + 1].type == "inline" else None
+        if tok_outer.type == "paragraph_open":
+            inline = tokens[idx_outer + 1] if idx_outer + 1 < len(tokens) and tokens[idx_outer + 1].type == "inline" else None
             content = inline.content if inline else ""
-            span = _span(path, t, bs)
+            span = build_span(path, tok_outer, byte_starts)
             # normalize internal whitespace a bit
             content = " ".join(content.split())
             blocks.append(Paragraph(
@@ -132,48 +133,48 @@ def parse_markdown(path: Path) -> Document:
                 text=content,
                 span=span,
             ))
-            i += 3
+            idx_outer += 3
             continue
         
         # Codeblocks: fence
-        if t.type == "fence":
-            span = _span(path, t, bs)
+        if tok_outer.type == "fence":
+            span = build_span(path, tok_outer, byte_starts)
             blocks.append(CodeBlock(
                 id=f"c-{len(blocks)+1}",
-                language=(t.info or "").strip() or None,
-                text=t.content,
+                language=(tok_outer.info or "").strip() or None,
+                text=tok_outer.content,
                 span=span,
             ))
-            i += 1
+            idx_outer += 1
             continue
 
         # Lists
-        if t.type in ("bullet_list_open", "ordered_list_open"):
-            list_block, new_i = _parse_list(tokens, i, path, bs)
+        if tok_outer.type in ("bullet_list_open", "ordered_list_open"):
+            list_block, idx_after = _parse_list(tokens, idx_outer, path, byte_starts)
             blocks.append(list_block)
-            i = new_i
+            idx_outer = idx_after
             continue
 
         # Quotes
-        if t.type == "blockquote_open":
-            span = _span(path, t, bs)
-            j = i + 1
+        if tok_outer.type == "blockquote_open":
+            span = build_span(path, tok_outer, byte_starts)
+            idx_inner = idx_outer + 1
             text_parts: list[str] = []
-            while j < len(tokens) and tokens[j].type != "blockquote_close":
-                if tokens[j].type == "inline":
-                    text_parts.append(tokens[j].content)
-                j += 1
+            while idx_inner < len(tokens) and tokens[idx_inner].type != "blockquote_close":
+                if tokens[idx_inner].type == "inline":
+                    text_parts.append(tokens[idx_inner].content)
+                idx_inner += 1
             text = " ".join(" ".join(text_parts).split())
             blocks.append(Quote(
                 id=f"q-{len(blocks)+1}",
                 text=text,
                 span=span,
             ))
-            i = j + 1
+            idx_outer = idx_inner + 1
             continue
 
 
-        i += 1
+        idx_outer += 1
 
     if not blocks: # just a fallback: whole doc becomes 1 block
         lines = text.splitlines()
