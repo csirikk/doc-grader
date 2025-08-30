@@ -14,6 +14,7 @@ from ..ir import (
     ListBlock,
     ListItem,
     Quote,
+    Figure,
 )
 from ..util import next_id
 
@@ -47,6 +48,87 @@ def build_span(path: Path, tok: Token, byte_starts: List[int]) -> Span:
 def _norm(text: str) -> str:
     """Normalize whitespace."""
     return " ".join((text or "").split())
+
+def _append_figure_from_image_token(img_tok: Token, span: Span, blocks: List) -> None:
+    """Create and append a Figure from a markdown-it image token."""
+    attrs = getattr(img_tok, "attrs", None) or {}
+
+    src = (
+        (attrs.get("src") if isinstance(attrs, dict) else None)
+        or (img_tok.attrGet("src") if hasattr(img_tok, "attrGet") else None)
+        or ""
+    )
+    title = (
+        (attrs.get("title") if isinstance(attrs, dict) else None)
+        or (img_tok.attrGet("title") if hasattr(img_tok, "attrGet") else None)
+        or None
+    )
+
+    # alt text is in the token content
+    alt = (img_tok.content or "").strip() or None
+
+    blocks.append(
+        Figure(
+            id=next_id(blocks, "f"),
+            kind="image",
+            src=src,
+            alt=alt,
+            title=title,
+            caption=title or alt,
+            span=span,
+        )
+    )
+
+
+def _emit_figures_from_inline(inline_tok: Token, span: Span, blocks: List) -> int:
+    """
+    Emit Figure(s) for any images in this inline token. Supports plain images and link-wrapped images: link_open. image, link_close.
+    Returns number of figures emitted.
+    """
+    kids = inline_tok.children or []
+    count = 0
+    idx = 0
+    while idx < len(kids):
+        t = kids[idx]
+        if t.type == "image":
+            _append_figure_from_image_token(t, span, blocks)
+            count += 1
+            idx += 1
+            continue
+        if (
+            t.type == "link_open"
+            and idx + 2 < len(kids)
+            and kids[idx + 1].type == "image"
+            and kids[idx + 2].type == "link_close"
+        ):
+            _append_figure_from_image_token(kids[idx + 1], span, blocks)
+            count += 1
+            idx += 3
+            continue
+        idx += 1
+    return count
+
+
+def _inline_is_image_only(inline: Token) -> bool:
+    """True if inline children contain only images/link-wrapped images/whitespace."""
+    kids = inline.children or []
+    contains_image = False
+    idx = 0
+    while idx < len(kids):
+        t = kids[idx]
+        if t.type in ("softbreak", "hardbreak") or (t.type == "text" and (t.content or "").strip() == ""):
+            idx += 1
+            continue
+        if t.type == "image":
+            contains_image = True
+            idx += 1
+            continue
+        if idx + 2 < len(kids) and t.type == "link_open" and kids[idx + 1].type == "image" and kids[idx + 2].type == "link_close":
+            contains_image = True
+            idx += 3
+            continue
+        return False
+    return contains_image
 
 
 # Token handling ---------------------------------------------------------------------------
@@ -146,6 +228,8 @@ def handle_heading(cursor: TokenCursor, path: Path, byte_starts: List[int], bloc
     span = build_span(path, open_tok, byte_starts)
     level = int(open_tok.tag[1])  # 'h1' -> 1
     title = inline.content if inline else ""
+    if inline:
+        _emit_figures_from_inline(inline, span, blocks)
     blocks.append(Heading(id=next_id(blocks, "h"), level=level, text=title, span=span))
 
 
@@ -154,6 +238,10 @@ def handle_paragraph(cursor: TokenCursor, path: Path, byte_starts: List[int], bl
     if not open_tok:
         return
     span = build_span(path, open_tok, byte_starts)
+    if inline:
+        _emit_figures_from_inline(inline, span, blocks)
+        if _inline_is_image_only(inline):
+            return
     content = _norm(inline.content) if inline and inline.content else ""
     blocks.append(Paragraph(id=next_id(blocks, "p"), text=content, span=span))
 
@@ -175,7 +263,7 @@ def handle_fence(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks
     cursor.advance(1)
 
 
-def _parse_list_block(cursor: TokenCursor, path: Path, byte_starts: List[int]) -> ListBlock:
+def _parse_list_block(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> ListBlock:
     """Parse a list at the current cursor (assumes *_list_open). Returns a ListBlock and advances past close."""
     tok_open = cursor.current()
     is_ordered = tok_open.type == "ordered_list_open"
@@ -209,23 +297,27 @@ def _parse_list_block(cursor: TokenCursor, path: Path, byte_starts: List[int]) -
             item_span = build_span(path, child_tok, byte_starts)
             parts: List[str] = []
             sublists: List[ListBlock] = []
+            emitted_figures = 0
             child_idx = 0
             while child_idx < len(item_tokens):
                 child_tok = item_tokens[child_idx]
                 if child_tok.type in ("bullet_list_open", "ordered_list_open"):
                     # recursive dive into nested list
                     nested_cur = TokenCursor(item_tokens, child_idx)
-                    sublist = _parse_list_block(nested_cur, path, byte_starts)
+                    sublist = _parse_list_block(nested_cur, path, byte_starts, blocks)
                     sublists.append(sublist)
                     child_idx = nested_cur.i
                     continue
-                if child_tok.type == "inline" and child_tok.content:
-                    parts.append(child_tok.content)
+                if child_tok.type == "inline":
+                    emitted_figures += _emit_figures_from_inline(child_tok, item_span, blocks)
+                    if child_tok.content:
+                        parts.append(child_tok.content)
                 child_idx += 1
 
+            text_value = None if (not parts and emitted_figures > 0) else _norm(" ".join(parts))
             items.append(
                 ListItem(
-                    text=_norm(" ".join(parts)),
+                    text=text_value,
                     span=item_span,
                     sublists=sublists or None,
                 )
@@ -245,7 +337,7 @@ def _parse_list_block(cursor: TokenCursor, path: Path, byte_starts: List[int]) -
 
 
 def handle_list(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
-    lst = _parse_list_block(cursor, path, byte_starts)
+    lst = _parse_list_block(cursor, path, byte_starts, blocks)
     lst.id = next_id(blocks, "l")
     blocks.append(lst)
 
@@ -260,8 +352,10 @@ def handle_blockquote(cursor: TokenCursor, path: Path, byte_starts: List[int], b
     inside = consume_container(cursor, "blockquote_open", "blockquote_close")
     parts: List[str] = []
     for t in inside:
-        if t.type == "inline" and t.content:
-            parts.append(t.content)
+        if t.type == "inline":
+            _emit_figures_from_inline(t, span, blocks)
+            if t.content:
+                parts.append(t.content)
     blocks.append(Quote(id=next_id(blocks, "q"), text=_norm(" ".join(parts)), span=span))
 
 
