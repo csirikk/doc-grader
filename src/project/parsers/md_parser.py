@@ -70,7 +70,7 @@ def _append_figure_from_image_token(img_tok: Token, span: Span, blocks: List) ->
 
     blocks.append(
         Figure(
-            id=next_id(blocks, "f"),
+            id=next_id("f"),
             kind="image",
             src=src,
             alt=alt,
@@ -231,7 +231,7 @@ def handle_heading(cursor: TokenCursor, path: Path, byte_starts: List[int], bloc
     title = inline.content if inline else ""
     if inline:
         _emit_figures_from_inline(inline, span, blocks)
-    blocks.append(Heading(id=next_id(blocks, "h"), level=level, text=title, span=span))
+    blocks.append(Heading(id=next_id("h"), level=level, text=title, span=span))
 
 
 def handle_paragraph(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
@@ -244,7 +244,7 @@ def handle_paragraph(cursor: TokenCursor, path: Path, byte_starts: List[int], bl
         if _inline_is_image_only(inline):
             return
     content = _norm(inline.content) if inline and inline.content else ""
-    blocks.append(Paragraph(id=next_id(blocks, "p"), text=content, span=span))
+    blocks.append(Paragraph(id=next_id("p"), text=content, span=span))
 
 
 def handle_fence(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
@@ -255,7 +255,7 @@ def handle_fence(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks
     span = build_span(path, tok, byte_starts)
     blocks.append(
         CodeBlock(
-            id=next_id(blocks, "c"),
+            id=next_id("c"),
             language=(tok.info or "").strip() or None,
             text=tok.content,
             span=span,
@@ -269,6 +269,7 @@ def _parse_list_block(cursor: TokenCursor, path: Path, byte_starts: List[int], b
     tok_open = cursor.current()
     is_ordered = tok_open.type == "ordered_list_open"
     span = build_span(path, tok_open, byte_starts)
+    list_id = next_id("l")
 
     start: Optional[int] = None
     if is_ordered and getattr(tok_open, "attrs", None):
@@ -329,7 +330,7 @@ def _parse_list_block(cursor: TokenCursor, path: Path, byte_starts: List[int], b
         idx += 1
 
     return ListBlock(
-        id="l-0",  # TODO: better id assignment
+        id=list_id,
         ordered=is_ordered,
         start=start,
         items=items,
@@ -338,9 +339,7 @@ def _parse_list_block(cursor: TokenCursor, path: Path, byte_starts: List[int], b
 
 
 def handle_list(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
-    lst = _parse_list_block(cursor, path, byte_starts, blocks)
-    lst.id = next_id(blocks, "l")
-    blocks.append(lst)
+    blocks.append(_parse_list_block(cursor, path, byte_starts, blocks))
 
 
 def handle_blockquote(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
@@ -357,7 +356,7 @@ def handle_blockquote(cursor: TokenCursor, path: Path, byte_starts: List[int], b
             _emit_figures_from_inline(t, span, blocks)
             if t.content:
                 parts.append(t.content)
-    blocks.append(Quote(id=next_id(blocks, "q"), text=_norm(" ".join(parts)), span=span))
+    blocks.append(Quote(id=next_id("q"), text=_norm(" ".join(parts)), span=span))
 
 def handle_table(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
     tok_open = cursor.current()
@@ -422,7 +421,7 @@ def handle_table(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks
 
     blocks.append(
         Table(
-            id=next_id(blocks, "t"),
+            id=next_id("t"),
             header=header or None,
             rows=rows or None,
             span=span,

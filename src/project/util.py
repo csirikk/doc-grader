@@ -1,5 +1,7 @@
-from typing import List, Any
+_counters = {}
 
-# Generate unique id with a prefix
-def next_id(blocks: List[Any], prefix: str) -> str:
-    return f"{prefix}-{len(blocks)+1}"
+def next_id(prefix: str) -> str:
+    """Return the next sequential id for the given prefix."""
+    n = _counters.get(prefix, 0) + 1
+    _counters[prefix] = n
+    return f"{prefix}-{n}"
