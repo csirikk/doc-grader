@@ -15,11 +15,12 @@ from ..ir import (
     ListItem,
     Quote,
     Figure,
+    Table,
 )
 from ..util import next_id
 
 # global parser instance
-md = MarkdownIt("commonmark")
+md = MarkdownIt("commonmark").enable('table')
 
 # Utilities ---------------------------------------------------------------------------
 
@@ -358,6 +359,76 @@ def handle_blockquote(cursor: TokenCursor, path: Path, byte_starts: List[int], b
                 parts.append(t.content)
     blocks.append(Quote(id=next_id(blocks, "q"), text=_norm(" ".join(parts)), span=span))
 
+def handle_table(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
+    tok_open = cursor.current()
+    if not tok_open:
+        cursor.advance(1)
+        return
+
+    # table_open, ... , table_close
+    span = build_span(path, tok_open, byte_starts)
+    inside = consume_container(cursor, "table_open", "table_close")
+
+    header: Optional[List[str]] = None
+    rows: List[List[str]] = []
+
+    idx = 0
+    def _collect_cells_for_row(idx: int, cell_open_type: str, cell_close_type: str) -> Tuple[List[str], int]:
+        cells: List[str] = []
+        # cell_open, inline, cell_close
+        while idx < len(inside) and inside[idx].type != "tr_close":
+            if inside[idx].type == cell_open_type:
+                # one cell
+                jdx = idx + 1
+                parts: List[str] = []
+                while jdx < len(inside) and inside[jdx].type != cell_close_type:
+                    if inside[jdx].type == "inline" and inside[jdx].content:
+                        parts.append(inside[jdx].content)
+                    jdx += 1
+                cells.append(_norm(" ".join(parts)))
+                idx = jdx + 1  # skip cell_close
+            else:
+                idx += 1
+        return cells, idx
+
+    while idx < len(inside):
+        tok = inside[idx]
+
+        if tok.type == "thead_open":
+            idx += 1
+            while idx < len(inside) and inside[idx].type != "thead_close":
+                if inside[idx].type == "tr_open":
+                    idx += 1
+                    cells, idx = _collect_cells_for_row(idx, "th_open", "th_close")
+                    header = cells
+                else:
+                    idx += 1
+            idx += 1
+            continue
+
+        if tok.type == "tbody_open":
+            idx += 1
+            while idx < len(inside) and inside[idx].type != "tbody_close":
+                if inside[idx].type == "tr_open":
+                    idx += 1
+                    cells, idx = _collect_cells_for_row(idx, "td_open", "td_close")
+                    rows.append(cells)
+                else:
+                    idx += 1
+            idx += 1
+            continue
+
+        idx += 1
+
+    blocks.append(
+        Table(
+            id=next_id(blocks, "t"),
+            header=header or None,
+            rows=rows or None,
+            span=span,
+        )
+    )
+
 
 # Map ---------------------------------------------------------------------------
 
@@ -368,6 +439,7 @@ HANDLERS = {
     "bullet_list_open": handle_list,
     "ordered_list_open": handle_list,
     "blockquote_open": handle_blockquote,
+    "table_open": handle_table,
 }
 
 
