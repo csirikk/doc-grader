@@ -444,15 +444,15 @@ HANDLERS = {
 
 # Main ---------------------------------------------------------------------------
 
-def parse_markdown(path: Path) -> Document:
+def parse_markdown(path: Path, debug: bool = False) -> Document:
     text = path.read_text(encoding="utf-8")
     tokens = md.parse(text)
     byte_starts = compute_byte_starts(text)
 
-    # DEBUG
-    for idx, tok in enumerate(tokens):
-        print(f"--- token {idx} ---")
-        pprint.pp(tok.as_dict())
+    if debug:
+        for idx, tok in enumerate(tokens):
+            print(f"--- token {idx} ---")
+            pprint.pp(tok.as_dict())
 
     blocks: List = []
     cursor = TokenCursor(tokens)
