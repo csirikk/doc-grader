@@ -1,15 +1,26 @@
 import pprint
-
 from pathlib import Path
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
+
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
-from ..ir import Document, Paragraph, Span, Heading, CodeBlock, ListBlock, ListItem, Quote
+from ..ir import (
+    Document,
+    Paragraph,
+    Span,
+    Heading,
+    CodeBlock,
+    ListBlock,
+    ListItem,
+    Quote,
+)
 from ..util import next_id
 
 # global parser instance
-md = MarkdownIt("commonmark") # no plugins yet
+md = MarkdownIt("commonmark")
+
+# Utilities ---------------------------------------------------------------------------
 
 def compute_byte_starts(text: str) -> List[int]:
     """Return UTF-8 byte offsets at each line start (0-based)."""
@@ -33,65 +44,240 @@ def build_span(path: Path, tok: Token, byte_starts: List[int]) -> Span:
         byte_end=byte_starts[e],
     )
 
+def _norm(text: str) -> str:
+    """Normalize whitespace."""
+    return " ".join((text or "").split())
 
-def _parse_list(tokens: List[Token], idx_outer: int, path: Path, byte_starts: List[int]) -> Tuple[ListBlock, int]:
-    """Parse a list starting at tokens[idx_outer] (a list_open). Returns (ListBlock, index_after_close)."""
-    tok_list_open = tokens[idx_outer]
-    is_ordered = (tok_list_open.type == "ordered_list_open")
-    span = build_span(path, tok_list_open, byte_starts)
+
+# Token handling ---------------------------------------------------------------------------
+
+class TokenCursor:
+    """Tiny cursor to navigate markdown-it tokens."""
+    def __init__(self, tokens: List[Token], i: int = 0):
+        self.tokens = tokens
+        self.i = i
+
+    def current(self) -> Optional[Token]:
+        return self.tokens[self.i] if self.i < len(self.tokens) else None
+
+    def peek(self, k: int = 1) -> Optional[Token]:
+        j = self.i + k
+        return self.tokens[j] if j < len(self.tokens) else None
+
+    def advance(self, n: int = 1) -> None:
+        self.i = min(self.i + n, len(self.tokens))
+
+    def is_at_end(self) -> bool:
+        return self.i >= len(self.tokens)
+
+
+def consume_triplet(cursor: TokenCursor, open_type: str, close_type: str) -> Tuple[Optional[Token], Optional[Token]]:
+    """
+    Consume a block shaped as: open_type, (optional inline), close_type. Advances the cursor past the close token.
+    Returns (open_tok, inline_tok_or_None).
+    """
+    t0 = cursor.current()
+    if not t0 or t0.type != open_type:
+        # advance one to avoid loop on malformed/unexpected tokens
+        cursor.advance(1)
+        return t0, None
+
+    has_inline = cursor.peek(1) is not None and cursor.peek(1).type == "inline"
+    if has_inline and cursor.peek(2) is not None and cursor.peek(2).type == close_type:
+        open_tok = t0
+        inline_tok = cursor.peek(1)
+        cursor.advance(3)
+        return open_tok, inline_tok
+
+    if (not has_inline) and cursor.peek(1) is not None and cursor.peek(1).type == close_type:
+        open_tok = t0
+        cursor.advance(2)
+        return open_tok, None
+
+    # Unexpected -> advance one and return
+    cursor.advance(1)
+    return t0, None
+
+
+def consume_container(cursor: TokenCursor, open_type: str, close_type: str) -> List[Token]:
+    """
+    Consume a container block from open_type to its matching close_type (inclusive), 
+    returning the list of tokens inside the container (excluding the close). Advances the cursor to just after the close.
+    """
+    inside: List[Token] = []
+    t0 = cursor.current()
+    if not t0 or t0.type != open_type:
+        # advance one to avoid loop on malformed/unexpected tokens
+        cursor.advance(1)
+        return inside
+
+    depth = 0
+    cursor.advance(1)  # move past the _open
+
+    while not cursor.is_at_end():
+        tok = cursor.current()
+        if tok.type == open_type:
+            depth += 1
+            inside.append(tok)
+            cursor.advance(1)
+            continue
+        if tok.type == close_type:
+            if depth == 0:
+                # consume the close and stop
+                cursor.advance(1)
+                break
+            # keep going
+            depth -= 1
+            inside.append(tok)
+            cursor.advance(1)
+            continue
+        inside.append(tok)
+        cursor.advance(1)
+
+    return inside
+
+
+# Handlers (each consumes from the cursor and appends IR blocks) ---------------------------------------------------------------------------
+
+def handle_heading(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
+    open_tok, inline = consume_triplet(cursor, "heading_open", "heading_close")
+    if not open_tok:
+        return
+    span = build_span(path, open_tok, byte_starts)
+    level = int(open_tok.tag[1])  # 'h1' -> 1
+    title = inline.content if inline else ""
+    blocks.append(Heading(id=next_id(blocks, "h"), level=level, text=title, span=span))
+
+
+def handle_paragraph(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
+    open_tok, inline = consume_triplet(cursor, "paragraph_open", "paragraph_close")
+    if not open_tok:
+        return
+    span = build_span(path, open_tok, byte_starts)
+    content = _norm(inline.content) if inline and inline.content else ""
+    blocks.append(Paragraph(id=next_id(blocks, "p"), text=content, span=span))
+
+
+def handle_fence(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
+    tok = cursor.current()
+    if not tok:
+        cursor.advance(1)
+        return
+    span = build_span(path, tok, byte_starts)
+    blocks.append(
+        CodeBlock(
+            id=next_id(blocks, "c"),
+            language=(tok.info or "").strip() or None,
+            text=tok.content,
+            span=span,
+        )
+    )
+    cursor.advance(1)
+
+
+def _parse_list_block(cursor: TokenCursor, path: Path, byte_starts: List[int]) -> ListBlock:
+    """Parse a list at the current cursor (assumes *_list_open). Returns a ListBlock and advances past close."""
+    tok_open = cursor.current()
+    is_ordered = tok_open.type == "ordered_list_open"
+    span = build_span(path, tok_open, byte_starts)
+
     start: Optional[int] = None
-    if is_ordered and getattr(tok_list_open, "attrs", None):
+    if is_ordered and getattr(tok_open, "attrs", None):
         try:
-            start = int(tok_list_open.attrs.get("start")) if tok_list_open.attrs.get("start") is not None else None
+            start = int(tok_open.attrs.get("start")) if tok_open.attrs.get("start") is not None else None
         except Exception:
             start = None
 
     items: List[ListItem] = []
-    idx_inner = idx_outer + 1
-    close_type = "ordered_list_close" if is_ordered else "bullet_list_close"
 
-    while idx_inner < len(tokens) and tokens[idx_inner].type != close_type:
-        if tokens[idx_inner].type == "list_item_open":
-            item_span = build_span(path, tokens[idx_inner], byte_starts)
-            idx_child = idx_inner + 1
-            nested_depth = 0
+    # Consume the container and process its inner tokens
+    inside = consume_container(
+        cursor,
+        "ordered_list_open" if is_ordered else "bullet_list_open",
+        "ordered_list_close" if is_ordered else "bullet_list_close",
+    )
+
+    idx = 0
+    while idx < len(inside):
+        child_tok = inside[idx]
+        if child_tok.type == "list_item_open":
+            # consume one list item
+            subcur = TokenCursor(inside, idx)
+            item_tokens = consume_container(subcur, "list_item_open", "list_item_close")
+            idx = subcur.i  # move idx to after the list_item_close within 'inside'
+
+            item_span = build_span(path, child_tok, byte_starts)
             parts: List[str] = []
             sublists: List[ListBlock] = []
+            child_idx = 0
+            while child_idx < len(item_tokens):
+                child_tok = item_tokens[child_idx]
+                if child_tok.type in ("bullet_list_open", "ordered_list_open"):
+                    # recursive dive into nested list
+                    nested_cur = TokenCursor(item_tokens, child_idx)
+                    sublist = _parse_list_block(nested_cur, path, byte_starts)
+                    sublists.append(sublist)
+                    child_idx = nested_cur.i
+                    continue
+                if child_tok.type == "inline" and child_tok.content:
+                    parts.append(child_tok.content)
+                child_idx += 1
 
-            while idx_child < len(tokens) and tokens[idx_child].type != "list_item_close":
-                tok_inner = tokens[idx_child]
-                if tok_inner.type in ("bullet_list_open", "ordered_list_open"):
-                    nested_depth += 1
-                    if nested_depth == 1:
-                        sublist, idx_child = _parse_list(tokens, idx_child, path, byte_starts)
-                        sublists.append(sublist)
-                        continue
-                elif tok_inner.type in ("bullet_list_close", "ordered_list_close"):
-                    nested_depth -= 1
-
-                if nested_depth == 0 and tok_inner.type == "inline" and tok_inner.content:
-                    parts.append(tok_inner.content)
-                idx_child += 1
-
-            item = ListItem(
-                text=" ".join(" ".join(parts).split()),
-                span=item_span,
-                sublists=sublists or None,
+            items.append(
+                ListItem(
+                    text=_norm(" ".join(parts)),
+                    span=item_span,
+                    sublists=sublists or None,
+                )
             )
-            items.append(item)
-            idx_inner = idx_child + 1
-        else:
-            idx_inner += 1
+            continue
 
-    list_block = ListBlock(
-        id=f"l-{len(items)}-{(span.line_start or 0)}",
+        # advance one to avoid loop on malformed/unexpected tokens
+        idx += 1
+
+    return ListBlock(
+        id="l-0",  # TODO: better id assignment
         ordered=is_ordered,
         start=start,
         items=items,
         span=span,
     )
-    idx_after = idx_inner + 1
-    return list_block, idx_after
+
+
+def handle_list(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
+    lst = _parse_list_block(cursor, path, byte_starts)
+    lst.id = next_id(blocks, "l")
+    blocks.append(lst)
+
+
+def handle_blockquote(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
+    tok_open = cursor.current()
+    if not tok_open:
+        cursor.advance(1)
+        return
+    span = build_span(path, tok_open, byte_starts)
+
+    inside = consume_container(cursor, "blockquote_open", "blockquote_close")
+    parts: List[str] = []
+    for t in inside:
+        if t.type == "inline" and t.content:
+            parts.append(t.content)
+    blocks.append(Quote(id=next_id(blocks, "q"), text=_norm(" ".join(parts)), span=span))
+
+
+# Map ---------------------------------------------------------------------------
+
+HANDLERS = {
+    "heading_open": handle_heading,
+    "paragraph_open": handle_paragraph,
+    "fence": handle_fence,
+    "bullet_list_open": handle_list,
+    "ordered_list_open": handle_list,
+    "blockquote_open": handle_blockquote,
+}
+
+
+# Main ---------------------------------------------------------------------------
 
 def parse_markdown(path: Path) -> Document:
     text = path.read_text(encoding="utf-8")
@@ -99,99 +285,21 @@ def parse_markdown(path: Path) -> Document:
     byte_starts = compute_byte_starts(text)
 
     # DEBUG
-    for idx, tok_outer in enumerate(tokens):
+    for idx, tok in enumerate(tokens):
         print(f"--- token {idx} ---")
-        pprint.pp(tok_outer.as_dict())
+        pprint.pp(tok.as_dict())
 
-    blocks = []
-    idx_outer = 0
-    while idx_outer < len(tokens):
-        tok_outer = tokens[idx_outer]
+    blocks: List = []
+    cursor = TokenCursor(tokens)
 
-        # Headings: heading_open, inline, heading_close
-        if tok_outer.type == "heading_open":
-            inline = tokens[idx_outer + 1] if idx_outer + 1 < len(tokens) and tokens[idx_outer + 1].type == "inline" else None
-            title = inline.content if inline else ""
-            span = build_span(path, tok_outer, byte_starts)
-            level = int(tok_outer.tag[1])  # 'h1' -> 1
-            blocks.append(Heading(
-                id=next_id(blocks, "h"),
-                level=level,
-                text=title,
-                span=span,
-            ))
-            idx_outer += 3
-            continue
-
-        # Paragraphs: paragraph_open, inline, paragraph_close
-        if tok_outer.type == "paragraph_open":
-            inline = tokens[idx_outer + 1] if idx_outer + 1 < len(tokens) and tokens[idx_outer + 1].type == "inline" else None
-            content = inline.content if inline else ""
-            span = build_span(path, tok_outer, byte_starts)
-            # normalize internal whitespace a bit
-            content = " ".join(content.split())
-            blocks.append(Paragraph(
-                id=next_id(blocks, "p"),
-                text=content,
-                span=span,
-            ))
-            idx_outer += 3
-            continue
-        
-        # Codeblocks: fence
-        if tok_outer.type == "fence":
-            span = build_span(path, tok_outer, byte_starts)
-            blocks.append(CodeBlock(
-                id=next_id(blocks, "c"),
-                language=(tok_outer.info or "").strip() or None,
-                text=tok_outer.content,
-                span=span,
-            ))
-            idx_outer += 1
-            continue
-
-        # Lists
-        if tok_outer.type in ("bullet_list_open", "ordered_list_open"):
-            list_block, idx_after = _parse_list(tokens, idx_outer, path, byte_starts)
-            # assign id for top-level list block consistently
-            list_block.id = next_id(blocks, "l")
-            blocks.append(list_block)
-            idx_outer = idx_after
-            continue
-
-        # Quotes
-        if tok_outer.type == "blockquote_open":
-            span = build_span(path, tok_outer, byte_starts)
-            idx_inner = idx_outer + 1
-            text_parts: list[str] = []
-            while idx_inner < len(tokens) and tokens[idx_inner].type != "blockquote_close":
-                if tokens[idx_inner].type == "inline":
-                    text_parts.append(tokens[idx_inner].content)
-                idx_inner += 1
-            text = " ".join(" ".join(text_parts).split())
-            blocks.append(Quote(
-                id=next_id(blocks, "q"),
-                text=text,
-                span=span,
-            ))
-            idx_outer = idx_inner + 1
-            continue
-
-
-        idx_outer += 1
-
-    if not blocks: # just a fallback: whole doc becomes 1 block
-        lines = text.splitlines()
-        blocks.append(Paragraph(
-            id="p-1",
-            text=text.strip(),
-            span=Span(
-                source_path=str(path),
-                line_start=1,
-                line_end=len(lines) if lines else 1,
-                byte_start=0,   
-                byte_end=len(text.encode("utf-8")),
-            ),
-        ))
+    while not cursor.is_at_end():
+        tok = cursor.current()
+        if not tok:
+            break
+        handler = HANDLERS.get(tok.type)
+        if handler:
+            handler(cursor, path, byte_starts, blocks)
+        else:
+            cursor.advance(1)
 
     return Document(source_path=str(path), blocks=blocks)
