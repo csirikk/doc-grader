@@ -1,8 +1,8 @@
-# Spec v1 - 21. 8. 2025
+# Spec v2 - 27. 8. 2025
 
-**Název:** Nástroj pro asistenci při hodnocení studentských projektů
+**Název:** Inteligentní nástroj pro efektivní hodnocení dokumentací studentských projektů
 
-**Název anglicky:** A tool for assistance with student projects assessment
+**Název anglicky:** Intelligent tool for effective assessment of student project documentations
 
 **Ak. rok:** 2025/2026
 
