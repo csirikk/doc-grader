@@ -11,19 +11,11 @@
 % zpracování / processing: make, make pdf, make clean
 %==============================================================================
 % Soubory, které je nutné upravit nebo smazat: / Files which have to be edited or deleted:
-<<<<<<<< HEAD:thesis/xcsirim00.tex
 %   xcsirim00-20-literatura-bibliography.bib - literatura / bibliography
 %   xcsirim00-01-kapitoly-chapters.tex - obsah práce / the thesis content
 %   xcsirim00-01-kapitoly-chapters-en.tex - obsah práce v angličtině / the thesis content in English
 %   xcsirim00-30-prilohy-appendices.tex - přílohy / appendices
 %   xcsirim00-30-prilohy-appendices-en.tex - přílohy v angličtině / appendices in English
-========
-%   xcsirim00-20-literatura-bibliography.bib - literatura / bibliography
-%   xcsirim00-01-kapitoly-chapters.tex - obsah práce / the thesis content
-%   xcsirim00-01-kapitoly-chapters-en.tex - obsah práce v angličtině / the thesis content in English
-%   xcsirim00-30-prilohy-appendices.tex - přílohy / appendices
-%   xcsirim00-30-prilohy-appendices-en.tex - přílohy v angličtině / appendices in English
->>>>>>>> f98a60ba385871917e2e624b6f1def14c6e4d916:thesis/xcsirim00-A-tool-for-assistance-with-student-projects-assessment.tex
 %==============================================================================
 % \documentclass[]{fitthesis} % bez zadání - pro začátek práce, aby nebyl problém s překladem
 \documentclass[english,odsaz]{fitthesis} % without assignment - for the work start to avoid compilation problem
@@ -130,8 +122,8 @@
   year={2025},             % rok odevzdání / year of submission
   date=\today,             % datum odevzdání / submission date
   %Nazev prace / thesis title
-  title.cs={Nástroj pro asistenci při hodnocení studentských projektů},  % název práce v češtině či slovenštině (dle zadání) / thesis title in czech language (according to assignment)
-  title.en={A tool for assistance with student projects assessment}, % název práce v angličtině / thesis title in english
+  title.cs={Inteligentní nástroj pro efektivní hodnocení dokumentací studentských projektů},  % název práce v češtině či slovenštině (dle zadání) / thesis title in czech language (according to assignment)
+  title.en={Intelligent Tool for Effective Assessment of Student Project Documentation}, % název práce v angličtině / thesis title in english
   %title.length={14.5cm}, % nastavení délky bloku s titulkem pro úpravu zalomení řádku (lze definovat zde nebo níže) / setting the length of a block with a thesis title for adjusting a line break (can be defined here or below)
   %sectitle.length={14.5cm}, % nastavení délky bloku s druhým titulkem pro úpravu zalomení řádku (lze definovat zde nebo níže) / setting the length of a block with a second thesis title for adjusting a line break (can be defined here or below)
   %dectitle.length={14.5cm}, % nastavení délky bloku s titulkem nad prohlášením pro úpravu zalomení řádku (lze definovat zde nebo níže) / setting the length of a block with a thesis title above declaration for adjusting a line break (can be defined here or below)
@@ -277,15 +269,9 @@ Uvedl jsem všechny literární prameny, publikace a další zdroje, ze kterých
   % Text prace / Thesis text
   % ----------------------------------------------
   \ifenglish
-<<<<<<<< HEAD:thesis/xcsirim00.tex
     \input{xcsirim00-01-kapitoly-chapters-en}
   \else
     \input{xcsirim00-01-kapitoly-chapters}
-========
-    \input{xcsirim00-01-kapitoly-chapters-en}
-  \else
-    \input{xcsirim00-01-kapitoly-chapters}
->>>>>>>> f98a60ba385871917e2e624b6f1def14c6e4d916:thesis/xcsirim00-A-tool-for-assistance-with-student-projects-assessment.tex
   \fi
   
   % Kompilace po částech (viz výše, nutno odkomentovat a zakomentovat input výše)
@@ -316,11 +302,7 @@ Uvedl jsem všechny literární prameny, publikace a další zdroje, ze kterých
   \fi
 \fi
   \begin{flushleft}
-<<<<<<<< HEAD:thesis/xcsirim00.tex
   \bibliography{xcsirim00-20-literatura-bibliography}
-========
-  \bibliography{xcsirim00-20-literatura-bibliography}
->>>>>>>> f98a60ba385871917e2e624b6f1def14c6e4d916:thesis/xcsirim00-A-tool-for-assistance-with-student-projects-assessment.tex
   \end{flushleft}
 
   % vynechani stranky v oboustrannem rezimu
@@ -380,23 +362,13 @@ Uvedl jsem všechny literární prameny, publikace a další zdroje, ze kterých
   
   % Přílohy / Appendices
   \ifenglish
-<<<<<<<< HEAD:thesis/xcsirim00.tex
     \input{xcsirim00-30-prilohy-appendices-en}
   \else
     \input{xcsirim00-30-prilohy-appendices}
-========
-    \input{xcsirim00-30-prilohy-appendices-en}
-  \else
-    \input{xcsirim00-30-prilohy-appendices}
->>>>>>>> f98a60ba385871917e2e624b6f1def14c6e4d916:thesis/xcsirim00-A-tool-for-assistance-with-student-projects-assessment.tex
   \fi
   
   % Kompilace po částech (viz výše, nutno odkomentovat)
   % Compilation piecewise (see above, it is necessary to uncomment it)
-<<<<<<<< HEAD:thesis/xcsirim00.tex
   %\subfile{xcsirim00-30-prilohy-appendices}
-========
-  %\subfile{xcsirim00-30-prilohy-appendices}
->>>>>>>> f98a60ba385871917e2e624b6f1def14c6e4d916:thesis/xcsirim00-A-tool-for-assistance-with-student-projects-assessment.tex
   
 \end{document}
