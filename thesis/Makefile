@@ -5,7 +5,7 @@
 # Edited by: dytrych AT fit vut cz
 #===========================================
 # asi budete chtit prejmenovat / you will probably rename:
-CO=xcsirim00-A-tool-for-assistance-with-student-projects-assessment
+CO=xcsirim00
 
 all: $(CO).pdf
 

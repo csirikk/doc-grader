@@ -11,11 +11,11 @@
 % zpracování / processing: make, make pdf, make clean
 %==============================================================================
 % Soubory, které je nutné upravit nebo smazat: / Files which have to be edited or deleted:
-%   xcsirim00-A-tool-for-assistance-with-student-projects-assessment-20-literatura-bibliography.bib - literatura / bibliography
-%   xcsirim00-A-tool-for-assistance-with-student-projects-assessment-01-kapitoly-chapters.tex - obsah práce / the thesis content
-%   xcsirim00-A-tool-for-assistance-with-student-projects-assessment-01-kapitoly-chapters-en.tex - obsah práce v angličtině / the thesis content in English
-%   xcsirim00-A-tool-for-assistance-with-student-projects-assessment-30-prilohy-appendices.tex - přílohy / appendices
-%   xcsirim00-A-tool-for-assistance-with-student-projects-assessment-30-prilohy-appendices-en.tex - přílohy v angličtině / appendices in English
+%   xcsirim00-20-literatura-bibliography.bib - literatura / bibliography
+%   xcsirim00-01-kapitoly-chapters.tex - obsah práce / the thesis content
+%   xcsirim00-01-kapitoly-chapters-en.tex - obsah práce v angličtině / the thesis content in English
+%   xcsirim00-30-prilohy-appendices.tex - přílohy / appendices
+%   xcsirim00-30-prilohy-appendices-en.tex - přílohy v angličtině / appendices in English
 %==============================================================================
 % \documentclass[]{fitthesis} % bez zadání - pro začátek práce, aby nebyl problém s překladem
 \documentclass[english,odsaz]{fitthesis} % without assignment - for the work start to avoid compilation problem
@@ -269,9 +269,9 @@ Uvedl jsem všechny literární prameny, publikace a další zdroje, ze kterých
   % Text prace / Thesis text
   % ----------------------------------------------
   \ifenglish
-    \input{xcsirim00-A-tool-for-assistance-with-student-projects-assessment-01-kapitoly-chapters-en}
+    \input{xcsirim00-01-kapitoly-chapters-en}
   \else
-    \input{xcsirim00-A-tool-for-assistance-with-student-projects-assessment-01-kapitoly-chapters}
+    \input{xcsirim00-01-kapitoly-chapters}
   \fi
   
   % Kompilace po částech (viz výše, nutno odkomentovat a zakomentovat input výše)
@@ -302,7 +302,7 @@ Uvedl jsem všechny literární prameny, publikace a další zdroje, ze kterých
   \fi
 \fi
   \begin{flushleft}
-  \bibliography{xcsirim00-A-tool-for-assistance-with-student-projects-assessment-20-literatura-bibliography}
+  \bibliography{xcsirim00-20-literatura-bibliography}
   \end{flushleft}
 
   % vynechani stranky v oboustrannem rezimu
@@ -362,13 +362,13 @@ Uvedl jsem všechny literární prameny, publikace a další zdroje, ze kterých
   
   % Přílohy / Appendices
   \ifenglish
-    \input{xcsirim00-A-tool-for-assistance-with-student-projects-assessment-30-prilohy-appendices-en}
+    \input{xcsirim00-30-prilohy-appendices-en}
   \else
-    \input{xcsirim00-A-tool-for-assistance-with-student-projects-assessment-30-prilohy-appendices}
+    \input{xcsirim00-30-prilohy-appendices}
   \fi
   
   % Kompilace po částech (viz výše, nutno odkomentovat)
   % Compilation piecewise (see above, it is necessary to uncomment it)
-  %\subfile{xcsirim00-A-tool-for-assistance-with-student-projects-assessment-30-prilohy-appendices}
+  %\subfile{xcsirim00-30-prilohy-appendices}
   
 \end{document}
