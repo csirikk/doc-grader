@@ -105,6 +105,13 @@ class BlockRef(BaseModel):
     notes: Optional[str] = None
     model_config = dict(extra="forbid")
 
+    @field_validator("snippet")
+    @classmethod
+    def _limit_snippet(cls, v: Optional[str]):
+        if v is not None and len(v) > 300:
+            return v[:300] + "…"
+        return v
+
 
 class TextSpan(BaseModel):
     type: Literal["TextSpan"] = "TextSpan"
@@ -224,7 +231,7 @@ class Finding(BaseModel):
         if self.doc_id != self.document.hash:
             raise ValueError("doc_id must equal document.hash")
         # detector code consistency
-        if self.code != (self.detector.code or "").upper():
+        if (self.code or "").strip().upper() != (self.detector.code or "").strip().upper():
             raise ValueError("code must equal detector.code (case-insensitive)")
         return self
 
