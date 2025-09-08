@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
-from ..ir import (
+from ..schemas.ir import (
     Document,
     Paragraph,
     Span,
