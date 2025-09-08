@@ -1,5 +1,5 @@
 from typing import Annotated, Literal, Optional, Union, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 class Span(BaseModel):
     source_path: str
@@ -7,6 +7,24 @@ class Span(BaseModel):
     line_end: Optional[int] = None
     byte_start: Optional[int] = None
     byte_end: Optional[int] = None
+    page: Optional[int] = None # for PDFs
+    model_config = dict(extra="forbid")
+
+    @field_validator("line_end")
+    @classmethod
+    def _line_end_ge_start(cls, v, info):
+        ls = info.data.get("line_start")
+        if v is not None and ls is not None and v < ls:
+            raise ValueError("line_end must be >= line_start")
+        return v
+
+    @field_validator("byte_end")
+    @classmethod
+    def _byte_end_ge_start(cls, v, info):
+        bs = info.data.get("byte_start")
+        if v is not None and bs is not None and v < bs:
+            raise ValueError("byte_end must be >= byte_start")
+        return v
 
 class Heading(BaseModel):
     type: Literal["Heading"] = "Heading"
@@ -14,17 +32,20 @@ class Heading(BaseModel):
     level: int
     text: str
     span: Span
+    model_config = dict(extra="forbid")
 
 class Paragraph(BaseModel):
     type: Literal["Paragraph"] = "Paragraph"
     id: str
     text: str
     span: Span
+    model_config = dict(extra="forbid")
 
 class ListItem(BaseModel):
     text: str
     sublists: Optional[List["ListBlock"]] = None
     span: Optional[Span] = None
+    model_config = dict(extra="forbid")
 
 class ListBlock(BaseModel):
     type: Literal["List"] = "List"
@@ -33,6 +54,7 @@ class ListBlock(BaseModel):
     start: Optional[int] = None
     items: List[ListItem]
     span: Span
+    model_config = dict(extra="forbid")
 
 class CodeBlock(BaseModel):
     type: Literal["CodeBlock"] = "CodeBlock"
@@ -40,12 +62,14 @@ class CodeBlock(BaseModel):
     language: Optional[str] = None
     text: str
     span: Span
+    model_config = dict(extra="forbid")
 
 class Quote(BaseModel):
     type: Literal["Quote"] = "Quote"
     id: str
     text: str
     span: Span
+    model_config = dict(extra="forbid")
 
 class Table(BaseModel):
     type: Literal["Table"] = "Table"
@@ -53,6 +77,7 @@ class Table(BaseModel):
     header: Optional[List[str]] = None
     rows: Optional[List[List[str]]] = None
     span: Span
+    model_config = dict(extra="forbid")
 
 class Figure(BaseModel):
     type: Literal["Figure"] = "Figure"
@@ -63,6 +88,7 @@ class Figure(BaseModel):
     title: Optional[str] = None
     caption: Optional[str] = None
     span: Span
+    model_config = dict(extra="forbid")
 
 Block = Annotated[
     Union[Heading, Paragraph, ListBlock, CodeBlock, Quote, Table, Figure],
@@ -74,6 +100,7 @@ class Document(BaseModel):
     source_path: str
     meta: Optional[dict] = None
     blocks: List[Block]
+    model_config = dict(extra="forbid")
 
 # test ---------------------------------------------------------------
 if __name__ == "__main__":
