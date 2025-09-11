@@ -146,7 +146,7 @@ class LengthDetector(BaseDetector):
                     doc=doc,
                     doc_hash_value=doc_hash_value,
                     slug="too-long",
-                    title=":Likely too long or verbose",
+                    title="Likely too long or verbose",
                     message=message,
                     severity="info",
                     confidence=confidence,
