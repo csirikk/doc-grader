@@ -18,6 +18,7 @@ from ..schemas.ir import (
     Table,
 )
 from ..util import next_id
+from .. import logger
 
 # global parser instance
 md = MarkdownIt("commonmark").enable('table')
@@ -444,15 +445,14 @@ HANDLERS = {
 
 # Main ---------------------------------------------------------------------------
 
-def parse_markdown(path: Path, debug: bool = False) -> Document:
+def parse_markdown(path: Path) -> Document:
     text = path.read_text(encoding="utf-8")
     tokens = md.parse(text)
     byte_starts = compute_byte_starts(text)
 
-    if debug:
-        for idx, tok in enumerate(tokens):
-            print(f"--- token {idx} ---")
-            pprint.pp(tok.as_dict())
+    for idx, tok in enumerate(tokens):
+        logger.debug("token %d type=%s map=%s nesting=%s", idx, tok.type, getattr(tok, 'map', None), getattr(tok, 'nesting', None))
+        logger.debug("token %d full=%s", idx, tok.as_dict())
 
     blocks: List = []
     cursor = TokenCursor(tokens)
