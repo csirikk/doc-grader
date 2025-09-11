@@ -36,12 +36,19 @@ def _run_pipeline(doc: Document, *, outdir: Path, detectors: Optional[List[BaseD
 
 def parse_input_to_document(path: Path) -> Optional[Document]:
     ext = path.suffix.lower()
-    if ext in {".md", ".markdown"}:
-        debug("parsing markdown file %s", path)
-        return parse_markdown(path)
-    if ext == ".pdf":
-        debug("TODO: not yet implemented, trying to parse pdf file %s", path)
-        return parse_pdf(path)
+    if not path.exists():
+        print(f"Missing file: {path}")
+        return None
+    try:
+        if ext in {".md", ".markdown"}:
+            debug("parsing markdown file %s", path)
+            return parse_markdown(path)
+        if ext == ".pdf":
+            debug("TODO: not yet implemented, trying to parse pdf file %s", path)
+            return parse_pdf(path)
+    except Exception as e:
+        print(f"Error parsing {path}: {e}")
+        debug("Exception while parsing %s: %s", path, e)
     return None
 
 
