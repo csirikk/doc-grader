@@ -155,9 +155,4 @@ class LengthDetector(BaseDetector):
                 )
             )
 
-        # debug 
-        # print(stats_evidence)
-        # print(findings)
-        # print("confidence:", [f.confidence for f in findings])
-
         return findings
