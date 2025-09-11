@@ -1,64 +1,47 @@
-"""__main__.py
-CLI entry point for the tool.
-
-Usage examples:
-    python -m project doc.md
-    python -m project doc.md other.md third.md --out findings_out
-    python -m project assignment.pdf   # (PDF handler placeholder)
-
-Notes:
-- Always runs detector pipeline for Markdown
-- Designed for easy extension: append detectors to the `detectors` list.
-"""
-
-import sys
 import argparse
 from pathlib import Path
 import json
-from typing import List
+from typing import List, Optional
 
 from .parsers.md_parser import parse_markdown
+from .parsers.pdf_parser import parse_pdf
 from .detectors.length_detector import LengthDetector
 from .detectors.base_detector import BaseDetector
-from .schemas.ir import Document, Paragraph, Span
+from .schemas.ir import Document
 from .util import doc_hash, summarize_document, print_findings
+from .logger import set_debug, debug
 
 
-def _process_markdown(path: Path, *, debug: bool, outdir: Path) -> int:
-    doc = parse_markdown(path, debug=debug)
+def _run_pipeline(doc: Document, *, outdir: Path, detectors: Optional[List[BaseDetector]] = None) -> int:
+    hash_value = doc_hash(doc.source_path)
     print("=" * 80)
-    print(f"File: {path}")
-    h = doc_hash(str(path))
-    print(f"Hash: {h}")
+    print(f"File: {doc.source_path}")
+    print(f"Hash: {hash_value}")
     summary = summarize_document(doc)
     print("IR Summary:")
     print(json.dumps(summary, indent=2, ensure_ascii=False))
 
-    # Detector pipeline TODO: config
-    detectors: List[BaseDetector] = [LengthDetector()]
+    detectors = detectors or [LengthDetector()]
     all_findings = 0
     for det in detectors:
-        findings = det.detect_on_ir(doc, h)
+        debug("running detector %s on %s", det.code, doc.source_path)
+        findings = det.detect_on_ir(doc, hash_value)
         print_findings(det, findings, outdir)
         all_findings += len(findings)
 
     print("=" * 80)
     print(f"Done.\nTotal findings: {all_findings}")
-    return 0
+    debug("finished processing %s with %d findings", doc.source_path, all_findings)
+    return all_findings
 
-
-def handle_pdf(path: Path, debug: bool = False) -> int:
-    # TODO:
-    sys.stdout.write(f"pdf handler selected: {path}\n")
-    return 0
-
-
-def detect_handler(path: Path):
+def parse_input_to_document(path: Path) -> Optional[Document]:
     ext = path.suffix.lower()
     if ext in {".md", ".markdown"}:
-        return "markdown"
+        debug("parsing markdown file %s", path)
+        return parse_markdown(path)
     if ext == ".pdf":
-        return "pdf"
+        debug("TODO: not yet implemented, trying to parse pdf file %s", path)
+        return parse_pdf(path)
     return None
 
 
@@ -70,21 +53,25 @@ def main(argv: list[str] | None = None) -> int:
         help="One or more input paths (.md, .markdown, .pdf)"
     )
     parser.add_argument(
-        "-d", "--debug", action="store_true", help="Enable parser debug output"
+        "-d", "--debug", action="store_true", help="Enable debug logging"
     )
     parser.add_argument(
-        "--out", default="writefinding_cli", help="Output directory for findings"
+        "--out", default="test/findings_out", help="Output directory for findings"
     )
     args = parser.parse_args(argv)
 
     outdir = Path(args.out)
+    if args.debug:
+        set_debug(True)
+        debug("debug logging enabled")
+    detectors: List[BaseDetector] = [LengthDetector()]
     for raw in args.inputs:
         path = Path(raw)
-        kind = detect_handler(path)
-        if kind == "markdown":
-            _process_markdown(path, debug=args.debug, outdir=outdir)
-        elif kind == "pdf":
-            handle_pdf(path, args.debug)
+        doc = parse_input_to_document(path)
+        if doc is None:
+            print(f"Skipping unsupported file type: {path}")
+            continue
+        _run_pipeline(doc, outdir=outdir, detectors=detectors)
     return 0
 
 
