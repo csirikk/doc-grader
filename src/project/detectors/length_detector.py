@@ -47,18 +47,18 @@ class LengthDetector(BaseDetector):
         def _count_words(text: Optional[str]) -> int:
             return len([w for w in (text or "").split() if w])
 
-        para_word_counts = [_count_words(p.text) for p in paragraphs]
+        paragraph_word_counts = [_count_words(p.text) for p in paragraphs]
         list_word_counts: List[int] = []
         for lb in lists:
             for it in lb.items:
                 list_word_counts.append(_count_words(it.text))
-        total_words = sum(para_word_counts) + sum(list_word_counts)
+        total_words = sum(paragraph_word_counts) + sum(list_word_counts)
 
         paragraph_count = len(paragraphs)
         heading_count = len(headings)
         block_count = len(blocks)
 
-        avg_words_per_paragraph = (sum(para_word_counts) / paragraph_count) if paragraph_count else 0.0
+        avg_words_per_paragraph = (sum(paragraph_word_counts) / paragraph_count) if paragraph_count else 0.0
         paragraphs_per_heading = (paragraph_count / heading_count) if heading_count else float('inf')
 
         stats_evidence: List[Stat] = [
