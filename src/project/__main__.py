@@ -3,8 +3,7 @@ from pathlib import Path
 import json
 from typing import List, Optional
 
-from .parsers.md_parser import parse_markdown
-from .parsers.pdf_parser import parse_pdf
+from .parsers import parse
 from .detectors.length_detector import LengthDetector
 from .detectors.base_detector import BaseDetector
 from .schemas.ir import Document
@@ -25,7 +24,7 @@ def _run_pipeline(doc: Document, *, outdir: Path, detectors: Optional[List[BaseD
     all_findings = 0
     for det in detectors:
         debug("running detector %s on %s", det.code, doc.source_path)
-        findings = det.detect_on_ir(doc, hash_value)
+        findings = det.detect(doc, hash_value)
         print_findings(det, findings, outdir)
         all_findings += len(findings)
 
@@ -35,21 +34,15 @@ def _run_pipeline(doc: Document, *, outdir: Path, detectors: Optional[List[BaseD
     return all_findings
 
 def parse_input_to_document(path: Path) -> Optional[Document]:
-    ext = path.suffix.lower()
     if not path.exists():
         print(f"Missing file: {path}")
         return None
     try:
-        if ext in {".md", ".markdown"}:
-            debug("parsing markdown file %s", path)
-            return parse_markdown(path)
-        if ext == ".pdf":
-            debug("TODO: not yet implemented, trying to parse pdf file %s", path)
-            return parse_pdf(path)
+        return parse(path)
     except Exception as e:
         print(f"Error parsing {path}: {e}")
         debug("Exception while parsing %s: %s", path, e)
-    return None
+        return None
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -37,7 +37,7 @@ class LengthDetector(BaseDetector):
     name = "LengthDetector"
     version = "0.1.0"
 
-    def detect_on_ir(self, doc: Document, doc_hash_value: str) -> List[Finding]:
+    def detect(self, doc: Document, doc_hash_value: str) -> List[Finding]:
         blocks: List[Block] = doc.blocks
         paragraphs: List[Paragraph] = [b for b in blocks if isinstance(b, Paragraph)]
         headings: List[Heading] = [b for b in blocks if isinstance(b, Heading)]

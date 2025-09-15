@@ -3,7 +3,6 @@
 from pathlib import Path
 from typing import List, Optional, Any
 
-from ..parsers.md_parser import parse_markdown
 from ..schemas.ir import Document, Span, Block
 from ..schemas.finding import (
     Finding, DetectorInfo, DocumentRef, Location, SpanRef,
@@ -45,11 +44,9 @@ class BaseDetector:
     def __init__(self, *, run_id: Optional[str] = None):
         self.info = DetectorInfo(code=self.code, name=self.name, version=self.version, run_id=run_id)
 
-    def detect(self, path: Path) -> List[Finding]:
-        """Parse a file to IR, compute hash, run detector on IR."""
-        doc: Document = parse_markdown(path)
-        h = doc_hash(path)
-        return self.detect_on_ir(doc, h)
+    def detect(self, doc: Document, doc_hash_value: str) -> List[Finding]:
+        """Run detector on Document IR."""
+        raise NotImplementedError
 
     def write_findings(self, findings: List[Finding], outdir: Path) -> List[Path]:
         """Write findings to JSON files in the specified output directory."""
@@ -61,11 +58,6 @@ class BaseDetector:
             path.write_text(f.model_dump_json(indent=2), encoding="utf-8")
             written.append(path)
         return written
-
-    # override in subclasses ------------------------------------------------------------
-
-    def detect_on_ir(self, doc: Document, doc_hash_value: str) -> List[Finding]:
-        raise NotImplementedError
 
     def emit(
         self,
