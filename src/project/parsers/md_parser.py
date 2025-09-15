@@ -223,7 +223,7 @@ def consume_container(cursor: TokenCursor, open_type: str, close_type: str) -> L
 
 # Handlers (each consumes from the cursor and appends IR blocks) ---------------------------------------------------------------------------
 
-def handle_heading(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
+def _handle_heading(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
     open_tok, inline = consume_triplet(cursor, "heading_open", "heading_close")
     if not open_tok:
         return
@@ -235,7 +235,7 @@ def handle_heading(cursor: TokenCursor, path: Path, byte_starts: List[int], bloc
     blocks.append(Heading(id=next_id("h"), level=level, text=title, span=span))
 
 
-def handle_paragraph(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
+def _handle_paragraph(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
     open_tok, inline = consume_triplet(cursor, "paragraph_open", "paragraph_close")
     if not open_tok:
         return
@@ -248,7 +248,7 @@ def handle_paragraph(cursor: TokenCursor, path: Path, byte_starts: List[int], bl
     blocks.append(Paragraph(id=next_id("p"), text=content, span=span))
 
 
-def handle_fence(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
+def _handle_fence(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
     tok = cursor.current()
     if not tok:
         cursor.advance(1)
@@ -339,11 +339,11 @@ def _parse_list_block(cursor: TokenCursor, path: Path, byte_starts: List[int], b
     )
 
 
-def handle_list(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
+def _handle_list(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
     blocks.append(_parse_list_block(cursor, path, byte_starts, blocks))
 
 
-def handle_blockquote(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
+def _handle_blockquote(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
     tok_open = cursor.current()
     if not tok_open:
         cursor.advance(1)
@@ -359,7 +359,7 @@ def handle_blockquote(cursor: TokenCursor, path: Path, byte_starts: List[int], b
                 parts.append(t.content)
     blocks.append(Quote(id=next_id("q"), text=_norm(" ".join(parts)), span=span))
 
-def handle_table(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
+def _handle_table(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
     tok_open = cursor.current()
     if not tok_open:
         cursor.advance(1)
@@ -433,13 +433,13 @@ def handle_table(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks
 # Map ---------------------------------------------------------------------------
 
 HANDLERS = {
-    "heading_open": handle_heading,
-    "paragraph_open": handle_paragraph,
-    "fence": handle_fence,
-    "bullet_list_open": handle_list,
-    "ordered_list_open": handle_list,
-    "blockquote_open": handle_blockquote,
-    "table_open": handle_table,
+    "heading_open": _handle_heading,
+    "paragraph_open": _handle_paragraph,
+    "fence": _handle_fence,
+    "bullet_list_open": _handle_list,
+    "ordered_list_open": _handle_list,
+    "blockquote_open": _handle_blockquote,
+    "table_open": _handle_table,
 }
 
 

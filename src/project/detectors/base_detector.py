@@ -8,27 +8,27 @@ from ..schemas.finding import (
     Finding, DetectorInfo, DocumentRef, Location, SpanRef,
     BlockRef, TextSpan,
 )
-from ..util import doc_hash
+from ..util import compute_doc_hash
 
 
 # helpers ------------------------------------------------------------
 
 # ID format: 'CODE:hash8:slug'
-def make_finding_id(code: str, doc_hash_value: str, slug: str) -> str:
-    return f"{code.upper()}:{doc_hash_value[7:15]}:{slug}"
+def _build_finding_id(code: str, doc_hash: str, slug: str) -> str:
+    return f"{code.upper()}:{doc_hash[7:15]}:{slug}"
 
 # IR to Finding helpers
-def _spanref(s: Span) -> SpanRef:
+def _build_spanref(s: Span) -> SpanRef:
     return SpanRef(
         line_start=s.line_start, line_end=s.line_end,
         byte_start=s.byte_start, byte_end=s.byte_end,
         page=getattr(s, "page", None), # optional
     )
 
-def _location(block: Optional[Block] = None, span: Optional[Span] = None) -> Location:
+def _build_location(block: Optional[Block] = None, span: Optional[Span] = None) -> Location:
     return Location(
         block_id=(block.id if block else None),
-        span=(_spanref(span) if span else None),
+        span=(_build_spanref(span) if span else None),
     )
 
 
@@ -44,7 +44,7 @@ class BaseDetector:
     def __init__(self, *, run_id: Optional[str] = None):
         self.info = DetectorInfo(code=self.code, name=self.name, version=self.version, run_id=run_id)
 
-    def detect(self, doc: Document, doc_hash_value: str) -> List[Finding]:
+    def detect(self, doc: Document, doc_hash: str) -> List[Finding]:
         """Run detector on Document IR."""
         raise NotImplementedError
 
@@ -63,7 +63,7 @@ class BaseDetector:
         self,
         *,
         doc: Document,
-        doc_hash_value: str,
+        doc_hash: str,
         slug: str,
         title: str,
         message: str,
@@ -76,11 +76,11 @@ class BaseDetector:
     ) -> Finding:
         loc = None
         if anchor_block or anchor_span:
-            loc = _location(anchor_block, anchor_span)
+            loc = _build_location(anchor_block, anchor_span)
 
         evidence: List[Any] = []
         if anchor_span:
-            evidence.append(TextSpan(text=None, span=_spanref(anchor_span)))
+            evidence.append(TextSpan(text=None, span=_build_spanref(anchor_span)))
         if anchor_block:
             evidence.append(BlockRef(block_ids=[anchor_block.id]))
         if extra_evidence:
@@ -88,9 +88,9 @@ class BaseDetector:
 
         return Finding(
             detector=self.info,
-            document=DocumentRef(source_path=doc.source_path, hash=doc_hash_value),
-            finding_id=make_finding_id(self.code, doc_hash_value, slug),
-            doc_id=doc_hash_value,
+            document=DocumentRef(source_path=doc.source_path, hash=doc_hash),
+            finding_id=_build_finding_id(self.code, doc_hash, slug),
+            doc_id=doc_hash,
             code=self.code,
             title=title,
             message=message,

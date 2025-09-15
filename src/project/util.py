@@ -10,7 +10,7 @@ def next_id(prefix: str) -> str:
     _counters[prefix] = n
     return f"{prefix}-{n}"
 
-def doc_hash(path: str) -> str:
+def compute_doc_hash(path: str) -> str:
     with open(path, "rb") as f:
         return "sha256:" + hashlib.sha256(f.read()).hexdigest()
 
@@ -103,8 +103,8 @@ def summarize_document(doc) -> Dict[str, Any]:
     }
 
 
-def print_findings(detector, findings: Sequence, outdir: Path, *, detectorLabel: Optional[str] = None):
-    label = detectorLabel or getattr(detector, "code", "DET")
+def output_findings(detector, findings: Sequence, outdir: Path, *, detector_label: Optional[str] = None):
+    label = detector_label or getattr(detector, "code", "DET")
     print(f"\n[{label}] Findings:")
 
     if not findings:

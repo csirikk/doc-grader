@@ -7,15 +7,15 @@ from .parsers import parse
 from .detectors.length_detector import LengthDetector
 from .detectors.base_detector import BaseDetector
 from .schemas.ir import Document
-from .util import doc_hash, summarize_document, print_findings
+from .util import compute_doc_hash, summarize_document, output_findings
 from .logger import set_debug, debug
 
 
 def _run_pipeline(doc: Document, *, outdir: Path, detectors: Optional[List[BaseDetector]] = None) -> int:
-    hash_value = doc_hash(doc.source_path)
+    doc_hash = compute_doc_hash(doc.source_path)
     print("=" * 80)
     print(f"File: {doc.source_path}")
-    print(f"Hash: {hash_value}")
+    print(f"Hash: {doc_hash}")
     summary = summarize_document(doc)
     print("IR Summary:")
     print(json.dumps(summary, indent=2, ensure_ascii=False))
@@ -24,8 +24,8 @@ def _run_pipeline(doc: Document, *, outdir: Path, detectors: Optional[List[BaseD
     all_findings = 0
     for det in detectors:
         debug("running detector %s on %s", det.code, doc.source_path)
-        findings = det.detect(doc, hash_value)
-        print_findings(det, findings, outdir)
+        findings = det.detect(doc, doc_hash)
+        output_findings(det, findings, outdir)
         all_findings += len(findings)
 
     print("=" * 80)
