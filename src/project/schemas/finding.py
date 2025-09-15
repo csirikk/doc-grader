@@ -251,7 +251,7 @@ if __name__ == "__main__":
         detector=DetectorInfo(
             code="STRUCT",
             name="StructureDetector",
-            version="0.0.1",
+            version="0.1",
             run_id="run_demo",
             config_hash="sha256:hello",
             params={"ahoj": "ahoj"},

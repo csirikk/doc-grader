@@ -35,7 +35,7 @@ Evidence: Stat objects for the computed metrics.
 class LengthDetector(BaseDetector):
     code = "LENGTH"
     name = "LengthDetector"
-    version = "0.1.0"
+    version = "0.1"
 
     def detect(self, doc: Document, doc_hash: str) -> List[Finding]:
         blocks: List[Block] = doc.blocks

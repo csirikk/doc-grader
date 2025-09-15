@@ -39,7 +39,7 @@ class BaseDetector:
     # override in subclasses
     code: str = "BASE"
     name: str = "BaseDetector"
-    version: str = "0.0.1"
+    version: str = "0.1"
 
     def __init__(self, *, run_id: Optional[str] = None):
         self.info = DetectorInfo(code=self.code, name=self.name, version=self.version, run_id=run_id)
