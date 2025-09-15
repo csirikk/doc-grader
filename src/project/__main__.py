@@ -10,7 +10,7 @@ from .detectors.length_detector import LengthDetector
 from .detectors.base_detector import BaseDetector
 from .schemas.ir import Document
 from .util import compute_doc_hash, summarize_document, output_findings
-from .logger import set_debug, debug
+from .logger import set_debug, debug, debug_dump_ir_json, debug_dump_finding_json
 
 
 def _run_pipeline(doc: Document, *, outdir: Path, detectors: Optional[List[BaseDetector]] = None) -> int:
@@ -21,12 +21,15 @@ def _run_pipeline(doc: Document, *, outdir: Path, detectors: Optional[List[BaseD
     summary = summarize_document(doc)
     print("IR Summary:")
     print(json.dumps(summary, indent=2, ensure_ascii=False))
+    debug_dump_ir_json(doc)
 
     detectors = detectors or [LengthDetector()]
     all_findings = 0
     for det in detectors:
         debug("running detector %s on %s", det.code, doc.source_path)
         findings = det.detect(doc, doc_hash)
+        for f in findings:
+            debug_dump_finding_json(f)
         output_findings(det, findings, outdir)
         all_findings += len(findings)
 
