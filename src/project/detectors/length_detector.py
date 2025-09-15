@@ -35,15 +35,21 @@ Evidence: Stat objects for the computed metrics.
 class LengthDetector(BaseDetector):
     code = "LENGTH"
     name = "LengthDetector"
-    version = "0.1"
+    version = "0.2"
 
     def detect(self, doc: Document, doc_hash: str) -> List[Finding]:
+        metrics, stats_evidence = self._collect_stats(doc)
+        findings: List[Finding] = []
+        findings.extend(self._compute_short_findings(doc, doc_hash, metrics, stats_evidence))
+        findings.extend(self._compute_long_findings(doc, doc_hash, metrics, stats_evidence))
+        return findings
+
+    def _collect_stats(self, doc: Document):
         blocks: List[Block] = doc.blocks
         paragraphs: List[Paragraph] = [b for b in blocks if isinstance(b, Paragraph)]
         headings: List[Heading] = [b for b in blocks if isinstance(b, Heading)]
         lists: List[ListBlock] = [b for b in blocks if isinstance(b, ListBlock)]
 
-        # Word counts (only paragraphs & list items' text)
         def _count_words(text: Optional[str]) -> int:
             return len([w for w in (text or "").split() if w])
 
@@ -70,23 +76,36 @@ class LengthDetector(BaseDetector):
             Stat(name="paragraphs_per_heading", value=(round(paragraphs_per_heading, 2) if paragraphs_per_heading is not None else None)),
         ]
 
-        findings: List[Finding] = []
+        metrics = dict(
+            total_words=total_words,
+            paragraph_count=paragraph_count,
+            heading_count=heading_count,
+            block_count=block_count,
+            avg_words_per_paragraph=avg_words_per_paragraph,
+            paragraphs_per_heading=paragraphs_per_heading,
+        )
+        return metrics, stats_evidence
 
-        # too-short heuristics -------------------------------------------------
+    def _compute_short_findings(self, doc: Document, doc_hash: str, metrics: dict, stats_evidence: List[Stat]) -> List[Finding]:
+        total_words = metrics["total_words"]
+        paragraph_count = metrics["paragraph_count"]
+        paragraphs_per_heading = metrics["paragraphs_per_heading"]
+        avg_words_per_paragraph = metrics["avg_words_per_paragraph"]
+
         short_flags = 0
         if total_words < MIN_WORDS: short_flags += 1
         if paragraph_count < MIN_PARAGRAPHS: short_flags += 1
-        if paragraphs_per_heading < MIN_PARAGRAPHS_PER_HEADING: short_flags += 1
+        if (paragraphs_per_heading is not None) and (paragraphs_per_heading < MIN_PARAGRAPHS_PER_HEADING): short_flags += 1
         if avg_words_per_paragraph < MIN_AVG_WORDS_PER_PARAGRAPH and paragraph_count >= 3: short_flags += 1
 
-        if short_flags >= 2:  # require at least two signals
-            # Confidence - strongest deviation
+        findings: List[Finding] = []
+        if short_flags >= 2:
             deviations: List[float] = []
             if total_words < MIN_WORDS:
                 deviations.append(1 - (total_words / max(MIN_WORDS, 1)))
             if paragraph_count < MIN_PARAGRAPHS:
                 deviations.append(1 - (paragraph_count / max(MIN_PARAGRAPHS, 1)))
-            if paragraphs_per_heading < MIN_PARAGRAPHS_PER_HEADING:
+            if (paragraphs_per_heading is not None) and (paragraphs_per_heading < MIN_PARAGRAPHS_PER_HEADING):
                 deviations.append(1 - (paragraphs_per_heading / MIN_PARAGRAPHS_PER_HEADING))
             if avg_words_per_paragraph < MIN_AVG_WORDS_PER_PARAGRAPH and paragraph_count >= 3:
                 deviations.append(1 - (avg_words_per_paragraph / MIN_AVG_WORDS_PER_PARAGRAPH))
@@ -97,7 +116,7 @@ class LengthDetector(BaseDetector):
                 reasons.append(f"word_count {total_words} < {MIN_WORDS}")
             if paragraph_count < MIN_PARAGRAPHS:
                 reasons.append(f"paragraphs {paragraph_count} < {MIN_PARAGRAPHS}")
-            if paragraphs_per_heading < MIN_PARAGRAPHS_PER_HEADING:
+            if (paragraphs_per_heading is not None) and (paragraphs_per_heading < MIN_PARAGRAPHS_PER_HEADING):
                 reasons.append(f"paragraphs/heading {paragraphs_per_heading:.2f} < {MIN_PARAGRAPHS_PER_HEADING}")
             if avg_words_per_paragraph < MIN_AVG_WORDS_PER_PARAGRAPH and paragraph_count >= 3:
                 reasons.append(f"avg_words/para {avg_words_per_paragraph:.1f} < {MIN_AVG_WORDS_PER_PARAGRAPH}")
@@ -116,13 +135,19 @@ class LengthDetector(BaseDetector):
                     extra_evidence=stats_evidence,
                 )
             )
+        return findings
 
-        # too-long heuristics --------------------------------------------------
+    def _compute_long_findings(self, doc: Document, doc_hash: str, metrics: dict, stats_evidence: List[Stat]) -> List[Finding]:
+        total_words = metrics["total_words"]
+        paragraph_count = metrics["paragraph_count"]
+        avg_words_per_paragraph = metrics["avg_words_per_paragraph"]
+
         long_flags = 0
         if total_words > MAX_WORDS: long_flags += 1
         if paragraph_count > MAX_PARAGRAPHS: long_flags += 1
         if avg_words_per_paragraph > MAX_AVG_WORDS_PER_PARAGRAPH: long_flags += 1
 
+        findings: List[Finding] = []
         if long_flags >= 2:
             deviations: List[float] = []
             if total_words > MAX_WORDS:
@@ -149,7 +174,7 @@ class LengthDetector(BaseDetector):
                     slug="too-long",
                     title="Likely too long or verbose",
                     message=message,
-                    severity="info",
+                    severity="warning",
                     confidence=confidence,
                     tags=["length", "long"],
                     extra_evidence=stats_evidence,
