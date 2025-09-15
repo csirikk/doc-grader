@@ -10,6 +10,12 @@ def next_id(prefix: str) -> str:
     _counters[prefix] = n
     return f"{prefix}-{n}"
 
+
+def count_words(text: Optional[str]) -> int:
+    if not text:
+        return 0
+    return len([w for w in text.split() if w])
+
 def compute_doc_hash(path: str) -> str:
     with open(path, "rb") as f:
         return "sha256:" + hashlib.sha256(f.read()).hexdigest()
@@ -23,9 +29,11 @@ def summarize_document(doc) -> Dict[str, Any]:
          "by_type": { str: int, ... }
       },
       "text": {
-         "paragraphs": int,
-         "words": int,                # paragraph word sum
-         "avg_words_per_paragraph": float | 0.0,
+        "paragraphs": int,
+        "paragraph_words": int,      # words in Paragraph blocks only
+        "list_item_words": int,      # words in List items
+        "total_words": int,
+        "avg_words_per_paragraph": float | 0.0,
       },
       "structure": {
          "headings": int,
@@ -52,12 +60,21 @@ def summarize_document(doc) -> Dict[str, Any]:
 
     # Paragraphs
     paragraphs = [b for b in blocks if getattr(b, "type", None) == "Paragraph"]
-    words = 0
+    paragraph_word_total = 0
     for p in paragraphs:
         txt = getattr(p, "text", "") or ""
-        words += len([w for w in txt.split() if w])
+        paragraph_word_total += count_words(txt)
+
+    # List items
+    list_word_total = 0
+    for b in blocks:
+        if getattr(b, "type", None) == "List":
+            for it in getattr(b, "items", []) or []:
+                list_word_total += count_words(getattr(it, 'text', None))
+
+    total_words = paragraph_word_total + list_word_total
     para_count = len(paragraphs)
-    avg_words = (words / para_count) if para_count else 0.0
+    avg_words = (paragraph_word_total / para_count) if para_count else 0.0
 
     # Headings
     headings = [b for b in blocks if getattr(b, "type", None) == "Heading"]
@@ -90,7 +107,9 @@ def summarize_document(doc) -> Dict[str, Any]:
         },
         "text": {
             "paragraphs": para_count,
-            "words": words,
+            "paragraph_words": paragraph_word_total,
+            "list_item_words": list_word_total,
+            "total_words": total_words,
             "avg_words_per_paragraph": round(avg_words, 2),
         },
         "structure": {

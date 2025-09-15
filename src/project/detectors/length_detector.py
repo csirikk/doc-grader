@@ -5,6 +5,7 @@ from typing import List, Optional
 from .base_detector import BaseDetector
 from ..schemas.ir import Document, Paragraph, Heading, ListBlock, Block
 from ..schemas.finding import Finding, Stat
+from ..util import count_words
 
 # TODO: improve/add more heuristics
 # TODO: tweak thresholds based on dataset
@@ -50,14 +51,11 @@ class LengthDetector(BaseDetector):
         headings: List[Heading] = [b for b in blocks if isinstance(b, Heading)]
         lists: List[ListBlock] = [b for b in blocks if isinstance(b, ListBlock)]
 
-        def _count_words(text: Optional[str]) -> int:
-            return len([w for w in (text or "").split() if w])
-
-        paragraph_word_counts = [_count_words(p.text) for p in paragraphs]
+        paragraph_word_counts = [count_words(p.text) for p in paragraphs]
         list_word_counts: List[int] = []
         for lb in lists:
             for it in lb.items:
-                list_word_counts.append(_count_words(it.text))
+                list_word_counts.append(count_words(it.text))
         total_words = sum(paragraph_word_counts) + sum(list_word_counts)
 
         paragraph_count = len(paragraphs)
