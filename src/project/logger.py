@@ -1,3 +1,4 @@
+import sys
 from datetime import datetime
 from typing import Any
 
@@ -16,4 +17,4 @@ def debug(msg: str, *args: Any) -> None:
         except Exception:
             msg = f"{msg} | args={args}"
     ts = datetime.utcnow().strftime("%H:%M:%S.%f")[:-3]
-    print(f"[{ts}] {msg}")
+    print(f"[{ts}] {msg}", file=sys.stderr, flush=True)
