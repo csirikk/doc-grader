@@ -1,3 +1,10 @@
+"""Markdown parser producing an IR (internal representation).
+
+Parses headings, paragraphs, lists (with nesting), code blocks, block quotes,
+tables, and images (as figures). It uses `markdown-it-py` tokens and converts
+them to typed blocks with span information.
+"""
+
 import pprint
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -20,10 +27,10 @@ from ..schemas.ir import (
 from ..util import next_id
 from .. import logger
 
-# global parser instance
+# Global parser instance
 md = MarkdownIt("commonmark").enable('table')
 
-# Utilities ---------------------------------------------------------------------------
+# --- Utilities
 
 def compute_byte_starts(text: str) -> List[int]:
     """Return UTF-8 byte offsets at each line start (0-based)."""
@@ -133,7 +140,7 @@ def _inline_is_image_only(inline: Token) -> bool:
     return contains_image
 
 
-# Token handling ---------------------------------------------------------------------------
+# --- Token handling
 
 class TokenCursor:
     """Tiny cursor to navigate markdown-it tokens."""
@@ -221,7 +228,7 @@ def consume_container(cursor: TokenCursor, open_type: str, close_type: str) -> L
     return inside
 
 
-# Handlers (each consumes from the cursor and appends IR blocks) ---------------------------------------------------------------------------
+# --- Block handlers (consume cursor, append IR blocks)
 
 def _handle_heading(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
     open_tok, inline = consume_triplet(cursor, "heading_open", "heading_close")
@@ -430,7 +437,7 @@ def _handle_table(cursor: TokenCursor, path: Path, byte_starts: List[int], block
     )
 
 
-# Map ---------------------------------------------------------------------------
+# --- Handler map
 
 HANDLERS = {
     "heading_open": _handle_heading,
@@ -443,7 +450,7 @@ HANDLERS = {
 }
 
 
-# Main ---------------------------------------------------------------------------
+# --- Entry point
 
 def parse_markdown(path: Path) -> Document:
     text = path.read_text(encoding="utf-8")

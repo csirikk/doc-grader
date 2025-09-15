@@ -1,3 +1,5 @@
+"""Schemas for detector findings and related evidence objects."""
+
 from typing import Annotated, Literal, Optional, Union, List, Any
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field, model_validator, field_validator
@@ -97,7 +99,7 @@ class DocumentRef(BaseModel):
         return v
 
 
-# Evidence -------------------------------------------------------------------
+# --- Evidence models
 class BlockRef(BaseModel):
     type: Literal["BlockRef"] = "BlockRef"
     block_ids: List[str] = Field(min_length=1)
@@ -173,7 +175,7 @@ Evidence = Annotated[
 ]
 
 
-# Finding -------------------------------------------------------------------
+# --- Finding model
 class Finding(BaseModel):
     schema_version: Literal["finding/0.2"] = "finding/0.2"
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -236,7 +238,7 @@ class Finding(BaseModel):
         return self
 
 
-# test ---------------------------------------------------------------
+# --- Self-test
 if __name__ == "__main__":
     demo_hash = "sha256:" + ("0" * 64)
     finding = Finding(

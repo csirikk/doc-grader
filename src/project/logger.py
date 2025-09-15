@@ -1,3 +1,5 @@
+"""Debug logger with a global toggle flag."""
+
 import sys
 from datetime import datetime
 from typing import Any

@@ -1,3 +1,5 @@
+"""Parser interface."""
+
 from pathlib import Path
 from typing import Optional
 
@@ -6,7 +8,7 @@ from .pdf_parser import parse_pdf
 from ..logger import debug
 from ..schemas.ir import Document
 
-# main parse function -------------------------------
+# --- Public parse function
 
 def parse(path: Path) -> Optional[Document]:
     """

@@ -1,3 +1,5 @@
+"""Internal representation (IR) models for parsed documents."""
+
 from typing import Annotated, Literal, Optional, Union, List
 from pydantic import BaseModel, Field, field_validator
 
@@ -102,7 +104,7 @@ class Document(BaseModel):
     blocks: List[Block]
     model_config = dict(extra="forbid")
 
-# test ---------------------------------------------------------------
+# --- Self-test
 if __name__ == "__main__":
     from pydantic import ValidationError
 

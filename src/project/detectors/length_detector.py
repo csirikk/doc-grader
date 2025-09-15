@@ -1,4 +1,8 @@
-# detectors/length_detector.py
+"""Length detector.
+
+Flags documents that appear too short or too long. 
+Emits at most one finding per condition (too-short or too-long) with supporting `Stat` evidence objects.
+"""
 
 from typing import List, Optional
 
@@ -9,30 +13,17 @@ from ..util import count_words
 
 # TODO: improve/add more heuristics
 # TODO: tweak thresholds based on dataset
-# under -> likely too short
+# Thresholds (under -> likely too short)
 MIN_WORDS = 500
 MIN_PARAGRAPHS = 8
 MIN_AVG_WORDS_PER_PARAGRAPH = 15
 MIN_PARAGRAPHS_PER_HEADING = 2.0  # paragraphs per heading
 
-# over -> likely too long
+# Thresholds (over -> likely too long)
 MAX_WORDS = 8000
 MAX_PARAGRAPHS = 120
 MAX_AVG_WORDS_PER_PARAGRAPH = 120
 
-"""
-LENGTH detector
-
-Flags documents that appear too short or too long.
-Uses multiple heuristics (word count, paragraph count, average words per paragraph) 
-to emit a single finding per condition (too-short or too-long).
-
-Finding codes emitted:
-  LENGTH:too-short
-  LENGTH:too-long
-
-Evidence: Stat objects for the computed metrics.
-"""
 class LengthDetector(BaseDetector):
     code = "LENGTH"
     name = "LengthDetector"

@@ -1,4 +1,8 @@
-# detectors/base_detector.py
+"""Base detector interface.
+
+Provides a `BaseDetector` with helpers for building findings and outputting them. 
+Subclasses implement `detect`.
+"""
 
 from pathlib import Path
 from typing import List, Optional, Any
@@ -10,9 +14,7 @@ from ..schemas.finding import (
 )
 from ..util import compute_doc_hash
 
-
-# helpers ------------------------------------------------------------
-
+# --- Helpers
 # ID format: 'CODE:hash8:slug'
 def _build_finding_id(code: str, doc_hash: str, slug: str) -> str:
     return f"{code.upper()}:{doc_hash[7:15]}:{slug}"
@@ -31,9 +33,6 @@ def _build_location(block: Optional[Block] = None, span: Optional[Span] = None) 
         span=(_build_spanref(span) if span else None),
     )
 
-
-# base_detector ------------------------------------------------------------
-
 class BaseDetector:
 
     # override in subclasses
@@ -45,11 +44,14 @@ class BaseDetector:
         self.info = DetectorInfo(code=self.code, name=self.name, version=self.version, run_id=run_id)
 
     def detect(self, doc: Document, doc_hash: str) -> List[Finding]:
-        """Run detector on Document IR."""
+        """Run detector on the given document and return a list of findings."""
         raise NotImplementedError
 
     def write_findings(self, findings: List[Finding], outdir: Path) -> List[Path]:
-        """Write findings to JSON files in the specified output directory."""
+        """
+        Write each finding as a JSON file in `outdir`.
+        Returns the list of written file paths.
+        """
         outp = outdir
         outp.mkdir(parents=True, exist_ok=True)
         written: List[Path] = []

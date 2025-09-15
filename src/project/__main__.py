@@ -1,3 +1,5 @@
+"""CLI entry point."""
+
 import argparse
 from pathlib import Path
 import json
