@@ -130,7 +130,7 @@ class TextSpan(BaseModel):
 class Stat(BaseModel):
     type: Literal["Stat"] = "Stat"
     name: str
-    value: Union[int, float, str]
+    value: Union[int, float, str, None]
     notes: Optional[str] = None
     model_config = dict(extra="forbid")
 

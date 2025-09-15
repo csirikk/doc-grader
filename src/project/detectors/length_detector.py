@@ -59,14 +59,15 @@ class LengthDetector(BaseDetector):
         block_count = len(blocks)
 
         avg_words_per_paragraph = (sum(paragraph_word_counts) / paragraph_count) if paragraph_count else 0.0
-        paragraphs_per_heading = (paragraph_count / heading_count) if heading_count else float('inf')
+        paragraphs_per_heading = (paragraph_count / heading_count) if heading_count else None
 
         stats_evidence: List[Stat] = [
             Stat(name="total_words", value=total_words),
             Stat(name="paragraph_count", value=paragraph_count),
             Stat(name="heading_count", value=heading_count),
+            Stat(name="block_count", value=block_count),
             Stat(name="avg_words_per_paragraph", value=round(avg_words_per_paragraph, 2)),
-            Stat(name="paragraphs_per_heading", value=(round(paragraphs_per_heading, 2) if paragraphs_per_heading != float('inf') else "inf")),
+            Stat(name="paragraphs_per_heading", value=(round(paragraphs_per_heading, 2) if paragraphs_per_heading is not None else None)),
         ]
 
         findings: List[Finding] = []
