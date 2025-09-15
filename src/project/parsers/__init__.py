@@ -7,6 +7,7 @@ from .md_parser import parse_markdown
 from .pdf_parser import parse_pdf
 from ..logger import debug
 from ..schemas.ir import Document
+from ..util import reset_id_counters
 
 # --- Public parse function
 
@@ -17,6 +18,8 @@ def parse(path: Path) -> Optional[Document]:
     """
     if not path.exists():
         return None
+    # Reset IDs per parsed document so they are deterministic per file.
+    reset_id_counters()
     ext = path.suffix.lower()
     if ext in {".md", ".markdown"}:
         debug("parsing markdown file %s", path)

@@ -4,13 +4,24 @@ from pathlib import Path
 import hashlib
 from typing import Dict, Any, Sequence, Optional
 
-_counters = {}
+_id_counters: Dict[str, int] = {}
 
 def next_id(prefix: str) -> str:
     """Return the next sequential id for the given prefix."""
-    n = _counters.get(prefix, 0) + 1
-    _counters[prefix] = n
+    n = _id_counters.get(prefix, 0) + 1
+    _id_counters[prefix] = n
     return f"{prefix}-{n}"
+
+def reset_id_counters(*prefixes: str) -> None:
+    """Reset internal id counters.
+    Without arguments resets all prefixes. If one or more `prefixes` are
+    provided only those counters are cleared.
+    """
+    if not prefixes:
+        _id_counters.clear()
+        return
+    for p in prefixes:
+        _id_counters.pop(p, None)
 
 
 def count_words(text: Optional[str]) -> int:
