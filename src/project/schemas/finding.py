@@ -4,13 +4,22 @@ from typing import Annotated, Literal, Optional, Union, List, Any
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field, model_validator, field_validator
 
+class BBox(BaseModel):
+    """Bounding box in page coordinates for PDFs."""
+    x0: float
+    y0: float
+    x1: float
+    y1: float
+    model_config = dict(extra="forbid")
+
 
 class SpanRef(BaseModel):
     line_start: Optional[int] = None
     line_end: Optional[int] = None
     byte_start: Optional[int] = None
     byte_end: Optional[int] = None
-    page: Optional[int] = None  # for PDFs
+    page: Optional[int] = None
+    bbox: Optional[BBox] = None
     model_config = dict(extra="forbid")
 
     @field_validator("line_end")

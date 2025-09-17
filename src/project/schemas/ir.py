@@ -1,7 +1,15 @@
 """Internal representation (IR) models for parsed documents."""
 
-from typing import Annotated, Literal, Optional, Union, List
+from typing import Annotated, Literal, Optional, Union, List, Dict, Any
 from pydantic import BaseModel, Field, field_validator
+
+class BBox(BaseModel):
+    """Bounding box in page coordinates for PDFs."""
+    x0: float
+    y0: float
+    x1: float
+    y1: float
+    model_config = dict(extra="forbid")
 
 class Span(BaseModel):
     source_path: str
@@ -9,7 +17,8 @@ class Span(BaseModel):
     line_end: Optional[int] = None
     byte_start: Optional[int] = None
     byte_end: Optional[int] = None
-    page: Optional[int] = None # for PDFs
+    page: Optional[int] = None
+    bbox: Optional[BBox] = None
     model_config = dict(extra="forbid")
 
     @field_validator("line_end")
@@ -34,6 +43,7 @@ class Heading(BaseModel):
     level: int
     text: str
     span: Span
+    meta: Optional[Dict[str, Any]] = None
     model_config = dict(extra="forbid")
 
 class Paragraph(BaseModel):
@@ -41,12 +51,14 @@ class Paragraph(BaseModel):
     id: str
     text: str
     span: Span
+    meta: Optional[Dict[str, Any]] = None
     model_config = dict(extra="forbid")
 
 class ListItem(BaseModel):
     text: str
     sublists: Optional[List["ListBlock"]] = None
     span: Optional[Span] = None
+    meta: Optional[Dict[str, Any]] = None
     model_config = dict(extra="forbid")
 
 class ListBlock(BaseModel):
@@ -56,6 +68,7 @@ class ListBlock(BaseModel):
     start: Optional[int] = None
     items: List[ListItem]
     span: Span
+    meta: Optional[Dict[str, Any]] = None
     model_config = dict(extra="forbid")
 
 class CodeBlock(BaseModel):
@@ -64,6 +77,7 @@ class CodeBlock(BaseModel):
     language: Optional[str] = None
     text: str
     span: Span
+    meta: Optional[Dict[str, Any]] = None
     model_config = dict(extra="forbid")
 
 class Quote(BaseModel):
@@ -71,6 +85,7 @@ class Quote(BaseModel):
     id: str
     text: str
     span: Span
+    meta: Optional[Dict[str, Any]] = None
     model_config = dict(extra="forbid")
 
 class Table(BaseModel):
@@ -79,6 +94,7 @@ class Table(BaseModel):
     header: Optional[List[str]] = None
     rows: Optional[List[List[str]]] = None
     span: Span
+    meta: Optional[Dict[str, Any]] = None
     model_config = dict(extra="forbid")
 
 class Figure(BaseModel):
@@ -90,6 +106,7 @@ class Figure(BaseModel):
     title: Optional[str] = None
     caption: Optional[str] = None
     span: Span
+    meta: Optional[Dict[str, Any]] = None
     model_config = dict(extra="forbid")
 
 Block = Annotated[

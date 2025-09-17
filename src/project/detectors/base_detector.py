@@ -24,7 +24,8 @@ def _build_spanref(s: Span) -> SpanRef:
     return SpanRef(
         line_start=s.line_start, line_end=s.line_end,
         byte_start=s.byte_start, byte_end=s.byte_end,
-        page=getattr(s, "page", None), # optional
+        page=getattr(s, "page", None),
+        bbox=getattr(s, "bbox", None),
     )
 
 def _build_location(block: Optional[Block] = None, span: Optional[Span] = None) -> Location:
