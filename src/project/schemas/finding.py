@@ -49,8 +49,10 @@ class SpanRef(BaseModel):
     def _at_least_one_axis(self):
         has_lines = self.line_start is not None or self.line_end is not None
         has_bytes = self.byte_start is not None or self.byte_end is not None
-        if not (has_lines or has_bytes):
-            raise ValueError("SpanRef requires at least line_* or byte_* to be set")
+        has_page = self.page is not None
+        has_bbox = self.bbox is not None
+        if not (has_lines or has_bytes or has_page or has_bbox):
+            raise ValueError("SpanRef requires at least one of: line_*, byte_*, page, bbox")
         return self
 
 
