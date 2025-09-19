@@ -474,4 +474,10 @@ def parse_markdown(path: Path) -> Document:
         else:
             cursor.advance(1)
 
-    return Document(source_path=str(path), blocks=blocks)
+    meta = {
+        "parser": "md",
+        "md": {
+            "engine": "markdown-it-py",
+        },
+    }
+    return Document(source_path=str(path), blocks=blocks, meta=meta)
