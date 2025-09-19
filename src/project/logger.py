@@ -31,9 +31,8 @@ def debug_dump_ir_json(d) -> None:
         print("[IR JSON] IR is None", file=sys.stderr)
         return
     try:
-        payload = d.model_dump()
         print("[IR JSON]", file=sys.stderr)
-        print(json.dumps(payload, indent=2, ensure_ascii=False), file=sys.stderr, flush=True)
+        print(d.model_dump_json(indent=2), file=sys.stderr, flush=True)
     except Exception as e:
         debug("failed to dump IR json: %s", e)
 
@@ -46,8 +45,7 @@ def debug_dump_finding_json(f) -> None:
         print("[FINDING JSON] Finding is None", file=sys.stderr)
         return
     try:
-        payload = f.model_dump()
         print("[FINDING JSON]", file=sys.stderr)
-        print(json.dumps(payload, indent=2, ensure_ascii=False), file=sys.stderr, flush=True)
+        print(f.model_dump_json(indent=2), file=sys.stderr, flush=True)
     except Exception as e:
         debug("failed to dump finding json: %s", e)
