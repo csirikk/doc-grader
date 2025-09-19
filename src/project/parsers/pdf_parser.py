@@ -14,16 +14,12 @@ from ..schemas.ir import (
     Figure,
     BBox,
 )
-from ..util import next_id
+from ..util import next_id, norm
 from .. import logger
 
 import pymupdf
 
 # --- Utilities
-
-def _norm(text: str) -> str:
-    """Normalize whitespace."""
-    return " ".join((text or "").split())
 
 
 def _to_bbox(b: List[float]) -> BBox:
@@ -53,7 +49,7 @@ def _aggregate_text_from_block(block: Dict[str, Any]) -> str:
         line_text = "".join(s.get("text", "") for s in spans).strip()
         if line_text:
             parts.append(line_text)
-    return _norm(" ".join(parts))
+    return norm(" ".join(parts))
 
 
 # --- Block handlers

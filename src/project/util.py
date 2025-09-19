@@ -33,6 +33,12 @@ def compute_doc_hash(path: str) -> str:
     with open(path, "rb") as f:
         return "sha256:" + hashlib.sha256(f.read()).hexdigest()
 
+def norm(text: Optional[str]) -> str:
+    """Normalize whitespace."""
+    if not text:
+        return ""
+    return " ".join(text.split())
+
 def summarize_document(doc) -> Dict[str, Any]:
     """Return a structured high-level overview of the document.
 

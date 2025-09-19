@@ -24,7 +24,7 @@ from ..schemas.ir import (
     Figure,
     Table,
 )
-from ..util import next_id
+from ..util import next_id, norm
 from .. import logger
 
 # Global parser instance
@@ -54,9 +54,6 @@ def build_span(path: Path, tok: Token, byte_starts: List[int]) -> Span:
         byte_end=byte_starts[e],
     )
 
-def _norm(text: str) -> str:
-    """Normalize whitespace."""
-    return " ".join((text or "").split())
 
 def _append_figure_from_image_token(img_tok: Token, span: Span, blocks: List) -> None:
     """Create and append a Figure from a markdown-it image token."""
@@ -251,7 +248,7 @@ def _handle_paragraph(cursor: TokenCursor, path: Path, byte_starts: List[int], b
         _emit_figures_from_inline(inline, span, blocks)
         if _inline_is_image_only(inline):
             return
-    content = _norm(inline.content) if inline and inline.content else ""
+    content = norm(inline.content) if inline and inline.content else ""
     blocks.append(Paragraph(id=next_id("p"), text=content, span=span))
 
 
@@ -324,7 +321,7 @@ def _parse_list_block(cursor: TokenCursor, path: Path, byte_starts: List[int], b
                         parts.append(child_tok.content)
                 child_idx += 1
 
-            text_value = None if (not parts and emitted_figures > 0) else _norm(" ".join(parts))
+            text_value = None if (not parts and emitted_figures > 0) else norm(" ".join(parts))
             items.append(
                 ListItem(
                     text=text_value,
@@ -364,7 +361,7 @@ def _handle_blockquote(cursor: TokenCursor, path: Path, byte_starts: List[int], 
             _emit_figures_from_inline(t, span, blocks)
             if t.content:
                 parts.append(t.content)
-    blocks.append(Quote(id=next_id("q"), text=_norm(" ".join(parts)), span=span))
+    blocks.append(Quote(id=next_id("q"), text=norm(" ".join(parts)), span=span))
 
 def _handle_table(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
     tok_open = cursor.current()
@@ -392,7 +389,7 @@ def _handle_table(cursor: TokenCursor, path: Path, byte_starts: List[int], block
                     if inside[jdx].type == "inline" and inside[jdx].content:
                         parts.append(inside[jdx].content)
                     jdx += 1
-                cells.append(_norm(" ".join(parts)))
+                cells.append(norm(" ".join(parts)))
                 idx = jdx + 1  # skip cell_close
             else:
                 idx += 1
