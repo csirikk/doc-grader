@@ -2,7 +2,7 @@
 
 from pathlib import Path
 import hashlib
-from typing import Dict, Any, Sequence, Optional
+from typing import Dict, Any, Sequence, Optional, List
 
 _id_counters: Dict[str, int] = {}
 
@@ -141,34 +141,36 @@ def summarize_document(doc) -> Dict[str, Any]:
     }
 
 
-def output_findings(detector, findings: Sequence, outdir: Path, *, detector_label: Optional[str] = None):
+def format_findings(detector, findings: Sequence, *, detector_label: Optional[str] = None) -> str:
+    """Return a formatted multi-line string describing findings."""
     label = detector_label or getattr(detector, "code", "DET")
-    print(f"\n[{label}] Findings:")
-
+    lines: List[str] = [f"[{label}] Findings:"]
     if not findings:
-        print("(none)")
-        return []
+        lines.append("(none)")
+        return "\n".join(lines)
 
     for f in findings:
         fid = getattr(f, "finding_id", "?")
         title = getattr(f, "title", "?")
         severity = getattr(f, "severity", "?")
         confidence = getattr(f, "confidence", None)
-        print(f"- {fid} | {title} | severity={severity} | confidence={confidence}")
+        lines.append(f"- {fid} | {title} | severity={severity} | confidence={confidence}")
 
         msg = getattr(f, "message", "") or ""
-        print(f"  Message: {msg}")
+        if msg:
+            lines.append(f"  Message: {msg}")
 
         evidence = getattr(f, "evidence", []) or []
         stats = [e for e in evidence if getattr(e, 'type', None) == 'Stat']
         if stats:
-            stats_sorted = sorted(stats, key=lambda s: getattr(s, 'name', ''))
-            print("  Stats:")
-            for s in stats_sorted:
+            lines.append("  Stats:")
+            for s in sorted(stats, key=lambda s: getattr(s, 'name', '')):
                 name = getattr(s, 'name', '?')
                 value = getattr(s, 'value', '?')
-                print(f"    {name}: {value}")
+                lines.append(f"    {name}: {value}")
+    return "\n".join(lines)
 
-    paths = detector.write_findings(findings, outdir)
-    print(f"\n[{label}] Written {len(paths)} finding file(s) to {outdir}/")
-    return paths
+
+def write_findings_json(detector, findings: Sequence, outdir: Path) -> Sequence[Path]:
+    """Write findings as JSON files with detector.write_findings and return paths."""
+    return detector.write_findings(findings, outdir)

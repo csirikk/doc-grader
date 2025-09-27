@@ -3,6 +3,7 @@
 from typing import List, Optional, Any, Dict
 from pathlib import Path
 import json
+from ..logger import debug
 from pydantic import BaseModel, Field
 
 
@@ -22,6 +23,7 @@ class AppConfig(BaseModel):
 
 def load_config(path: Path) -> AppConfig:
     data = json.loads(path.read_text(encoding="utf-8"))
+    debug("Loaded config from %s: %s", path, data)
     return AppConfig.model_validate(data)
 
 

@@ -10,7 +10,7 @@ from .detectors.length_detector import LengthDetector
 from .detectors.base_detector import BaseDetector
 from .schemas.config import load_config, AppConfig, DetectorConfig
 from .schemas.ir import Document
-from .util import compute_doc_hash, summarize_document, output_findings
+from .util import compute_doc_hash, summarize_document, format_findings, write_findings_json
 from .logger import set_debug, debug, debug_dump_ir_json, debug_dump_finding_json
 
 
@@ -31,7 +31,10 @@ def _run_pipeline(doc: Document, *, outdir: Path, detectors: Optional[List[BaseD
         findings = det.detect(doc, doc_hash)
         for f in findings:
             debug_dump_finding_json(f)
-        output_findings(det, findings, outdir)
+        print()
+        print(format_findings(det, findings))
+        paths = write_findings_json(det, findings, outdir)
+        print(f"\n[{det.code}] Written {len(paths)} finding file(s) to {outdir}/")
         all_findings += len(findings)
 
     print("=" * 80)
