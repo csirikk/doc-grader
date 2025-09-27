@@ -5,7 +5,7 @@ Subclasses implement `detect`.
 """
 
 from pathlib import Path
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Dict
 
 from ..schemas.ir import Document, Span, Block
 from ..schemas.finding import (
@@ -41,8 +41,18 @@ class BaseDetector:
     name: str = "BaseDetector"
     version: str = "0.1"
 
-    def __init__(self, *, run_id: Optional[str] = None):
-        self.info = DetectorInfo(code=self.code, name=self.name, version=self.version, run_id=run_id)
+    # Subclasses may define a param_spec
+    param_spec: Dict[str, Any] = {}
+
+    def __init__(self, *, run_id: Optional[str] = None, params: Optional[Dict[str, Any]] = None):
+        self.params: Dict[str, Any] = params or {}
+        self.info = DetectorInfo(
+            code=self.code,
+            name=self.name,
+            version=self.version,
+            run_id=run_id,
+            params=(self.params or None),
+        )
 
     def detect(self, doc: Document, doc_hash: str) -> List[Finding]:
         """Run detector on the given document and return a list of findings."""
