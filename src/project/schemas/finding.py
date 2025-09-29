@@ -2,7 +2,7 @@
 
 from typing import Annotated, Literal, Optional, Union, List, Any
 from datetime import datetime, timezone
-from pydantic import BaseModel, Field, model_validator, field_validator
+from pydantic import BaseModel, Field, model_validator, field_validator, computed_field
 
 class BBox(BaseModel):
     """Bounding box in page coordinates for PDFs."""
@@ -187,8 +187,16 @@ Evidence = Annotated[
 
 
 # --- Finding model
+SEVERITY_LABELS = {
+    0: "info",
+    1: "low",
+    2: "medium",
+    3: "high",
+    4: "critical",
+}
+
 class Finding(BaseModel):
-    schema_version: Literal["finding/0.2"] = "finding/0.2"
+    schema_version: Literal["finding/0.3"] = "finding/0.3"
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     # Context
@@ -201,7 +209,7 @@ class Finding(BaseModel):
     code: str
     title: str
     message: str
-    severity: Literal["info", "warning", "error"] = "warning"
+    severity_rank: int = Field(default=2, ge=0, le=10)
     confidence: Optional[float] = Field(default=None, ge=0.0, le=1.0)
 
     impact: Optional[Impact] = None
@@ -259,7 +267,7 @@ if __name__ == "__main__":
         code="STRUCT",
         title="Missing introduction section",
         message="Top-level heading sequence is missing an introduction.",
-        severity="warning",
+        severity_rank=2,
         confidence=0.92,
         detector=DetectorInfo(
             code="STRUCT",

@@ -152,7 +152,7 @@ def format_findings(detector, findings: Sequence, *, detector_label: Optional[st
     for f in findings:
         fid = getattr(f, "finding_id", "?")
         title = getattr(f, "title", "?")
-        severity = getattr(f, "severity", "?")
+        severity = getattr(f, "severity_rank", "?")
         confidence = getattr(f, "confidence", None)
         lines.append(f"- {fid} | {title} | severity={severity} | confidence={confidence}")
 
