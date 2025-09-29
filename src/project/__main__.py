@@ -11,6 +11,7 @@ from .detectors.base_detector import BaseDetector
 from .schemas.config import load_config, AppConfig, DetectorConfig
 from .schemas.ir import Document
 from .util import compute_doc_hash, summarize_document, format_findings, write_findings_json
+from .rule_engine import RuleEngine
 from .logger import set_debug, debug, debug_dump_ir_json, debug_dump_finding_json
 
 
@@ -25,7 +26,7 @@ def _run_pipeline(doc: Document, *, outdir: Path, detectors: Optional[List[BaseD
     debug_dump_ir_json(doc)
 
     detectors = detectors or [LengthDetector()]
-    all_findings = 0
+    per_detector_findings: List[List] = []
     for det in detectors:
         debug("running detector %s on %s", det.code, doc.source_path)
         findings = det.detect(doc, doc_hash)
@@ -35,7 +36,17 @@ def _run_pipeline(doc: Document, *, outdir: Path, detectors: Optional[List[BaseD
         print(format_findings(det, findings))
         paths = write_findings_json(det, findings, outdir)
         print(f"\n[{det.code}] Written {len(paths)} finding file(s) to {outdir}/")
-        all_findings += len(findings)
+        per_detector_findings.append(findings)
+
+    engine = RuleEngine()
+    aggregated, agg_summary = engine.process(per_detector_findings)
+    print()
+    print(format_findings(detector_label="AGG", detector=engine, findings=aggregated))
+    if agg_summary:
+        print("\n[AGG] Summary:")
+        from pprint import pprint as _pprint
+        _pprint(agg_summary)
+    all_findings = len(aggregated)
 
     print("=" * 80)
     print(f"Done.\nTotal findings: {all_findings}")
