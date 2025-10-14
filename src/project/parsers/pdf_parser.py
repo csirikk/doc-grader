@@ -127,6 +127,42 @@ def _handle_image_block(path: Path, page_index: int, bbox: BBox, out: List[Any],
     )
 
 
+def _handle_vector_drawings(path: Path, page_index: int, page, out: List[Any], *, min_area: float = 4096.0) -> None:
+    drawings = page.get_drawings()
+
+    # print(f"Found {len(drawings or [])} vector drawings on page {page_index+1}")
+
+    root = Path(path).with_suffix("")
+    outdir = root / "images"
+
+    for d in drawings or []:
+        rect = d.get("rect")
+        if not rect:
+            continue
+        bbox = BBox(x0=float(rect.x0), y0=float(rect.y0), x1=float(rect.x1), y1=float(rect.y1))
+        w = max(0.0, bbox.x1 - bbox.x0)
+        h = max(0.0, bbox.y1 - bbox.y0)
+        if (w * h) < min_area:
+            continue
+
+        span = build_span(path, page_index, bbox)
+        base = f"{Path(path).stem}-p{page_index+1}-{next_id('vec')}"
+        png_path = _rasterize_clip(page, bbox, outdir, base, dpi=DPI)
+
+        out.append(
+            Figure(
+                id=next_id("f"),
+                kind="image",
+                src=png_path,
+                alt=None,
+                title=None,
+                caption=None,
+                span=span,
+                meta={"pdf": {"kind": "vector"}},
+            )
+        )
+
+
 # --- Entry point
 
 def parse_pdf(path: Path) -> Document:
@@ -157,6 +193,9 @@ def parse_pdf(path: Path) -> Document:
                     # other block types dont exist
                     logger.debug("parse_pdf: skipping unknown block type %s on page %d", btype, page_index + 1)
                     continue
+            _handle_vector_drawings(path, page_index, page, blocks)
+
+            # print(f"Wrote images to path {path.with_suffix('').as_posix()}/images/")
 
         meta: Dict[str, Any] = {
             "parser": "pdf",
