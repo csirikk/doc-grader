@@ -1,6 +1,6 @@
-# Detector to rubric code Map
+# Detector to assessment criterion map
 
-TODO: change "rubric code" terminology to "assessment criterion"
+Maps detector findings to grading rubric codes used for IPP and IFJ courses.
 
 | Rubric Code | Detector -> Finding | Notes |
 |-------------|---------------------|-------|

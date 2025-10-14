@@ -1,4 +1,4 @@
-# Spec v2 - 27. 8. 2025
+# Spec [FINAL]
 
 **Název:** Inteligentní nástroj pro efektivní hodnocení dokumentací studentských projektů
 

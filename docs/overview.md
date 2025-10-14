@@ -1,4 +1,4 @@
-# Tool overview - v0.3 (21. 8. 2025)
+# Tool overview
 
 Helper for grading IFJ/IPP project documentation.
 
@@ -41,18 +41,23 @@ The tool flags parts of the file which it thinks should affect the score negativ
 ### Key components
 
 1. **PDF/Markdown parser**
-   - Converts input documents into a unified format of text paragraphs and extracted assets (images, tables).
+   - Converts input documents into a unified IR format of typed blocks (headings, paragraphs, lists, code blocks, quotes, tables, figures).
+   - Markdown: uses markdown-it-py for tokenization, preserves line/byte offsets.
+   - PDF: uses PyMuPDF for text/image extraction, preserves page numbers and bounding boxes.
 2. **Source code parser**
    - Statically analyzes student source code to extract key entities (class names, function signatures, relationships).
    - This data provides ground truth for diagram and implementation-related detectors.
+   - Status: Planned
 3. **Local dataset** of past docs/code/assignments
    - For training/validation of models, few-shot examples for LLMs.
 4. **Detectors**  
    - A suite of specialized modules that identify specific issues.
    - Each returns `{code, evidence, confidence, location, ...}`.
+   - Current: LENGTH detector (too-short, too-long)
 5. **Rule engine**  
    - Maps detector output to a code table.
-   - Applies default deduction, allows user override.
+   - Applies filtering (confidence threshold, deduplication).
+   - Status: Basic
 6. **Scoring + export** (JSON / plain text).
 7. **CLI** prototype (GUI later).
 
@@ -60,31 +65,42 @@ The tool flags parts of the file which it thinks should affect the score negativ
 
 Automatically identify specific issues in student documentation. Each detector outputs `{code, evidence, confidence, location, ...}`.
 
-| Detector                          | Approach                                                     |
-|-----------------------------------|--------------------------------------------------------------|
-| Document structure (STRUCT)       | TBD                                                          |
-| Length/completeness (SHORT)       | TBD                                                          |
-| Copied content (COPY)             | SBERT embeddings vs specs? (TBD)                             |
-| Diagram Presence (NODIAGRAM)      | Heuristic image and vector graphics extraction.              |
-| Table Presence (NOTABLE)          | Parse Markdown tables and use PDF table extraction tools.    |
-| Diagram Quality (BADDIAGRAM)      | Vision API to classify type and compare against source code. |
-| Table Quality (BADTABLE)          | Vision API to classify type and compare against source code? |
-| Writing style (STYLE)             | Multilingual LLM                                             |
-| Content appropriateness (CONTENT) | Multilingual LLM                                             |
-| Generic Promptable (CUSTOM)       | single powerful LLM, custom prompt                           |
-| Language mixing (LANG)            | cz/sk/en detection                                           |
-| Terminology (TERM)                | Domain-specific, OOP focus for IPP                           |
-| Format compliance (FORMAT)        | PDF/markdown requirements                                    |
+**Implemented:**
+
+| Detector                          | Code   | Approach                                                     | Status       |
+|-----------------------------------|--------|--------------------------------------------------------------|--------------|
+| Length/completeness               | LENGTH | Heuristics on word/paragraph counts and ratios               | Implemented  |
+
+**Planned:**
+
+| Detector                          | Code        | Approach                                                     | Status   |
+|-----------------------------------|-------------|--------------------------------------------------------------|----------|
+| Document structure                | STRUCT      | TBD                                                          | Planned  |
+| Copied content                    | COPY        | SBERT embeddings vs specs? (TBD)                             | Planned  |
+| Diagram Presence                  | NODIAGRAM   | Heuristic image and vector graphics extraction.              | Planned  |
+| Table Presence                    | NOTABLE     | Parse Markdown tables and use PDF table extraction tools.    | Planned  |
+| Diagram Quality                   | BADDIAGRAM  | Vision API to classify type and compare against source code. | Planned  |
+| Table Quality                     | BADTABLE    | Vision API to classify type and compare against source code? | Planned  |
+| Writing style                     | STYLE       | Multilingual LLM                                             | Planned  |
+| Content appropriateness           | CONTENT     | Multilingual LLM                                             | Planned  |
+| Generic Promptable                | CUSTOM      | single powerful LLM, custom prompt                           | Planned  |
+| Language mixing                   | LANG        | cz/sk/en detection                                           | Planned  |
+| Terminology                       | TERM        | Domain-specific, OOP focus for IPP                           | Planned  |
+| Format compliance                 | FORMAT      | PDF/markdown requirements                                    | Planned  |
 
 ## Rule engine
 
 Convert raw detector findings into actionable grading deductions. Inputs are `{code, evidence, confidence, location, ...}` + error code definitions -> output = `{deduction, weight, reason, ...}`. The system is unified, with a single rule engine that applies different configurations (enabled detectors, penalty weights) for both IPP and IFJ.
 
-| Feature             | Possibly approach                 | Notes                                 |
+**Current implementation:** Basic filtering by confidence threshold (default 0.80) and deduplication by finding_id. Returns aggregated findings with summary statistics.
+
+**Planned features:**
+
+| Feature             | Possible approach                 | Notes                                 |
 | ------------------- | --------------------------------- | ------------------------------------- |
 | Mapping method      | Static YAML/JSON config           | Learned mapping out of scope for now? |
 | Deduction weights   | Fixed vs. adaptive per doc?       | Allow per-project/ overrides.         |
-| Thresholds          | Confidence cut-off per detector   | Manual tuning or learned threshorlds? |
+| Thresholds          | Confidence cut-off per detector   | Manual tuning or learned thresholds?  |
 | Conflict resolution | Deduplication logic               | One deduction per issue type?         |
 | Grader overrides    | CLI flag / config file            | File-based override format?           |
 | Batch scoring       | -                                 | Out of scope for now.                 |
@@ -94,7 +110,7 @@ Convert raw detector findings into actionable grading deductions. Inputs are `{c
 
 ### Design diag
 
-![Design (unchanged form v0.2)](img/design_v0_2.png)
+![Design v0.2](img/design_v0_2.png)
 
 ## 6. Design questions
 
