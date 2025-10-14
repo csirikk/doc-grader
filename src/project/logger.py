@@ -49,3 +49,16 @@ def debug_dump_finding_json(f) -> None:
         print(f.model_dump_json(indent=2), file=sys.stderr, flush=True)
     except Exception as e:
         debug("failed to dump finding json: %s", e)
+
+def dump_config_json(c) -> None:
+    """Pretty-print a config object as JSON."""
+    if not DEBUG:
+        return
+    elif c is None:
+        print("[CONFIG JSON] Config is None", file=sys.stderr)
+        return
+    try:
+        print("[CONFIG JSON]", file=sys.stderr)
+        print(c.model_dump_json(indent=2), file=sys.stderr, flush=True)
+    except Exception as e:
+        debug("failed to dump config json: %s", e)

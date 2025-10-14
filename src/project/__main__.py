@@ -12,7 +12,7 @@ from .schemas.config import load_config, AppConfig, DetectorConfig
 from .schemas.ir import Document
 from .util import compute_doc_hash, summarize_document, format_findings, write_findings_json
 from .rule_engine import RuleEngine
-from .logger import set_debug, debug, debug_dump_ir_json, debug_dump_finding_json
+from .logger import set_debug, debug, debug_dump_ir_json, debug_dump_finding_json, dump_config_json
 
 
 def _run_pipeline(doc: Document, *, outdir: Path, detectors: Optional[List[BaseDetector]] = None) -> int:
@@ -98,6 +98,7 @@ def main(argv: list[str] | None = None) -> int:
             "LENGTH": LengthDetector,
         }
         for detector_cfg in app_config.detectors:
+            dump_config_json(detector_cfg)
             if not detector_cfg.enabled:
                 continue
             detector_class = detector_list.get(detector_cfg.code.upper())

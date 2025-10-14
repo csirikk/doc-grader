@@ -23,9 +23,5 @@ class AppConfig(BaseModel):
 
 def load_config(path: Path) -> AppConfig:
     data = json.loads(path.read_text(encoding="utf-8"))
-    debug("Loaded config from %s: %s", path, data)
+    print(f"Loaded config from {path}\n")
     return AppConfig.model_validate(data)
-
-
-def dump_config(cfg: AppConfig, path: Path) -> None:
-    path.write_text(cfg.model_dump_json(indent=2), encoding="utf-8")
