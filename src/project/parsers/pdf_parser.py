@@ -10,6 +10,7 @@ from typing import List, Dict, Any
 from ..schemas.ir import (
     Document,
     Paragraph,
+    Heading,
     Span,
     Figure,
     BBox,
@@ -66,9 +67,78 @@ def _aggregate_text_from_block(block: Dict[str, Any]) -> str:
     return norm(" ".join(parts))
 
 
+def _extract_font_sizes_from_block(block: Dict[str, Any]) -> List[float]:
+    """Extract all font sizes from a text block."""
+    sizes: List[float] = []
+    for line in block.get("lines", []) or []:
+        for span in line.get("spans", []) or []:
+            span_size = span.get("size")
+            if isinstance(span_size, (int, float)):
+                sizes.append(float(span_size))
+    return sizes
+
+
+def _calculate_avg_font_size(blocks: List[Dict[str, Any]]) -> float:
+    """Calculate average font size across all text blocks."""
+    all_sizes: List[float] = []
+    for block in blocks:
+        if block.get("type", 0) == 0:  # text block
+            all_sizes.extend(_extract_font_sizes_from_block(block))
+    
+    if not all_sizes:
+        return 12.0  # default fallback
+    
+    return sum(all_sizes) / len(all_sizes)
+
+
+def _classify_text_block(block: Dict[str, Any], avg_font_size: float) -> tuple[str, int | None]:
+    """
+    Classify a text block as heading or paragraph based on font size.
+    
+    Returns (block_type, heading_level)
+        block_type = 'heading' | 'paragraph'
+        heading_level = 1-6 if heading, otherwise None
+    """
+    sizes = _extract_font_sizes_from_block(block)
+    
+    if not sizes:
+        return "paragraph", None
+    
+    max_size = max(sizes)
+
+    if max_size > avg_font_size * 1.2:
+        # Map font size ratio to heading levels (1 = largest, 6 = smallest heading)
+        ratio = max_size / avg_font_size
+        
+        if ratio >= 2.0:
+            level = 1
+        elif ratio >= 1.7:
+            level = 2
+        elif ratio >= 1.5:
+            level = 3
+        elif ratio >= 1.4:
+            level = 4
+        elif ratio >= 1.35:
+            level = 5
+        else:
+            level = 6
+        
+        return "heading", level
+    
+    return "paragraph", None
+
+
 # --- Block handlers
 
-def _handle_text_block(path: Path, page_index: int, block: Dict[str, Any], bbox: BBox, out: List[Any]) -> None:
+def _handle_text_block(
+    path: Path,
+    page_index: int,
+    block: Dict[str, Any],
+    bbox: BBox,
+    out: List[Any],
+    block_type: str = "paragraph",
+    heading_level: int | None = None,
+) -> None:
     text = _aggregate_text_from_block(block)
     if not text:
         return
@@ -86,20 +156,34 @@ def _handle_text_block(path: Path, page_index: int, block: Dict[str, Any], bbox:
                 sizes.append(float(span_size))
 
     span = build_span(path, page_index, bbox)
-    out.append(
-        Paragraph(
-            id=next_id("p"),
-            text=text,
-            span=span,
-            meta={
-                "pdf": {
-                    "font_names": fonts[:5],
-                    "font_size_max": (max(sizes) if sizes else None),
-                    "font_size_min": (min(sizes) if sizes else None),
-                }
-            },
+    
+    meta = {
+        "pdf": {
+            "font_names": fonts[:5],
+            "font_size_max": (max(sizes) if sizes else None),
+            "font_size_min": (min(sizes) if sizes else None),
+        }
+    }
+    
+    if block_type == "heading" and heading_level is not None:
+        out.append(
+            Heading(
+                id=next_id("h"),
+                level=heading_level,
+                text=text,
+                span=span,
+                meta=meta,
+            )
         )
-    )
+    else:
+        out.append(
+            Paragraph(
+                id=next_id("p"),
+                text=text,
+                span=span,
+                meta=meta,
+            )
+        )
 
 
 def _handle_image_block(path: Path, page_index: int, bbox: BBox, out: List[Any], page) -> None:
@@ -167,11 +251,26 @@ def _handle_vector_drawings(path: Path, page_index: int, page, out: List[Any], *
 
 def parse_pdf(path: Path) -> Document:
 
-    logger.debug("parse_pdf: opening %s", path)
+    debug("parse_pdf: opening %s", path)
     with pymupdf.open(str(path)) as pdf:
         page_count = len(pdf)
         page_sizes = _get_page_sizes(pdf)
 
+        # Collect all text blocks for font size analysis
+        all_text_blocks: List[Dict[str, Any]] = []
+        for page_index in range(page_count):
+            page = pdf[page_index]
+            pdata = page.get_text("dict")
+            page_blocks = pdata.get("blocks", []) or []
+            for block in page_blocks:
+                if block.get("type", 0) == 0:  # text block
+                    all_text_blocks.append(block)
+        
+        # Calculate average font size
+        avg_font_size = _calculate_avg_font_size(all_text_blocks)
+        debug("parse_pdf: calculated avg font size = %.2f", avg_font_size)
+
+        # Process blocks and classify text as heading or paragraph
         blocks: List[Any] = []
 
         for page_index in range(page_count):
@@ -186,25 +285,36 @@ def parse_pdf(path: Path) -> Document:
                 bbox = _to_bbox(bbox_list)
 
                 if btype == 0:
-                    _handle_text_block(path, page_index, block, bbox, blocks)
+                    block_type, heading_level = _classify_text_block(block, avg_font_size)
+                    _handle_text_block(
+                        path, page_index, block, bbox, blocks,
+                        block_type=block_type,
+                        heading_level=heading_level,
+                    )
                 elif btype == 1:
                     _handle_image_block(path, page_index, bbox, blocks, page=page)
                 else:
                     # other block types dont exist
-                    logger.debug("parse_pdf: skipping unknown block type %s on page %d", btype, page_index + 1)
+                    debug("parse_pdf: skipping unknown block type %s on page %d", btype, page_index + 1)
                     continue
             _handle_vector_drawings(path, page_index, page, blocks)
 
-            # print(f"Wrote images to path {path.with_suffix('').as_posix()}/images/")
-
+        # Count headings for logging
+        heading_count = sum(1 for b in blocks if isinstance(b, Heading))
+        para_count = sum(1 for b in blocks if isinstance(b, Paragraph))
+        
         meta: Dict[str, Any] = {
             "parser": "pdf",
             "pdf": {
                 "engine": "pymupdf",
                 "page_count": page_count,
                 "page_sizes": page_sizes,
+                "avg_font_size": round(avg_font_size, 2),
             },
         }
 
-        logger.debug("parse_pdf: built %d blocks from %d pages", len(blocks), page_count)
+        debug(
+            "parse_pdf: built %d blocks from %d pages (%d headings, %d paragraphs)",
+            len(blocks), page_count, heading_count, para_count
+        )
         return Document(source_path=str(path), blocks=blocks, meta=meta)
