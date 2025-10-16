@@ -127,6 +127,28 @@ def _classify_text_block(block: Dict[str, Any], avg_font_size: float) -> tuple[s
     
     return "paragraph", None
 
+def _find_caption_for_figure(fig: Figure, paragraphs: List[Paragraph]) -> str | None:
+    if not fig.span.bbox or not fig.span.page:
+        return None
+    
+    max_distance = 50.0  # max vertical distance in points
+    img_bottom = fig.span.bbox.y1
+    
+    best_dist = float("inf")
+    best_text = None
+
+    for para in paragraphs:
+        if not para.span.bbox or para.span.page != fig.span.page:
+            continue
+        
+        para_top = para.span.bbox.y0
+        distance = para_top - img_bottom
+
+        if 0 < distance < max_distance and distance < best_dist:
+            best_dist, best_text = distance, para.text
+
+    return best_text
+
 
 # --- Block handlers
 
@@ -258,6 +280,7 @@ def parse_pdf(path: Path) -> Document:
 
         # Collect all text blocks for font size analysis
         all_text_blocks: List[Dict[str, Any]] = []
+
         for page_index in range(page_count):
             page = pdf[page_index]
             pdata = page.get_text("dict")
@@ -299,9 +322,20 @@ def parse_pdf(path: Path) -> Document:
                     continue
             _handle_vector_drawings(path, page_index, page, blocks)
 
-        # Count headings for logging
+        figures = [b for b in blocks if isinstance(b, Figure)]
+        paragraphs = [b for b in blocks if isinstance(b, Paragraph)]
+        captions_found = 0
+        
+        for fig in figures:
+            caption = _find_caption_for_figure(fig, paragraphs)
+            if caption:
+                fig.caption = caption
+                captions_found += 1
+
+        # Count blocks for logging
         heading_count = sum(1 for b in blocks if isinstance(b, Heading))
         para_count = sum(1 for b in blocks if isinstance(b, Paragraph))
+        figure_count = len(figures)
         
         meta: Dict[str, Any] = {
             "parser": "pdf",
@@ -314,7 +348,7 @@ def parse_pdf(path: Path) -> Document:
         }
 
         debug(
-            "parse_pdf: built %d blocks from %d pages (%d headings, %d paragraphs)",
-            len(blocks), page_count, heading_count, para_count
+            "parse_pdf: built %d blocks from %d pages (%d headings, %d paragraphs, %d figures with %d captions)",
+            len(blocks), page_count, heading_count, para_count, figure_count, captions_found
         )
         return Document(source_path=str(path), blocks=blocks, meta=meta)
