@@ -132,6 +132,12 @@ def _find_caption_for_figure(fig: Figure, paragraphs: List[Paragraph]) -> str | 
     if not fig.span.bbox or not fig.span.page:
         return None
     
+    fig_width = fig.span.bbox.x1 - fig.span.bbox.x0
+    fig_height = fig.span.bbox.y1 - fig.span.bbox.y0
+    fig_area = fig_width * fig_height
+    if fig_area < 10000:
+        return None
+    
     max_distance = 50.0  # max vertical distance in points
     img_bottom = fig.span.bbox.y1
     
@@ -149,6 +155,123 @@ def _find_caption_for_figure(fig: Figure, paragraphs: List[Paragraph]) -> str | 
             best_dist, best_text = distance, para.text
 
     return best_text
+
+
+def _bboxes_collide(bbox1: BBox, bbox2: BBox, proximity: float = 20.0) -> bool:
+    """Check if two bboxes overlap or are within proximity distance."""
+    return (
+        bbox1.x1 + proximity >= bbox2.x0 and
+        bbox2.x1 + proximity >= bbox1.x0 and
+        bbox1.y1 + proximity >= bbox2.y0 and
+        bbox2.y1 + proximity >= bbox1.y0
+    )
+
+
+def _merge_bboxes(bboxes: List[BBox]) -> BBox:
+    """Merge multiple bboxes into one bbox."""
+    if not bboxes:
+        raise ValueError("Cannot merge empty bbox list")
+    return BBox(
+        x0=min(b.x0 for b in bboxes),
+        y0=min(b.y0 for b in bboxes),
+        x1=max(b.x1 for b in bboxes),
+        y1=max(b.y1 for b in bboxes),
+    )
+
+
+def _bbox_contains(outer: BBox, inner: BBox, margin: float = 5.0) -> bool:
+    """Check if outer bbox contains inner bbox, margin for rounding."""
+    return (
+        inner.x0 >= outer.x0 - margin and
+        inner.y0 >= outer.y0 - margin and
+        inner.x1 <= outer.x1 + margin and
+        inner.y1 <= outer.y1 + margin
+    )
+
+
+def _filter_redundant_clusters(
+    cluster_info: List[tuple[List[tuple], BBox, float]]
+) -> List[List[tuple]]:
+    """Filter out redundant clusters: those contained in larger ones or too small."""
+    if not cluster_info:
+        return []
+    
+    max_area = max(ci[2] for ci in cluster_info)
+    filtered = []
+    
+    for i, (cluster_i, bbox_i, area_i) in enumerate(cluster_info):
+        # Skip clusters much smaller than the largest (likely fragments)
+        if area_i < max_area * 0.1 and area_i < 10000:
+            continue
+        
+        # Skip clusters contained in larger clusters
+        is_contained = False
+        for j, (_, bbox_j, area_j) in enumerate(cluster_info):
+            if i != j and _bbox_contains(bbox_j, bbox_i) and area_j > area_i:
+                is_contained = True
+                break
+        
+        if not is_contained:
+            filtered.append(cluster_i)
+    
+    return filtered
+
+
+def _cluster_drawings_by_proximity(
+    drawings: List[Dict[str, Any]],
+    proximity: float = 20.0
+) -> List[List[Dict[str, Any]]]:
+    """Cluster vector drawings by spatial proximity to prevent fragmentation.s
+    Returns list of clusters, each cluster is a list of drawing dicts."""
+    if not drawings:
+        return []
+    
+    # Convert to bboxes for easier handling
+    drawings_with_bbox = []
+    for d in drawings:
+        rect = d.get("rect")
+        if rect:
+            bbox = BBox(x0=float(rect.x0), y0=float(rect.y0),
+                       x1=float(rect.x1), y1=float(rect.y1))
+            drawings_with_bbox.append((d, bbox))
+    
+    if not drawings_with_bbox:
+        return []
+    
+    clusters = []
+    used = set()
+    
+    for i, (d1, bbox1) in enumerate(drawings_with_bbox):
+        if i in used:
+            continue
+        
+        # Start new cluster with this drawing
+        cluster = [(d1, bbox1)]
+        used.add(i)
+        cluster_bboxes = [bbox1]
+        
+        # Find all overlapping/adjacent drawings
+        for j, (d2, bbox2) in enumerate(drawings_with_bbox[i+1:], start=i+1):
+            if j in used:
+                continue
+            
+            # Check if d2 overlaps with any drawing in current cluster
+            if any(_bboxes_collide(b, bbox2, proximity) for b in cluster_bboxes):
+                cluster.append((d2, bbox2))
+                used.add(j)
+                cluster_bboxes.append(bbox2)
+        
+        clusters.append(cluster)
+    
+    # Build cluster info and filter redundant ones
+    cluster_info = []
+    for cluster in clusters:
+        bboxes = [b for _, b in cluster]
+        bbox = _merge_bboxes(bboxes)
+        area = (bbox.x1 - bbox.x0) * (bbox.y1 - bbox.y0)
+        cluster_info.append((cluster, bbox, area))
+    
+    return _filter_redundant_clusters(cluster_info)
 
 
 # --- Block handlers
@@ -234,24 +357,55 @@ def _handle_image_block(path: Path, page_index: int, bbox: BBox, out: List[Any],
     )
 
 
-def _handle_vector_drawings(path: Path, page_index: int, page, out: List[Any], *, min_area: float = 4096.0) -> None:
+def _handle_vector_drawings(path: Path, page_index: int, page, out: List[Any], *, min_cluster_area: float = 100.0, proximity: float = 25.0) -> None:
     drawings = page.get_drawings()
+    
+    if not drawings:
+        return
 
-    # print(f"Found {len(drawings or [])} vector drawings on page {page_index+1}")
-
-    root = Path(path).with_suffix("")
-    outdir = root / "images"
-
-    for d in drawings or []:
+    filtered_drawings = []
+    for d in drawings:
         rect = d.get("rect")
         if not rect:
             continue
-        bbox = BBox(x0=float(rect.x0), y0=float(rect.y0), x1=float(rect.x1), y1=float(rect.y1))
-        w = max(0.0, bbox.x1 - bbox.x0)
-        h = max(0.0, bbox.y1 - bbox.y0)
-        if (w * h) < min_area:
+        w = max(0.0, rect.x1 - rect.x0)
+        h = max(0.0, rect.y1 - rect.y0)
+        if (w * h) > 0:  # Keep anything with non-zero area
+            filtered_drawings.append(d)
+    
+    if not filtered_drawings:
+        return
+    
+    debug("parse_pdf: found %d vector drawings (excluding hairlines)", len(filtered_drawings))
+    
+    # Cluster drawings by spatial proximity, fuses overlapping/adjacent elements
+    clusters = _cluster_drawings_by_proximity(filtered_drawings, proximity)
+    
+    debug("parse_pdf: clustered into %d groups", len(clusters))
+    
+    root = Path(path).with_suffix("")
+    outdir = root / "images"
+    
+    # Rasterize each cluster with meaningful size
+    for cluster in clusters:
+        if not cluster:
             continue
-
+        
+        if len(cluster) == 1:
+            d = cluster[0][0]
+            rect = d.get("rect")
+            bbox = BBox(x0=float(rect.x0), y0=float(rect.y0), 
+                       x1=float(rect.x1), y1=float(rect.y1))
+        else:
+            bboxes = [b for _, b in cluster]
+            bbox = _merge_bboxes(bboxes)
+        
+        cluster_w = bbox.x1 - bbox.x0
+        cluster_h = bbox.y1 - bbox.y0
+        cluster_area = cluster_w * cluster_h
+        
+        if cluster_area < min_cluster_area:
+            continue
         span = build_span(path, page_index, bbox)
         base = f"{Path(path).stem}-p{page_index+1}-{next_id('vec')}"
         png_path = _rasterize_clip(page, bbox, outdir, base, dpi=DPI)
