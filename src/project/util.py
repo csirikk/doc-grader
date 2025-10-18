@@ -6,11 +6,13 @@ from typing import Dict, Any, Sequence, Optional, List
 
 _id_counters: Dict[str, int] = {}
 
+
 def next_id(prefix: str) -> str:
     """Return the next sequential id for the given prefix."""
     n = _id_counters.get(prefix, 0) + 1
     _id_counters[prefix] = n
     return f"{prefix}-{n}"
+
 
 def reset_id_counters(*prefixes: str) -> None:
     """Reset internal id counters.
@@ -29,15 +31,18 @@ def count_words(text: Optional[str]) -> int:
         return 0
     return len([w for w in text.split() if w])
 
+
 def compute_doc_hash(path: str) -> str:
     with open(path, "rb") as f:
         return "sha256:" + hashlib.sha256(f.read()).hexdigest()
+
 
 def norm(text: Optional[str]) -> str:
     """Normalize whitespace."""
     if not text:
         return ""
     return " ".join(text.split())
+
 
 def summarize_document(doc) -> Dict[str, Any]:
     """Return a structured high-level overview of the document.
@@ -89,7 +94,7 @@ def summarize_document(doc) -> Dict[str, Any]:
     for b in blocks:
         if getattr(b, "type", None) == "List":
             for it in getattr(b, "items", []) or []:
-                list_word_total += count_words(getattr(it, 'text', None))
+                list_word_total += count_words(getattr(it, "text", None))
 
     total_words = paragraph_word_total + list_word_total
     para_count = len(paragraphs)
@@ -141,7 +146,9 @@ def summarize_document(doc) -> Dict[str, Any]:
     }
 
 
-def format_findings(detector, findings: Sequence, *, detector_label: Optional[str] = None) -> str:
+def format_findings(
+    detector, findings: Sequence, *, detector_label: Optional[str] = None
+) -> str:
     """Return a formatted multi-line string describing findings."""
     label = detector_label or getattr(detector, "code", "DET")
     lines: List[str] = [f"[{label}] Findings:"]
@@ -154,19 +161,21 @@ def format_findings(detector, findings: Sequence, *, detector_label: Optional[st
         title = getattr(f, "title", "?")
         severity = getattr(f, "severity_rank", "?")
         confidence = getattr(f, "confidence", None)
-        lines.append(f"- {fid} | {title} | severity={severity} | confidence={confidence}")
+        lines.append(
+            f"- {fid} | {title} | severity={severity} | confidence={confidence}"
+        )
 
         msg = getattr(f, "message", "") or ""
         if msg:
             lines.append(f"  Message: {msg}")
 
         evidence = getattr(f, "evidence", []) or []
-        stats = [e for e in evidence if getattr(e, 'type', None) == 'Stat']
+        stats = [e for e in evidence if getattr(e, "type", None) == "Stat"]
         if stats:
             lines.append("  Stats:")
-            for s in sorted(stats, key=lambda s: getattr(s, 'name', '')):
-                name = getattr(s, 'name', '?')
-                value = getattr(s, 'value', '?')
+            for s in sorted(stats, key=lambda s: getattr(s, "name", "")):
+                name = getattr(s, "name", "?")
+                value = getattr(s, "value", "?")
                 lines.append(f"    {name}: {value}")
     return "\n".join(lines)
 

@@ -11,6 +11,7 @@ from ..util import reset_id_counters
 
 # --- Public parse function
 
+
 def parse(path: Path) -> Optional[Document]:
     """
     Parse an input file into a Document IR.

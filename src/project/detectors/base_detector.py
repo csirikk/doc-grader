@@ -1,6 +1,6 @@
 """Base detector interface.
 
-Provides a `BaseDetector` with helpers for building findings and outputting them. 
+Provides a `BaseDetector` with helpers for building findings and outputting them.
 Subclasses implement `detect`.
 """
 
@@ -9,30 +9,43 @@ from typing import List, Optional, Any, Dict
 
 from ..schemas.ir import Document, Span, Block
 from ..schemas.finding import (
-    Finding, DetectorInfo, DocumentRef, Location, SpanRef,
-    BlockRef, TextSpan,
+    Finding,
+    DetectorInfo,
+    DocumentRef,
+    Location,
+    SpanRef,
+    BlockRef,
+    TextSpan,
 )
 from ..util import compute_doc_hash
+
 
 # --- Helpers
 # ID format: 'CODE:hash8:slug'
 def _build_finding_id(code: str, doc_hash: str, slug: str) -> str:
     return f"{code.upper()}:{doc_hash[7:15]}:{slug}"
 
+
 # IR to Finding helpers
 def _build_spanref(s: Span) -> SpanRef:
     return SpanRef(
-        line_start=s.line_start, line_end=s.line_end,
-        byte_start=s.byte_start, byte_end=s.byte_end,
+        line_start=s.line_start,
+        line_end=s.line_end,
+        byte_start=s.byte_start,
+        byte_end=s.byte_end,
         page=getattr(s, "page", None),
         bbox=getattr(s, "bbox", None),
     )
 
-def _build_location(block: Optional[Block] = None, span: Optional[Span] = None) -> Location:
+
+def _build_location(
+    block: Optional[Block] = None, span: Optional[Span] = None
+) -> Location:
     return Location(
         block_id=(block.id if block else None),
         span=(_build_spanref(span) if span else None),
     )
+
 
 class BaseDetector:
 
@@ -44,7 +57,9 @@ class BaseDetector:
     # Subclasses may define a param_spec
     param_spec: Dict[str, Any] = {}
 
-    def __init__(self, *, run_id: Optional[str] = None, params: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self, *, run_id: Optional[str] = None, params: Optional[Dict[str, Any]] = None
+    ):
         self.params: Dict[str, Any] = params or {}
         self.info = DetectorInfo(
             code=self.code,

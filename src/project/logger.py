@@ -7,9 +7,11 @@ import json
 
 DEBUG: bool = False
 
+
 def set_debug(flag: bool = True) -> None:
     global DEBUG
     DEBUG = bool(flag)
+
 
 def debug(msg: str, *args: Any) -> None:
     if not DEBUG:
@@ -49,6 +51,7 @@ def debug_dump_finding_json(f) -> None:
         print(f.model_dump_json(indent=2), file=sys.stderr, flush=True)
     except Exception as e:
         debug("failed to dump finding json: %s", e)
+
 
 def dump_config_json(c) -> None:
     """Pretty-print a config object as JSON."""

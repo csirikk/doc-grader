@@ -10,12 +10,25 @@ from .detectors.length_detector import LengthDetector
 from .detectors.base_detector import BaseDetector
 from .schemas.config import load_config, AppConfig, DetectorConfig
 from .schemas.ir import Document
-from .util import compute_doc_hash, summarize_document, format_findings, write_findings_json
+from .util import (
+    compute_doc_hash,
+    summarize_document,
+    format_findings,
+    write_findings_json,
+)
 from .rule_engine import RuleEngine
-from .logger import set_debug, debug, debug_dump_ir_json, debug_dump_finding_json, dump_config_json
+from .logger import (
+    set_debug,
+    debug,
+    debug_dump_ir_json,
+    debug_dump_finding_json,
+    dump_config_json,
+)
 
 
-def _run_pipeline(doc: Document, *, outdir: Path, detectors: Optional[List[BaseDetector]] = None) -> int:
+def _run_pipeline(
+    doc: Document, *, outdir: Path, detectors: Optional[List[BaseDetector]] = None
+) -> int:
     doc_hash = compute_doc_hash(doc.source_path)
     print("=" * 80)
     print(f"File: {doc.source_path}")
@@ -45,6 +58,7 @@ def _run_pipeline(doc: Document, *, outdir: Path, detectors: Optional[List[BaseD
     if agg_summary:
         print("\n[AGG] Summary:")
         from pprint import pprint as _pprint
+
         _pprint(agg_summary)
     all_findings = len(aggregated)
 
@@ -52,6 +66,7 @@ def _run_pipeline(doc: Document, *, outdir: Path, detectors: Optional[List[BaseD
     print(f"Done.\nTotal findings: {all_findings}")
     debug("finished processing %s with %d findings", doc.source_path, all_findings)
     return all_findings
+
 
 def parse_input_to_document(path: Path) -> Optional[Document]:
     if not path.exists():
@@ -68,9 +83,7 @@ def parse_input_to_document(path: Path) -> Optional[Document]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="project")
     parser.add_argument(
-        "inputs",
-        nargs="+",
-        help="One or more input paths (.md, .markdown, .pdf)"
+        "inputs", nargs="+", help="One or more input paths (.md, .markdown, .pdf)"
     )
     parser.add_argument(
         "-d", "--debug", action="store_true", help="Enable debug logging"

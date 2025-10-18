@@ -28,9 +28,10 @@ from ..util import next_id, norm
 from .. import logger
 
 # Global parser instance
-md = MarkdownIt("commonmark").enable('table')
+md = MarkdownIt("commonmark").enable("table")
 
 # --- Utilities
+
 
 def compute_byte_starts(text: str) -> List[int]:
     """Return UTF-8 byte offsets at each line start (0-based)."""
@@ -40,6 +41,7 @@ def compute_byte_starts(text: str) -> List[int]:
         acc += len(line.encode("utf-8"))
         starts.append(acc)
     return starts
+
 
 def build_span(path: Path, tok: Token, byte_starts: List[int]) -> Span:
     """Build a Span from a token line map, falling back if absent."""
@@ -122,14 +124,21 @@ def _inline_is_image_only(inline: Token) -> bool:
     idx = 0
     while idx < len(kids):
         t = kids[idx]
-        if t.type in ("softbreak", "hardbreak") or (t.type == "text" and (t.content or "").strip() == ""):
+        if t.type in ("softbreak", "hardbreak") or (
+            t.type == "text" and (t.content or "").strip() == ""
+        ):
             idx += 1
             continue
         if t.type == "image":
             contains_image = True
             idx += 1
             continue
-        if idx + 2 < len(kids) and t.type == "link_open" and kids[idx + 1].type == "image" and kids[idx + 2].type == "link_close":
+        if (
+            idx + 2 < len(kids)
+            and t.type == "link_open"
+            and kids[idx + 1].type == "image"
+            and kids[idx + 2].type == "link_close"
+        ):
             contains_image = True
             idx += 3
             continue
@@ -139,8 +148,10 @@ def _inline_is_image_only(inline: Token) -> bool:
 
 # --- Token handling
 
+
 class TokenCursor:
     """Tiny cursor to navigate markdown-it tokens."""
+
     def __init__(self, tokens: List[Token], i: int = 0):
         self.tokens = tokens
         self.i = i
@@ -159,7 +170,9 @@ class TokenCursor:
         return self.i >= len(self.tokens)
 
 
-def consume_triplet(cursor: TokenCursor, open_type: str, close_type: str) -> Tuple[Optional[Token], Optional[Token]]:
+def consume_triplet(
+    cursor: TokenCursor, open_type: str, close_type: str
+) -> Tuple[Optional[Token], Optional[Token]]:
     """
     Consume a block shaped as: open_type, (optional inline), close_type. Advances the cursor past the close token.
     Returns (open_tok, inline_tok_or_None).
@@ -177,7 +190,11 @@ def consume_triplet(cursor: TokenCursor, open_type: str, close_type: str) -> Tup
         cursor.advance(3)
         return open_tok, inline_tok
 
-    if (not has_inline) and cursor.peek(1) is not None and cursor.peek(1).type == close_type:
+    if (
+        (not has_inline)
+        and cursor.peek(1) is not None
+        and cursor.peek(1).type == close_type
+    ):
         open_tok = t0
         cursor.advance(2)
         return open_tok, None
@@ -187,9 +204,11 @@ def consume_triplet(cursor: TokenCursor, open_type: str, close_type: str) -> Tup
     return t0, None
 
 
-def consume_container(cursor: TokenCursor, open_type: str, close_type: str) -> List[Token]:
+def consume_container(
+    cursor: TokenCursor, open_type: str, close_type: str
+) -> List[Token]:
     """
-    Consume a container block from open_type to its matching close_type (inclusive), 
+    Consume a container block from open_type to its matching close_type (inclusive),
     returning the list of tokens inside the container (excluding the close). Advances the cursor to just after the close.
     """
     inside: List[Token] = []
@@ -227,7 +246,10 @@ def consume_container(cursor: TokenCursor, open_type: str, close_type: str) -> L
 
 # --- Block handlers (consume cursor, append IR blocks)
 
-def _handle_heading(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
+
+def _handle_heading(
+    cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List
+) -> None:
     open_tok, inline = consume_triplet(cursor, "heading_open", "heading_close")
     if not open_tok:
         return
@@ -239,7 +261,9 @@ def _handle_heading(cursor: TokenCursor, path: Path, byte_starts: List[int], blo
     blocks.append(Heading(id=next_id("h"), level=level, text=title, span=span))
 
 
-def _handle_paragraph(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
+def _handle_paragraph(
+    cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List
+) -> None:
     open_tok, inline = consume_triplet(cursor, "paragraph_open", "paragraph_close")
     if not open_tok:
         return
@@ -252,7 +276,9 @@ def _handle_paragraph(cursor: TokenCursor, path: Path, byte_starts: List[int], b
     blocks.append(Paragraph(id=next_id("p"), text=content, span=span))
 
 
-def _handle_fence(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
+def _handle_fence(
+    cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List
+) -> None:
     tok = cursor.current()
     if not tok:
         cursor.advance(1)
@@ -269,7 +295,9 @@ def _handle_fence(cursor: TokenCursor, path: Path, byte_starts: List[int], block
     cursor.advance(1)
 
 
-def _parse_list_block(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> ListBlock:
+def _parse_list_block(
+    cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List
+) -> ListBlock:
     """Parse a list at the current cursor (assumes *_list_open). Returns a ListBlock and advances past close."""
     tok_open = cursor.current()
     is_ordered = tok_open.type == "ordered_list_open"
@@ -279,7 +307,11 @@ def _parse_list_block(cursor: TokenCursor, path: Path, byte_starts: List[int], b
     start: Optional[int] = None
     if is_ordered and getattr(tok_open, "attrs", None):
         try:
-            start = int(tok_open.attrs.get("start")) if tok_open.attrs.get("start") is not None else None
+            start = (
+                int(tok_open.attrs.get("start"))
+                if tok_open.attrs.get("start") is not None
+                else None
+            )
         except Exception:
             start = None
 
@@ -316,12 +348,16 @@ def _parse_list_block(cursor: TokenCursor, path: Path, byte_starts: List[int], b
                     child_idx = nested_cur.i
                     continue
                 if child_tok.type == "inline":
-                    emitted_figures += _emit_figures_from_inline(child_tok, item_span, blocks)
+                    emitted_figures += _emit_figures_from_inline(
+                        child_tok, item_span, blocks
+                    )
                     if child_tok.content:
                         parts.append(child_tok.content)
                 child_idx += 1
 
-            text_value = None if (not parts and emitted_figures > 0) else norm(" ".join(parts))
+            text_value = (
+                None if (not parts and emitted_figures > 0) else norm(" ".join(parts))
+            )
             items.append(
                 ListItem(
                     text=text_value,
@@ -343,11 +379,15 @@ def _parse_list_block(cursor: TokenCursor, path: Path, byte_starts: List[int], b
     )
 
 
-def _handle_list(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
+def _handle_list(
+    cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List
+) -> None:
     blocks.append(_parse_list_block(cursor, path, byte_starts, blocks))
 
 
-def _handle_blockquote(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
+def _handle_blockquote(
+    cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List
+) -> None:
     tok_open = cursor.current()
     if not tok_open:
         cursor.advance(1)
@@ -363,7 +403,10 @@ def _handle_blockquote(cursor: TokenCursor, path: Path, byte_starts: List[int], 
                 parts.append(t.content)
     blocks.append(Quote(id=next_id("q"), text=norm(" ".join(parts)), span=span))
 
-def _handle_table(cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List) -> None:
+
+def _handle_table(
+    cursor: TokenCursor, path: Path, byte_starts: List[int], blocks: List
+) -> None:
     tok_open = cursor.current()
     if not tok_open:
         cursor.advance(1)
@@ -377,7 +420,10 @@ def _handle_table(cursor: TokenCursor, path: Path, byte_starts: List[int], block
     rows: List[List[str]] = []
 
     idx = 0
-    def _collect_cells_for_row(idx: int, cell_open_type: str, cell_close_type: str) -> Tuple[List[str], int]:
+
+    def _collect_cells_for_row(
+        idx: int, cell_open_type: str, cell_close_type: str
+    ) -> Tuple[List[str], int]:
         cells: List[str] = []
         # cell_open, inline, cell_close
         while idx < len(inside) and inside[idx].type != "tr_close":
@@ -449,13 +495,20 @@ HANDLERS = {
 
 # --- Entry point
 
+
 def parse_markdown(path: Path) -> Document:
     text = path.read_text(encoding="utf-8")
     tokens = md.parse(text)
     byte_starts = compute_byte_starts(text)
 
     for idx, tok in enumerate(tokens):
-        logger.debug("token %d type=%s map=%s nesting=%s", idx, tok.type, getattr(tok, 'map', None), getattr(tok, 'nesting', None))
+        logger.debug(
+            "token %d type=%s map=%s nesting=%s",
+            idx,
+            tok.type,
+            getattr(tok, "map", None),
+            getattr(tok, "nesting", None),
+        )
         logger.debug("token %d full=%s", idx, tok.as_dict())
 
     blocks: List = []

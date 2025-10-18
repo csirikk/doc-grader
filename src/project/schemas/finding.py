@@ -4,8 +4,10 @@ from typing import Annotated, Literal, Optional, Union, List, Any
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field, model_validator, field_validator, computed_field
 
+
 class BBox(BaseModel):
     """Bounding box in page coordinates for PDFs."""
+
     x0: float
     y0: float
     x1: float
@@ -52,7 +54,9 @@ class SpanRef(BaseModel):
         has_page = self.page is not None
         has_bbox = self.bbox is not None
         if not (has_lines or has_bytes or has_page or has_bbox):
-            raise ValueError("SpanRef requires at least one of: line_*, byte_*, page, bbox")
+            raise ValueError(
+                "SpanRef requires at least one of: line_*, byte_*, page, bbox"
+            )
         return self
 
 
@@ -60,6 +64,7 @@ class Location(BaseModel):
     block_id: Optional[str] = None
     span: Optional[SpanRef] = None
     model_config = dict(extra="forbid")
+
 
 class ImpactDelta(BaseModel):
     kind: Literal["penalty", "bonus", "neutral"] = "penalty"  # default to penalty
@@ -195,6 +200,7 @@ SEVERITY_LABELS = {
     4: "critical",
 }
 
+
 class Finding(BaseModel):
     schema_version: Literal["finding/0.3"] = "finding/0.3"
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -239,7 +245,9 @@ class Finding(BaseModel):
         no_locations = self.locations is None or len(self.locations) == 0
         no_evidence = self.evidence is None or len(self.evidence) == 0
         if no_locations and no_evidence:
-            raise ValueError("finding must include at least one location or one evidence item")
+            raise ValueError(
+                "finding must include at least one location or one evidence item"
+            )
         # locations if provided must not contain empty span-only placeholders
         if self.locations:
             for loc in self.locations:
@@ -252,7 +260,9 @@ class Finding(BaseModel):
         if self.doc_id != self.document.hash:
             raise ValueError("doc_id must equal document.hash")
         # detector code consistency
-        if (self.code or "").strip().upper() != (self.detector.code or "").strip().upper():
+        if (self.code or "").strip().upper() != (
+            self.detector.code or ""
+        ).strip().upper():
             raise ValueError("code must equal detector.code (case-insensitive)")
         return self
 
@@ -289,7 +299,10 @@ if __name__ == "__main__":
         evidence=[
             BlockRef(block_ids=["h-1"], snippet="# Implementation Details"),
             Stat(name="heading_count", value=5),
-            TextSpan(text="Example text", span=SpanRef(line_start=1, line_end=1, byte_start=0, byte_end=10)),
+            TextSpan(
+                text="Example text",
+                span=SpanRef(line_start=1, line_end=1, byte_start=0, byte_end=10),
+            ),
         ],
         tags=["structure", "missing-section"],
         status="proposed",

@@ -1,6 +1,6 @@
 """Length detector.
 
-Flags documents that appear too short or too long. 
+Flags documents that appear too short or too long.
 Emits at most one finding per condition (too-short or too-long) with supporting `Stat` evidence objects.
 """
 
@@ -26,6 +26,7 @@ DEFAULTS = dict(
     min_flags_long=2,
 )
 
+
 class LengthDetector(BaseDetector):
     code = "LENGTH"
     name = "LengthDetector"
@@ -45,15 +46,21 @@ class LengthDetector(BaseDetector):
     def __init__(self, *, run_id: Optional[str] = None, params: Optional[dict] = None):
         updated_params = DEFAULTS.copy()
         if params:
-            updated_params.update({key: value for key, value in params.items() if key in DEFAULTS})
+            updated_params.update(
+                {key: value for key, value in params.items() if key in DEFAULTS}
+            )
         super().__init__(run_id=run_id, params=updated_params)
         self.cfg = updated_params
 
     def detect(self, doc: Document, doc_hash: str) -> List[Finding]:
         metrics, stats_evidence = self._collect_stats(doc)
         findings: List[Finding] = []
-        findings.extend(self._compute_short_findings(doc, doc_hash, metrics, stats_evidence))
-        findings.extend(self._compute_long_findings(doc, doc_hash, metrics, stats_evidence))
+        findings.extend(
+            self._compute_short_findings(doc, doc_hash, metrics, stats_evidence)
+        )
+        findings.extend(
+            self._compute_long_findings(doc, doc_hash, metrics, stats_evidence)
+        )
         return findings
 
     def _collect_stats(self, doc: Document):
@@ -73,16 +80,29 @@ class LengthDetector(BaseDetector):
         heading_count = len(headings)
         block_count = len(blocks)
 
-        avg_words_per_paragraph = (sum(paragraph_word_counts) / paragraph_count) if paragraph_count else 0.0
-        paragraphs_per_heading = (paragraph_count / heading_count) if heading_count else None
+        avg_words_per_paragraph = (
+            (sum(paragraph_word_counts) / paragraph_count) if paragraph_count else 0.0
+        )
+        paragraphs_per_heading = (
+            (paragraph_count / heading_count) if heading_count else None
+        )
 
         stats_evidence: List[Stat] = [
             Stat(name="total_words", value=total_words),
             Stat(name="paragraph_count", value=paragraph_count),
             Stat(name="heading_count", value=heading_count),
             Stat(name="block_count", value=block_count),
-            Stat(name="avg_words_per_paragraph", value=round(avg_words_per_paragraph, 2)),
-            Stat(name="paragraphs_per_heading", value=(round(paragraphs_per_heading, 2) if paragraphs_per_heading is not None else None)),
+            Stat(
+                name="avg_words_per_paragraph", value=round(avg_words_per_paragraph, 2)
+            ),
+            Stat(
+                name="paragraphs_per_heading",
+                value=(
+                    round(paragraphs_per_heading, 2)
+                    if paragraphs_per_heading is not None
+                    else None
+                ),
+            ),
         ]
 
         metrics = dict(
@@ -95,17 +115,28 @@ class LengthDetector(BaseDetector):
         )
         return metrics, stats_evidence
 
-    def _compute_short_findings(self, doc: Document, doc_hash: str, metrics: dict, stats_evidence: List[Stat]) -> List[Finding]:
+    def _compute_short_findings(
+        self, doc: Document, doc_hash: str, metrics: dict, stats_evidence: List[Stat]
+    ) -> List[Finding]:
         total_words = metrics["total_words"]
         paragraph_count = metrics["paragraph_count"]
         paragraphs_per_heading = metrics["paragraphs_per_heading"]
         avg_words_per_paragraph = metrics["avg_words_per_paragraph"]
 
         short_flags = 0
-        if total_words < self.cfg["min_words"]: short_flags += 1
-        if paragraph_count < self.cfg["min_paragraphs"]: short_flags += 1
-        if (paragraphs_per_heading is not None) and (paragraphs_per_heading < self.cfg["min_paragraphs_per_heading"]): short_flags += 1
-        if avg_words_per_paragraph < self.cfg["min_avg_words_per_paragraph"] and paragraph_count >= 3: short_flags += 1
+        if total_words < self.cfg["min_words"]:
+            short_flags += 1
+        if paragraph_count < self.cfg["min_paragraphs"]:
+            short_flags += 1
+        if (paragraphs_per_heading is not None) and (
+            paragraphs_per_heading < self.cfg["min_paragraphs_per_heading"]
+        ):
+            short_flags += 1
+        if (
+            avg_words_per_paragraph < self.cfg["min_avg_words_per_paragraph"]
+            and paragraph_count >= 3
+        ):
+            short_flags += 1
 
         findings: List[Finding] = []
         if short_flags >= self.cfg["min_flags_short"]:
@@ -113,22 +144,49 @@ class LengthDetector(BaseDetector):
             if total_words < self.cfg["min_words"]:
                 deviations.append(1 - (total_words / max(self.cfg["min_words"], 1)))
             if paragraph_count < self.cfg["min_paragraphs"]:
-                deviations.append(1 - (paragraph_count / max(self.cfg["min_paragraphs"], 1)))
-            if (paragraphs_per_heading is not None) and (paragraphs_per_heading < self.cfg["min_paragraphs_per_heading"]):
-                deviations.append(1 - (paragraphs_per_heading / self.cfg["min_paragraphs_per_heading"]))
-            if avg_words_per_paragraph < self.cfg["min_avg_words_per_paragraph"] and paragraph_count >= 3:
-                deviations.append(1 - (avg_words_per_paragraph / self.cfg["min_avg_words_per_paragraph"]))
+                deviations.append(
+                    1 - (paragraph_count / max(self.cfg["min_paragraphs"], 1))
+                )
+            if (paragraphs_per_heading is not None) and (
+                paragraphs_per_heading < self.cfg["min_paragraphs_per_heading"]
+            ):
+                deviations.append(
+                    1
+                    - (paragraphs_per_heading / self.cfg["min_paragraphs_per_heading"])
+                )
+            if (
+                avg_words_per_paragraph < self.cfg["min_avg_words_per_paragraph"]
+                and paragraph_count >= 3
+            ):
+                deviations.append(
+                    1
+                    - (
+                        avg_words_per_paragraph
+                        / self.cfg["min_avg_words_per_paragraph"]
+                    )
+                )
             confidence = max(0.3, min(0.97, max(deviations) if deviations else 0.5))
 
             reasons = []
             if total_words < self.cfg["min_words"]:
                 reasons.append(f"word_count {total_words} < {self.cfg['min_words']}")
             if paragraph_count < self.cfg["min_paragraphs"]:
-                reasons.append(f"paragraphs {paragraph_count} < {self.cfg['min_paragraphs']}")
-            if (paragraphs_per_heading is not None) and (paragraphs_per_heading < self.cfg["min_paragraphs_per_heading"]):
-                reasons.append(f"paragraphs/heading {paragraphs_per_heading:.2f} < {self.cfg['min_paragraphs_per_heading']}")
-            if avg_words_per_paragraph < self.cfg["min_avg_words_per_paragraph"] and paragraph_count >= 3:
-                reasons.append(f"avg_words/para {avg_words_per_paragraph:.1f} < {self.cfg['min_avg_words_per_paragraph']}")
+                reasons.append(
+                    f"paragraphs {paragraph_count} < {self.cfg['min_paragraphs']}"
+                )
+            if (paragraphs_per_heading is not None) and (
+                paragraphs_per_heading < self.cfg["min_paragraphs_per_heading"]
+            ):
+                reasons.append(
+                    f"paragraphs/heading {paragraphs_per_heading:.2f} < {self.cfg['min_paragraphs_per_heading']}"
+                )
+            if (
+                avg_words_per_paragraph < self.cfg["min_avg_words_per_paragraph"]
+                and paragraph_count >= 3
+            ):
+                reasons.append(
+                    f"avg_words/para {avg_words_per_paragraph:.1f} < {self.cfg['min_avg_words_per_paragraph']}"
+                )
 
             message = "Document appears too short: " + ", ".join(reasons) + ". "
             findings.append(
@@ -146,36 +204,55 @@ class LengthDetector(BaseDetector):
             )
         return findings
 
-    def _compute_long_findings(self, doc: Document, doc_hash: str, metrics: dict, stats_evidence: List[Stat]) -> List[Finding]:
+    def _compute_long_findings(
+        self, doc: Document, doc_hash: str, metrics: dict, stats_evidence: List[Stat]
+    ) -> List[Finding]:
         total_words = metrics["total_words"]
         paragraph_count = metrics["paragraph_count"]
         avg_words_per_paragraph = metrics["avg_words_per_paragraph"]
 
         long_flags = 0
-        if total_words > self.cfg["max_words"]: long_flags += 1
-        if paragraph_count > self.cfg["max_paragraphs"]: long_flags += 1
-        if avg_words_per_paragraph > self.cfg["max_avg_words_per_paragraph"]: long_flags += 1
+        if total_words > self.cfg["max_words"]:
+            long_flags += 1
+        if paragraph_count > self.cfg["max_paragraphs"]:
+            long_flags += 1
+        if avg_words_per_paragraph > self.cfg["max_avg_words_per_paragraph"]:
+            long_flags += 1
 
         findings: List[Finding] = []
         if long_flags >= self.cfg["min_flags_long"]:
             deviations: List[float] = []
             if total_words > self.cfg["max_words"]:
-                deviations.append((total_words - self.cfg["max_words"]) / self.cfg["max_words"])
+                deviations.append(
+                    (total_words - self.cfg["max_words"]) / self.cfg["max_words"]
+                )
             if paragraph_count > self.cfg["max_paragraphs"]:
-                deviations.append((paragraph_count - self.cfg["max_paragraphs"]) / self.cfg["max_paragraphs"])
+                deviations.append(
+                    (paragraph_count - self.cfg["max_paragraphs"])
+                    / self.cfg["max_paragraphs"]
+                )
             if avg_words_per_paragraph > self.cfg["max_avg_words_per_paragraph"]:
-                deviations.append((avg_words_per_paragraph - self.cfg["max_avg_words_per_paragraph"]) / self.cfg["max_avg_words_per_paragraph"])
+                deviations.append(
+                    (avg_words_per_paragraph - self.cfg["max_avg_words_per_paragraph"])
+                    / self.cfg["max_avg_words_per_paragraph"]
+                )
             confidence = max(0.3, min(0.95, max(deviations) if deviations else 0.5))
 
             reasons = []
             if total_words > self.cfg["max_words"]:
                 reasons.append(f"word_count {total_words} > {self.cfg['max_words']}")
             if paragraph_count > self.cfg["max_paragraphs"]:
-                reasons.append(f"paragraphs {paragraph_count} > {self.cfg['max_paragraphs']}")
+                reasons.append(
+                    f"paragraphs {paragraph_count} > {self.cfg['max_paragraphs']}"
+                )
             if avg_words_per_paragraph > self.cfg["max_avg_words_per_paragraph"]:
-                reasons.append(f"avg_words/para {avg_words_per_paragraph:.1f} > {self.cfg['max_avg_words_per_paragraph']}")
+                reasons.append(
+                    f"avg_words/para {avg_words_per_paragraph:.1f} > {self.cfg['max_avg_words_per_paragraph']}"
+                )
 
-            message = "Document appears overly long/verbose: " + ", ".join(reasons) + ". "
+            message = (
+                "Document appears overly long/verbose: " + ", ".join(reasons) + ". "
+            )
             findings.append(
                 self.emit(
                     doc=doc,
