@@ -13,10 +13,11 @@ from ..schemas.ir import (
     Heading,
     Span,
     Figure,
+    Table,
     BBox,
 )
 from ..util import next_id, norm
-from .. import logger
+from ..logger import debug
 
 import pymupdf
 
@@ -269,6 +270,45 @@ def _handle_vector_drawings(path: Path, page_index: int, page, out: List[Any], *
         )
 
 
+def _handle_tables(path: Path, page_index: int, page, out: List[Any]) -> None:
+    """Extract tables from a page using PyMuPDF's find_tables()."""
+    tables = page.find_tables()
+    
+    for table in tables:
+        data = table.extract()
+        bbox_tuple = table.bbox
+        
+        if not data or len(data) == 0:
+            continue
+        
+        # Convert None cells to empty strings
+        cleaned_data = []
+        for row in data:
+            cleaned_row = [cell if cell is not None else "" for cell in row]
+            cleaned_data.append(cleaned_row)
+        
+        # Separate header from rows
+        header = cleaned_data[0] if cleaned_data else None
+        rows = cleaned_data[1:] if len(cleaned_data) > 1 else []
+        
+        # Skip tables that are too small - false positives
+        if not header or len(rows) == 0:
+            continue
+        
+        bbox = _to_bbox(bbox_tuple)
+        span = build_span(path, page_index, bbox)
+        
+        out.append(
+            Table(
+                id=next_id("t"),
+                header=header,
+                rows=rows,
+                span=span,
+                meta={"pdf": {"method": "pymupdf"}},
+            )
+        )
+
+
 # --- Entry point
 
 def parse_pdf(path: Path) -> Document:
@@ -321,6 +361,7 @@ def parse_pdf(path: Path) -> Document:
                     debug("parse_pdf: skipping unknown block type %s on page %d", btype, page_index + 1)
                     continue
             _handle_vector_drawings(path, page_index, page, blocks)
+            _handle_tables(path, page_index, page, blocks)
 
         figures = [b for b in blocks if isinstance(b, Figure)]
         paragraphs = [b for b in blocks if isinstance(b, Paragraph)]
@@ -336,6 +377,7 @@ def parse_pdf(path: Path) -> Document:
         heading_count = sum(1 for b in blocks if isinstance(b, Heading))
         para_count = sum(1 for b in blocks if isinstance(b, Paragraph))
         figure_count = len(figures)
+        table_count = sum(1 for b in blocks if isinstance(b, Table))
         
         meta: Dict[str, Any] = {
             "parser": "pdf",
@@ -348,7 +390,7 @@ def parse_pdf(path: Path) -> Document:
         }
 
         debug(
-            "parse_pdf: built %d blocks from %d pages (%d headings, %d paragraphs, %d figures with %d captions)",
-            len(blocks), page_count, heading_count, para_count, figure_count, captions_found
+            "parse_pdf: built %d blocks from %d pages (%d headings, %d paragraphs, %d tables, %d figures with %d captions)",
+            len(blocks), page_count, heading_count, para_count, table_count, figure_count, captions_found
         )
         return Document(source_path=str(path), blocks=blocks, meta=meta)
