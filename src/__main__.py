@@ -6,7 +6,7 @@ import json
 from typing import List, Optional
 
 from .parsers import parse
-from .detectors.length_detector import LengthDetector
+from .detectors.length_analyzer import LengthAnalyzer
 from .detectors.base_detector import BaseDetector
 from .schemas.config import load_config, AppConfig, DetectorConfig
 from .schemas.ir import Document
@@ -38,7 +38,7 @@ def _run_pipeline(
     print(json.dumps(summary, indent=2, ensure_ascii=False))
     debug_dump_ir_json(doc)
 
-    detectors = detectors or [LengthDetector()]
+    detectors = detectors or [LengthAnalyzer()]
     per_detector_findings: List[List] = []
     for det in detectors:
         debug("running detector %s on %s", det.code, doc.source_path)
@@ -108,7 +108,7 @@ def main(argv: list[str] | None = None) -> int:
         app_config: AppConfig = load_config(config_path)
         run_id = app_config.run_id
         detector_list = {
-            "LENGTH": LengthDetector,
+            "LENGTH": LengthAnalyzer,
         }
         for detector_cfg in app_config.detectors:
             dump_config_json(detector_cfg)
@@ -120,7 +120,7 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             detectors.append(detector_class(run_id=run_id, params=detector_cfg.params))
     else:
-        detectors.append(LengthDetector())
+        detectors.append(LengthAnalyzer())
     for raw in args.inputs:
         path = Path(raw)
         doc = parse_input_to_document(path)

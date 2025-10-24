@@ -1,4 +1,4 @@
-"""Length detector.
+"""Length analyzer.
 
 Flags documents that appear too short or too long.
 Emits at most one finding per condition (too-short or too-long) with supporting `Stat` evidence objects.
@@ -13,6 +13,7 @@ from ..util import count_words
 
 # TODO: improve/add more heuristics
 # TODO: tweak thresholds based on dataset
+# TODO: add page count
 DEFAULTS = dict(
     min_words=500,
     min_paragraphs=8,
@@ -27,9 +28,9 @@ DEFAULTS = dict(
 )
 
 
-class LengthDetector(BaseDetector):
+class LengthAnalyzer(BaseDetector):
     code = "LENGTH"
-    name = "LengthDetector"
+    name = "LengthAnalyzer"
     version = "0.2"
     param_spec = {
         "min_words": "Minimum total words before flagging short",
@@ -233,7 +234,7 @@ class LengthDetector(BaseDetector):
                 )
             if avg_words_per_paragraph > self.cfg["max_avg_words_per_paragraph"]:
                 deviations.append(
-                    (avg_words_per_paragraph - self.cfg["max_avg_words_per_paragraph"])
+                    (avg_words_per_paragraph - self.cfg["max_avg_words_per_paragraph"]) 
                     / self.cfg["max_avg_words_per_paragraph"]
                 )
             confidence = max(0.3, min(0.95, max(deviations) if deviations else 0.5))

@@ -53,7 +53,7 @@ The tool flags parts of the file which it thinks should affect the score negativ
 4. **Detectors**  
    - A suite of specialized modules that identify specific issues.
    - Each returns `{code, evidence, confidence, location, ...}`.
-   - Current: LENGTH detector (too-short, too-long)
+   - Current: LENGTH analyzer (too-short, too-long)
 5. **Rule engine**  
    - Maps detector output to a code table.
    - Applies filtering (confidence threshold, deduplication).

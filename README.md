@@ -9,7 +9,7 @@ docs/                Reference documentation (codes, thesis specification, overv
 research/            Aggregated research
 src/project/         Source code
     parsers/           Markdown and PDF parsers producing the IR models
-    detectors/         Detectors (base_detector, length_detector)
+    detectors/         Detectors (base_detector, length_analyzer)
     schemas/           Pydantic models (IR, findings, config)
     util.py            Helper utilities (ids, hashing, summary)
     logger.py          Simple debug logger
@@ -58,9 +58,9 @@ The command prints:
 
 Findings are written as json files in the chosen output directory. Each file name encodes the finding id (detector code and a document hash fragment).
 
-## Length detector
+## Length analyzer
 
-Heuristics use simple thresholds (word count, paragraph count, average words per paragraph, paragraphs per heading) to emit at most one finding for a too short document and one finding for a too long document. Evidence includes numeric stats. Thresholds can be configured via config file or use defaults in `length_detector.py`.
+Heuristics use simple thresholds (word count, paragraph count, average words per paragraph, paragraphs per heading) to emit at most one finding for a too short document and one finding for a too long document. Evidence includes numeric stats. Thresholds can be configured via config file or use defaults in `length_analyzer.py`.
 
 ## Rule engine
 
@@ -68,7 +68,9 @@ Post-processes and aggregates findings from all detectors. Filters findings by c
 
 ## Internal representation (IR) data model
 
-The markdown parser builds a list of typed blocks (`Heading`, `Paragraph`, `List`, `CodeBlock`, `Quote`, `Table`, `Figure`). Each block has an id and a span with line and byte offsets (when available). The PDF parser extracts text and image blocks with page numbers and bounding boxes, converting them to the same IR format. Findings reference blocks or spans and can attach statistics.
+The markdown parser builds a list of typed blocks (`Heading`, `Paragraph`, `List`, `CodeBlock`, `Quote`, `Table`, `Figure`). Each block has an id and a span with line and byte offsets (when available).
+
+The PDF parser extracts text and image blocks with page numbers and bounding boxes, converting them to the same IR format. Text blocks are classified as headings or paragraphs based on font size heuristics (text bigger than average font size is detected as a heading with level 1-6). Findings reference blocks or spans and can attach statistics.
 
 ## Dependencies
 
