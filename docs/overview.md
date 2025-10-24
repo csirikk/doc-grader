@@ -23,7 +23,7 @@ The tool flags parts of the file which it thinks should affect the score negativ
 | Student documentation | .pdf or .md                         | required           |
 | Student source code   | .php, .py, etc.                     | optional, for diagram analysis |
 | Project assignment    | .pdf or .md                         | optional, for copied spec text detection |
-| Error-codes           | Based on grading rubrics, in list   | -                  |
+| Error-codes           | Based on assessment criteria, in list   | -                  |
 | Course configuration  | IFJ vs IPP detector sets            | different penalties and requirements |
 | Custom grading rules  | natural language/custom error codes | optional overrides |
 
