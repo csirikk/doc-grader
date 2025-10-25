@@ -4,43 +4,43 @@ This document maps detector findings to assessment criteria used in IFJ/IPP proj
 
 ## Assessment Criterion -> Detector Map
 
-| AC                 | Detector -> Finding(s)                                                                                                                                                       | Scope | Notes                                         |
-|--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------|-----------------------------------------------|
-| **DOCTYPE**        | DocumentInfoExtractor -> `wrong_doc_type`                                                                                                                                    | Both  | Expects PDF or Markdown                       |
-| **FORMAT / FORM**  | DocumentInfoExtractor -> `format_violation`, TypographyAnalyzer -> `typography_violation`, CaptionAnalyzer -> `missing_caption` / `unreferenced_asset`                       | Both  | General layout & presentation                 |
+| AC                 | Detector -> Finding(s)                                                                                                                                                      | Scope | Notes                                         |
+|--------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------|-----------------------------------------------|
+| **DOCTYPE**        | DocumentInfoExtractor -> `wrong_doc_type`                                                                                                                                   | Both  | Expects PDF or Markdown                       |
+| **FORMAT / FORM**  | DocumentInfoExtractor -> `format_violation`, TypographyAnalyzer -> `typography_violation`, CaptionAnalyzer -> `missing_caption` / `unreferenced_asset`                      | Both  | General layout & presentation                 |
 | **STRUCT**         | StructureAnalyzer -> `poor_hierarchy` / `empty_section` / `heading_chain`, SectionAnalyzer -> `section_missing` / `section_misaligned`                                      | Both  | Document structure & organization             |
-| **MISSING**        | DocumentInfoExtractor -> `document_missing`, SectionAnalyzer -> *all core sections absent*                                                                                   | Both  | Document or critical sections not provided    |
-| **SHORT**          | LengthAnalyzer -> `too_short`                                                                                                                                              | Both  | Below minimum words/pages                     |
-| **LONG**           | LengthAnalyzer -> `too_long`                                                                                                                                               | Both  | Above maximum pages                           |
-| **LANG**           | LanguageAnalyzer **[LLM]** -> `mixed_languages` / `wrong_language`                                                                                                           | Both  | Improper language mixing (cs/sk/en)           |
-| **CH / gram.**     | TextQualityAnalyzer **[LLM]** -> `spelling_errors` / `grammar_errors` / `punctuation_errors`                                                                                 | Both  | Language mechanics                            |
-| **MEZ**            | TextQualityAnalyzer **[LLM]** -> `spacing_errors`                                                                                                                            | Both  | Thin spaces, punctuation spacing              |
-| **STYLE**          | TextQualityAnalyzer **[LLM]** -> `readability_low` / `convoluted_sentences` / `passive_voice_overuse`                                                                        | Both  | Unclear or poor writing style                 |
-| **FILO**           | TextQualityAnalyzer **[LLM]** -> `philosophical` / `hand_wavy`                                                                                                               | Both  | Vague, non-concrete content                   |
-| **HOV**            | TextQualityAnalyzer **[LLM]** -> `colloquial_language`                                                                                                                       | Both  | Informal, conversational tone                 |
-| **TERM**           | TerminologyAnalyzer **[EMBEDDING+LLM]** -> `term_misuse` / `term_inconsistency`                                                                                              | Both  | Incorrect/inconsistent technical terms        |
+| **MISSING**        | DocumentInfoExtractor -> `document_missing`, SectionAnalyzer -> *all core sections absent*                                                                                  | Both  | Document or critical sections not provided    |
+| **SHORT**          | LengthAnalyzer -> `too_short`                                                                                                                                               | Both  | Below minimum words/pages                     |
+| **LONG**           | LengthAnalyzer -> `too_long`                                                                                                                                                | Both  | Above maximum pages                           |
+| **LANG**           | LanguageAnalyzer **[LLM]** -> `mixed_languages` / `wrong_language`                                                                                                          | Both  | Improper language mixing (cs/sk/en)           |
+| **CH / gram.**     | TextQualityAnalyzer **[LLM]** -> `spelling_errors` / `grammar_errors` / `punctuation_errors`                                                                                | Both  | Language mechanics                            |
+| **MEZ**            | TextQualityAnalyzer **[LLM]** -> `spacing_errors`                                                                                                                           | Both  | Thin spaces, punctuation spacing              |
+| **STYLE**          | TextQualityAnalyzer **[LLM]** -> `readability_low` / `convoluted_sentences` / `passive_voice_overuse`                                                                       | Both  | Unclear or poor writing style                 |
+| **FILO**           | TextQualityAnalyzer **[LLM]** -> `philosophical` / `hand_wavy`                                                                                                              | Both  | Vague, non-concrete content                   |
+| **HOV**            | TextQualityAnalyzer **[LLM]** -> `colloquial_language`                                                                                                                      | Both  | Informal, conversational tone                 |
+| **TERM**           | TerminologyAnalyzer **[EMBEDDING+LLM]** -> `term_misuse` / `term_inconsistency`                                                                                             | Both  | Incorrect/inconsistent technical terms        |
 | **CONTENT**        | SectionContentAnalyzer **[EMBEDDING+LLM]** -> `section_offtopic` / `section_superficial`, PlagiarismAnalyzer **[EMBEDDING+LLM]** -> `spec_copied`                           | Both  | Content relevance & appropriateness           |
-| **COPY**           | PlagiarismAnalyzer **[EMBEDDING+LLM]** -> `spec_copied_uncited`                                                                                                              | Both  | Plagiarism from assignment spec               |
-| **BIB / REFS**     | CitationAnalyzer -> `references_missing` / `citations_missing` / `broken_refs`                                                                                               | Both  | Bibliography & citation hygiene               |
-| **1. STRANA**      | MetadataExtractor -> `header_missing:ifj`                                                                                                                                    | IFJ   | Mandatory first-page metadata (IFJ)           |
-| **HEADER_MISSING** | MetadataExtractor -> `header_missing:ipp`                                                                                                                                    | IPP   | Mandatory header metadata (IPP)               |
-| **BLOK**           | TypographyAnalyzer -> `not_block_justified`                                                                                                                                  | Both  | Block justification requirement               |
-| **SAZBA**          | TypographyAnalyzer -> `typography_violation` / `code_not_monospace`                                                                                                          | Both  | Typesetting rules                             |
-| **typ.**           | TypographyAnalyzer -> `typography_violation:minor`                                                                                                                           | Both  | Minor typography issues                       |
+| **COPY**           | PlagiarismAnalyzer **[EMBEDDING+LLM]** -> `spec_copied_uncited`                                                                                                             | Both  | Plagiarism from assignment spec               |
+| **BIB / REFS**     | CitationAnalyzer -> `references_missing` / `citations_missing` / `broken_refs`                                                                                              | Both  | Bibliography & citation hygiene               |
+| **1. STRANA**      | MetadataExtractor -> `header_missing:ifj`                                                                                                                                   | IFJ   | Mandatory first-page metadata (IFJ)           |
+| **HEADER_MISSING** | MetadataExtractor -> `header_missing:ipp`                                                                                                                                   | IPP   | Mandatory header metadata (IPP)               |
+| **BLOK**           | TypographyAnalyzer -> `not_block_justified`                                                                                                                                 | Both  | Block justification requirement               |
+| **SAZBA**          | TypographyAnalyzer -> `typography_violation` / `code_not_monospace`                                                                                                         | Both  | Typesetting rules                             |
+| **typ.**           | TypographyAnalyzer -> `typography_violation:minor`                                                                                                                          | Both  | Minor typography issues                       |
 | **KAPTXT**         | StructureAnalyzer -> `heading_chain`                                                                                                                                        | Both  | Consecutive headings without content          |
-| **KA**             | DiagramAnalyzer **[VISION+OCR]** -> `automaton_missing` / `automaton_incorrect` / `automaton_unreadable`                                                                     | IFJ   | Finite automaton diagram (lexer)              |
-| **LL / LLT**       | TableAnalyzer **[VISION+LLM]** -> `ll_table_missing` / `ll_table_incorrect`                                                                                                  | IFJ   | LL(1) parsing table                           |
-| **PT**             | TableAnalyzer **[VISION+LLM]** -> `precedence_table_missing` / `precedence_table_incorrect`                                                                                  | IFJ   | Precedence table                              |
+| **KA**             | DiagramAnalyzer **[VISION+OCR]** -> `automaton_missing` / `automaton_incorrect` / `automaton_unreadable`                                                                    | IFJ   | Finite automaton diagram (lexer)              |
+| **LL / LLT**       | TableAnalyzer **[VISION+LLM]** -> `ll_table_missing` / `ll_table_incorrect`                                                                                                 | IFJ   | LL(1) parsing table                           |
+| **PT**             | TableAnalyzer **[VISION+LLM]** -> `precedence_table_missing` / `precedence_table_incorrect`                                                                                 | IFJ   | Precedence table                              |
 | **SA / SAV / SéA** | SectionAnalyzer -> `section_missing:syntax_analysis`, SectionContentAnalyzer **[EMBEDDING+LLM]** -> `section_offtopic:syntax_analysis`                                      | IFJ   | Syntax analysis section                       |
 | **PSA**            | SectionAnalyzer -> `section_missing:precedence_analysis`, SectionContentAnalyzer **[EMBEDDING+LLM]** -> `section_offtopic:precedence_analysis`                              | IFJ   | Precedence syntax analysis                    |
 | **TS**             | SectionAnalyzer -> `section_missing:lexer`, SectionContentAnalyzer **[EMBEDDING+LLM]** -> `section_offtopic:lexer`                                                          | IFJ   | Lexical analyzer (scanner) section            |
 | **GK**             | SectionAnalyzer -> `section_missing:error_handling`, SectionContentAnalyzer **[EMBEDDING+LLM]** -> `section_offtopic:error_handling`                                        | IFJ   | Error handling section                        |
-| **RP**             | SectionAnalyzer -> `section_missing:team_work`                                                                                                                               | IFJ   | Division of work section                      |
-| **UML / NOUML**    | DiagramAnalyzer **[VISION+OCR]** -> `uml_missing` / `uml_incomplete`                                                                                                         | IPP   | UML class diagram                             |
-| **BADUML**         | DiagramAnalyzer **[VISION+OCR]** -> `uml_unreadable` / `uml_incorrect` / `uml_inconsistent`                                                                                  | IPP   | Poor quality UML                              |
+| **RP**             | SectionAnalyzer -> `section_missing:team_work`                                                                                                                              | IFJ   | Division of work section                      |
+| **UML / NOUML**    | DiagramAnalyzer **[VISION+OCR]** -> `uml_missing` / `uml_incomplete`                                                                                                        | IPP   | UML class diagram                             |
+| **BADUML**         | DiagramAnalyzer **[VISION+OCR]** -> `uml_unreadable` / `uml_incorrect` / `uml_inconsistent`                                                                                 | IPP   | Poor quality UML                              |
 | **IR**             | SectionAnalyzer -> `section_missing:internal_representation`, SectionContentAnalyzer **[EMBEDDING+LLM]** -> `section_offtopic:internal_representation`                      | IPP   | Internal representation section               |
 | **JAK**            | SectionAnalyzer -> `section_missing:implementation`, SectionContentAnalyzer **[EMBEDDING+LLM]** -> `section_offtopic:implementation` / `section_superficial:implementation` | IPP   | Implementation description ("jak to funguje") |
-| **MDLINES**        | TypographyAnalyzer -> `markdown_line_length_exceeded`                                                                                                                        | IPP   | Markdown line length violations               |
+| **MDLINES**        | TypographyAnalyzer -> `markdown_line_length_exceeded`                                                                                                                       | IPP   | Markdown line length violations               |
 
 ---
 
@@ -149,6 +149,8 @@ Process all images/tables.
 
 - Allow figures without captions if referenced inline?
 
+---
+
 ### 3: TEXT ANALYSIS
 
 Analyze text content with AI models.
@@ -198,8 +200,6 @@ Analyze text content with AI models.
 
 - Skip code blocks and quotes
 - Whitelist technical vocabulary
-
----
 
 #### 10. TypographyAnalyzer
 
