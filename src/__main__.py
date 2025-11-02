@@ -7,6 +7,8 @@ from typing import List, Optional
 
 from .parsers import parse
 from .detectors.length_analyzer import LengthAnalyzer
+from .detectors.document_info_extractor import DocumentInfoExtractor
+from .detectors.metadata_extractor import MetadataExtractor
 from .detectors.base_detector import BaseDetector
 from .schemas.config import load_config, AppConfig, DetectorConfig
 from .schemas.ir import Document
@@ -27,7 +29,11 @@ from .logger import (
 
 
 def _run_pipeline(
-    doc: Document, *, outdir: Path, detectors: Optional[List[BaseDetector]] = None
+    doc: Document,
+    *,
+    file_path: Path,
+    outdir: Path,
+    detectors: Optional[List[BaseDetector]] = None,
 ) -> int:
     doc_hash = compute_doc_hash(doc.source_path)
     print("=" * 80)
@@ -107,27 +113,66 @@ def main(argv: list[str] | None = None) -> int:
             raise SystemExit(f"Config file not found: {config_path}")
         app_config: AppConfig = load_config(config_path)
         run_id = app_config.run_id
+        global_course = app_config.course
         detector_list = {
             "LENGTH": LengthAnalyzer,
+            "DOCINFO": DocumentInfoExtractor,
+            "METADATA": MetadataExtractor,
         }
+
         for detector_cfg in app_config.detectors:
             dump_config_json(detector_cfg)
             if not detector_cfg.enabled:
                 continue
+
             detector_class = detector_list.get(detector_cfg.code.upper())
             if not detector_class:
                 print(f"[warn] Unknown detector code in config: {detector_cfg.code}")
                 continue
-            detectors.append(detector_class(run_id=run_id, params=detector_cfg.params))
+            params = detector_cfg.params.copy()
+
+            # Set course if applicable
+            if global_course:
+                if detector_cfg.code.upper() == "METADATA":
+                    params["expected_course"] = global_course
+
+            detectors.append(detector_class(run_id=run_id, params=params))
     else:
+        detectors.append(DocumentInfoExtractor())
+        detectors.append(MetadataExtractor())
         detectors.append(LengthAnalyzer())
+
+    # Run pre-parsing detectors on all files first
+    pre_parse_findings: List[List] = []
+    for raw in args.inputs:
+        path = Path(raw)
+        if not path.exists():
+            print(f"File not found: {path}")
+            continue
+
+        # Run detectors that work before parsing
+        for det in detectors:
+            if det.runs_before_parsing:
+                debug("running pre-parse detector %s on %s", det.code, path)
+                findings = det.detect_file(path)
+                for f in findings:
+                    debug_dump_finding_json(f)
+                print()
+                print(format_findings(det, findings))
+                paths = write_findings_json(det, findings, outdir)
+                print(
+                    f"\n[{det.code}] Written {len(paths)} finding file(s) to {outdir}/"
+                )
+                pre_parse_findings.append(findings)
+
+    # Parse and run regular detectors
     for raw in args.inputs:
         path = Path(raw)
         doc = parse_input_to_document(path)
         if doc is None:
             print(f"Skipping unsupported file type: {path}")
             continue
-        _run_pipeline(doc, outdir=outdir, detectors=detectors)
+        _run_pipeline(doc, file_path=path, outdir=outdir, detectors=detectors)
     return 0
 
 
