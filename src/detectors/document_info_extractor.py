@@ -10,6 +10,7 @@ from typing import List, Optional
 from .base_detector import BaseDetector
 from ..schemas.ir import Document
 from ..schemas.finding import Finding, Stat
+from ..util import compute_doc_hash
 
 
 # Thresholds based on rough average
@@ -25,6 +26,7 @@ class DocumentInfoExtractor(BaseDetector):
     code = "DOCINFO"
     name = "DocumentInfoExtractor"
     version = "0.2"
+    runs_before_parsing = True  # Can check file metadata before parsing
     param_spec = {
         "accepted_extensions": "List of accepted file extensions",
         "max_file_size_mb": "Maximum file size in MB before flagging",
@@ -41,19 +43,25 @@ class DocumentInfoExtractor(BaseDetector):
         super().__init__(run_id=run_id, params=updated_params)
         self.cfg = updated_params
 
-    def detect(self, doc: Document, doc_hash: str) -> List[Finding]:
+    def detect_file(self, file_path: Path) -> List[Finding]:
+        """Check file metadata before parsing."""
         findings: List[Finding] = []
+        doc_hash = compute_doc_hash(str(file_path))
+
+        # Create minimal document ref for findings
+        from ..schemas.ir import Document
+
+        doc = Document(source_path=str(file_path), blocks=[])
 
         # Check if source path exists
-        source_path = Path(doc.source_path)
-        if not source_path.exists():
+        if not file_path.exists():
             findings.append(
                 self.emit(
                     doc=doc,
                     doc_hash=doc_hash,
                     slug="document_missing",
                     title="Document file not found",
-                    message=f"Document file does not exist: {doc.source_path}",
+                    message=f"Document file does not exist: {file_path}",
                     severity_rank=1,
                     confidence=1.0,
                     tags=["docinfo", "missing"],
@@ -62,7 +70,7 @@ class DocumentInfoExtractor(BaseDetector):
             return findings
 
         # Check document type
-        file_ext = source_path.suffix.lower()
+        file_ext = file_path.suffix.lower()
         if file_ext not in self.cfg["accepted_extensions"]:
             findings.append(
                 self.emit(
@@ -85,20 +93,9 @@ class DocumentInfoExtractor(BaseDetector):
             )
 
         # Extract file stats
-        file_size = source_path.stat().st_size
+        file_size = file_path.stat().st_size
         file_size_mb = file_size / (1024 * 1024)
-
-        # Count blocks and estimate page count
-        block_count = len(doc.blocks)
-
-        # Estimate page count for PDFs (look for page numbers in spans)
-        page_count = None
-        if file_ext == ".pdf":
-            max_page = 0
-            for block in doc.blocks:
-                if hasattr(block, "span") and block.span and block.span.page:
-                    max_page = max(max_page, block.span.page)
-            page_count = max_page if max_page > 0 else None
+        file_size_kb = file_size / 1024
 
         # Check for format violations (e.g., extremely large file)
         if file_size_mb > self.cfg["max_file_size_mb"]:
@@ -120,7 +117,6 @@ class DocumentInfoExtractor(BaseDetector):
             )
 
         # Check for suspiciously small documents (likely empty or corrupted)
-        file_size_kb = file_size / 1024
         if file_size_kb < self.cfg["min_file_size_kb"]:
             findings.append(
                 self.emit(
@@ -141,7 +137,14 @@ class DocumentInfoExtractor(BaseDetector):
                 )
             )
 
-        # Check for empty content (even if file size is OK, might have no parseable blocks)
+        return findings
+
+    def detect(self, doc: Document, doc_hash: str) -> List[Finding]:
+        """Check parsed document content."""
+        findings: List[Finding] = []
+
+        block_count = self.count_blocks(doc)
+
         if block_count < self.cfg["min_content_blocks"]:
             findings.append(
                 self.emit(

@@ -48,9 +48,13 @@ class MetadataExtractor(BaseDetector):
     def detect(self, doc: Document, doc_hash: str) -> List[Finding]:
         findings: List[Finding] = []
 
-        # Extract text from first N blocks
-        header_blocks = doc.blocks[: self.cfg["header_block_limit"]]
-        header_text = self._extract_text_from_blocks(header_blocks)
+        # Extract text from first N blocks using base detector utility
+        header_text = self.extract_text(
+            doc,
+            block_types=["Heading", "Paragraph"],
+            start_idx=0,
+            end_idx=self.cfg["header_block_limit"],
+        )
 
         # Try to extract metadata
         metadata = self._extract_metadata(header_text)
@@ -66,16 +70,6 @@ class MetadataExtractor(BaseDetector):
         )
 
         return findings
-
-    def _extract_text_from_blocks(self, blocks: List[Block]) -> str:
-        """Extract text content from blocks."""
-        texts = []
-        for block in blocks:
-            if isinstance(block, (Heading, Paragraph)):
-                texts.append(block.text)
-            elif hasattr(block, "text"):
-                texts.append(block.text)
-        return "\n".join(texts)
 
     def _extract_metadata(self, text: str) -> Dict[str, Any]:
         """Extract metadata fields using regex patterns."""

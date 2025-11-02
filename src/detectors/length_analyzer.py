@@ -15,13 +15,13 @@ from ..util import count_words
 # TODO: tweak thresholds based on dataset
 # TODO: add page count
 DEFAULTS = dict(
-    min_words=500,
-    min_paragraphs=8,
-    min_avg_words_per_paragraph=15.0,
-    min_paragraphs_per_heading=2.0,
-    max_words=8000,
-    max_paragraphs=120,
-    max_avg_words_per_paragraph=120.0,
+    min_words=300,  # ~P15, catch severely short docs
+    min_paragraphs=6,  # ~P12, reasonable minimum structure
+    min_avg_words_per_paragraph=10.0,  # ~P12, very terse paragraphs
+    min_paragraphs_per_heading=1.0,  # ~P15, at least some content per section
+    max_words=4000,  # ~P92, catch overly verbose docs
+    max_paragraphs=200,  # ~P92, excessive verbosity
+    max_avg_words_per_paragraph=50.0,  # ~P92, wall-of-text paragraphs
     # require at least this many individual short/long flags to raise a finding
     min_flags_short=2,
     min_flags_long=2,
@@ -65,24 +65,22 @@ class LengthAnalyzer(BaseDetector):
         return findings
 
     def _collect_stats(self, doc: Document):
-        blocks: List[Block] = doc.blocks
-        paragraphs: List[Paragraph] = [b for b in blocks if isinstance(b, Paragraph)]
-        headings: List[Heading] = [b for b in blocks if isinstance(b, Heading)]
-        lists: List[ListBlock] = [b for b in blocks if isinstance(b, ListBlock)]
+        # Use base detector utilities for counting
+        paragraph_count = self.count_blocks(doc, "Paragraph")
+        heading_count = self.count_blocks(doc, "Heading")
+        block_count = self.count_blocks(doc)
 
-        paragraph_word_counts = [count_words(p.text) for p in paragraphs]
-        list_word_counts: List[int] = []
-        for lb in lists:
-            for it in lb.items:
-                list_word_counts.append(count_words(it.text))
-        total_words = sum(paragraph_word_counts) + sum(list_word_counts)
+        # Extract text and count words using base utilities
+        paragraph_text = self.extract_text(doc, "Paragraph")
+        list_text = self.extract_text(doc, "List")
 
-        paragraph_count = len(paragraphs)
-        heading_count = len(headings)
-        block_count = len(blocks)
+        # Count words using base method
+        paragraph_words = self.count_words(paragraph_text)
+        list_words = self.count_words(list_text)
+        total_words = paragraph_words + list_words
 
         avg_words_per_paragraph = (
-            (sum(paragraph_word_counts) / paragraph_count) if paragraph_count else 0.0
+            (paragraph_words / paragraph_count) if paragraph_count else 0.0
         )
         paragraphs_per_heading = (
             (paragraph_count / heading_count) if heading_count else None
@@ -234,7 +232,7 @@ class LengthAnalyzer(BaseDetector):
                 )
             if avg_words_per_paragraph > self.cfg["max_avg_words_per_paragraph"]:
                 deviations.append(
-                    (avg_words_per_paragraph - self.cfg["max_avg_words_per_paragraph"]) 
+                    (avg_words_per_paragraph - self.cfg["max_avg_words_per_paragraph"])
                     / self.cfg["max_avg_words_per_paragraph"]
                 )
             confidence = max(0.3, min(0.95, max(deviations) if deviations else 0.5))
