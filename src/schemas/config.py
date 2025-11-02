@@ -17,6 +17,7 @@ class DetectorConfig(BaseModel):
 class AppConfig(BaseModel):
     version: str = Field(default="config/0.1")
     run_id: Optional[str] = None
+    course: Optional[str] = None  # "ifj" or "ipp", none tries to detect
     detectors: List[DetectorConfig] = Field(default_factory=list)
     model_config = dict(extra="forbid")
 
