@@ -9,6 +9,8 @@ from .parsers import parse
 from .detectors.length_analyzer import LengthAnalyzer
 from .detectors.document_info_extractor import DocumentInfoExtractor
 from .detectors.metadata_extractor import MetadataExtractor
+from .detectors.structure_analyzer import StructureAnalyzer
+from .detectors.section_analyzer import SectionAnalyzer
 from .detectors.base_detector import BaseDetector
 from .schemas.config import load_config, AppConfig, DetectorConfig
 from .schemas.ir import Document
@@ -118,6 +120,8 @@ def main(argv: list[str] | None = None) -> int:
             "LENGTH": LengthAnalyzer,
             "DOCINFO": DocumentInfoExtractor,
             "METADATA": MetadataExtractor,
+            "STRUCT": StructureAnalyzer,
+            "SECTION": SectionAnalyzer,
         }
 
         for detector_cfg in app_config.detectors:
@@ -135,11 +139,15 @@ def main(argv: list[str] | None = None) -> int:
             if global_course:
                 if detector_cfg.code.upper() == "METADATA":
                     params["expected_course"] = global_course
+                elif detector_cfg.code.upper() == "SECTION":
+                    params["course"] = global_course
 
             detectors.append(detector_class(run_id=run_id, params=params))
     else:
         detectors.append(DocumentInfoExtractor())
         detectors.append(MetadataExtractor())
+        detectors.append(StructureAnalyzer())
+        detectors.append(SectionAnalyzer())
         detectors.append(LengthAnalyzer())
 
     # Run pre-parsing detectors on all files first

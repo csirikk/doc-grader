@@ -127,10 +127,41 @@ Block = Annotated[
 ]
 
 
+class SectionBoundary(BaseModel):
+    """A document section defined by a heading and its content range."""
+
+    heading_id: str
+    heading_text: str
+    heading_level: int
+    start_idx: int  # Block index where section starts (the heading itself)
+    end_idx: int  # Block index where section ends
+    content_block_count: int
+    is_toc: bool = False  # True if this section is the table of contents
+
+    model_config = dict(extra="forbid")
+
+
+class DocumentMeta(BaseModel):
+    """Structured metadata enriched by detectors during analysis."""
+
+    # Enriched by StructureAnalyzer
+    section_boundaries: Optional[List[SectionBoundary]] = None
+    heading_to_index: Optional[Dict[str, int]] = None
+    block_to_index: Optional[Dict[str, int]] = None
+    total_headings: Optional[int] = None
+
+    # Enriched by LengthAnalyzer
+    total_words: Optional[int] = None
+    total_paragraphs: Optional[int] = None
+
+    # Others can be added here
+    model_config = dict(extra="allow")
+
+
 class Document(BaseModel):
     schema_version: Literal["md-ir/0.2"] = "md-ir/0.2"
     source_path: str
-    meta: Optional[dict] = None
+    meta: Optional[DocumentMeta] = None
     blocks: List[Block]
     model_config = dict(extra="forbid")
 

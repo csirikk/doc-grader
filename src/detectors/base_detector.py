@@ -4,6 +4,7 @@ Provides a `BaseDetector` with helpers for building findings and outputting them
 Subclasses implement `detect`.
 """
 
+import re
 from pathlib import Path
 from typing import List, Optional, Any, Dict, Union, Literal, Type
 
@@ -29,10 +30,23 @@ from ..schemas.finding import (
     BlockRef,
     TextSpan,
 )
+from ..schemas.ir import DocumentMeta, SectionBoundary
 from ..util import compute_doc_hash
 
 BlockType = Literal[
     "Heading", "Paragraph", "List", "CodeBlock", "Quote", "Table", "Figure"
+]
+
+# Constants for block type filtering
+CONTENT_BLOCK_TYPES = ["Paragraph", "List", "CodeBlock", "Quote", "Table"]
+HEADING_BLOCK_TYPES = ["Heading"]
+
+# Patterns for detecting table of contents sections
+TOC_PATTERNS = [
+    r"\btable\s+of\s+contents\b",
+    r"\bobsah\b",
+    r"\bcontents\b",
+    r"\btoc\b",
 ]
 
 
@@ -93,8 +107,6 @@ class BaseDetector:
 
     def detect_file(self, file_path: Path) -> List[Finding]:
         """Run detector on a file before parsing (optional)."""
-        if not self.runs_before_parsing:
-            return NotImplementedError
         return []
 
     def get_blocks(
@@ -183,6 +195,106 @@ class BaseDetector:
 
     def count_words(self, text: str) -> int:
         return len(text.split())
+
+    def ensure_meta(self, doc: Document) -> DocumentMeta:
+        """Ensure document has metadata object, creating if needed."""
+        if doc.meta is None:
+            doc.meta = DocumentMeta()
+        return doc.meta
+
+    def _is_toc_heading(self, heading_text: str) -> bool:
+        """Check if a heading indicates a table of contents."""
+        text_lower = heading_text.lower().strip()
+        for pattern in TOC_PATTERNS:
+            if re.search(pattern, text_lower):
+                return True
+        return False
+
+    def _is_toc_block(self, block: Block) -> bool:
+        """Check if a block is part of a TOC section."""
+        if block.meta is None:
+            return False
+        return block.meta.get("is_toc_content", False)
+
+    def get_section_boundaries(self, doc: Document) -> List[SectionBoundary]:
+        """Get or compute section boundaries.
+
+        Computes once and caches in document metadata for reuse by other detectors.
+        Also marks all blocks in TOC sections with metadata for easy identification.
+        """
+        meta = self.ensure_meta(doc)
+
+        if meta.section_boundaries is not None:
+            return meta.section_boundaries
+
+        # Compute section boundaries
+        headings = self.get_blocks(doc, "Heading")
+        if not headings:
+            meta.section_boundaries = []
+            return []
+
+        # Build block index for O(1) lookup
+        if meta.block_to_index is None:
+            meta.block_to_index = {b.id: i for i, b in enumerate(doc.blocks)}
+
+        sections = []
+        for i, heading in enumerate(headings):
+            start_idx = meta.block_to_index[heading.id]
+            # Next headings position or end of document
+            end_idx = (
+                meta.block_to_index[headings[i + 1].id]
+                if i + 1 < len(headings)
+                else len(doc.blocks)
+            )
+
+            # Count content blocks in this section
+            section_blocks = doc.blocks[start_idx + 1 : end_idx]
+            content_count = sum(
+                1 for b in section_blocks if b.type in CONTENT_BLOCK_TYPES
+            )
+
+            is_toc = self._is_toc_heading(heading.text)
+
+            sections.append(
+                SectionBoundary(
+                    heading_id=heading.id,
+                    heading_text=heading.text,
+                    heading_level=heading.level,
+                    start_idx=start_idx,
+                    end_idx=end_idx,
+                    content_block_count=content_count,
+                    is_toc=is_toc,
+                )
+            )
+
+        # Mark all blocks in TOC sections with metadata for easy identification
+        for section in sections:
+            if section.is_toc:
+                for block_idx in range(section.start_idx, section.end_idx):
+                    block = doc.blocks[block_idx]
+                    if block.meta is None:
+                        block.meta = {}
+                    block.meta["is_toc_content"] = True
+
+        # Cache for future use
+        meta.section_boundaries = sections
+        meta.total_headings = len(headings)
+
+        # Compute simple structure statistics for downstream use
+        content_counts = [s.content_block_count for s in sections]
+        if content_counts:
+            meta.empty_section_count = sum(1 for c in content_counts if c == 0)
+            meta.avg_content_blocks_per_section = sum(content_counts) / len(
+                content_counts
+            )
+        else:
+            meta.empty_section_count = 0
+            meta.avg_content_blocks_per_section = 0.0
+
+        if meta.heading_to_index is None:
+            meta.heading_to_index = {h.id: i for i, h in enumerate(headings)}
+
+        return sections
 
     def write_findings(self, findings: List[Finding], outdir: Path) -> List[Path]:
         """
