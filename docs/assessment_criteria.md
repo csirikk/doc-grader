@@ -26,7 +26,7 @@ This document maps detector findings to assessment criteria used in IFJ/IPP proj
 | **HEADER_MISSING** | MetadataExtractor -> `header_missing:ipp`                                                                                                                                   | IPP   | Mandatory header metadata (IPP)               |
 | **BLOK**           | TypographyAnalyzer -> `not_block_justified`                                                                                                                                 | Both  | Block justification requirement               |
 | **SAZBA**          | TypographyAnalyzer -> `typography_violation` / `code_not_monospace`                                                                                                         | Both  | Typesetting rules                             |
-| **typ.**           | TypographyAnalyzer -> `typography_violation:minor`                                                                                                                          | Both  | Minor typography issues                       |
+| **typ.**           | TypographyAnalyzer -> `typography_violation`                                                                                                                                | Both  | General typography issues, specify later      |
 | **KAPTXT**         | StructureAnalyzer -> `heading_chain`                                                                                                                                        | Both  | Consecutive headings without content          |
 | **KA**             | DiagramAnalyzer **[VISION+OCR]** -> `automaton_missing` / `automaton_incorrect` / `automaton_unreadable`                                                                    | IFJ   | Finite automaton diagram (lexer)              |
 | **LL / LLT**       | TableAnalyzer **[VISION+LLM]** -> `ll_table_missing` / `ll_table_incorrect`                                                                                                 | IFJ   | LL(1) parsing table                           |
@@ -40,7 +40,7 @@ This document maps detector findings to assessment criteria used in IFJ/IPP proj
 | **BADUML**         | DiagramAnalyzer **[VISION+OCR]** -> `uml_unreadable` / `uml_incorrect` / `uml_inconsistent`                                                                                 | IPP   | Poor quality UML                              |
 | **IR**             | SectionAnalyzer -> `section_missing:internal_representation`, SectionContentAnalyzer **[EMBEDDING+LLM]** -> `section_offtopic:internal_representation`                      | IPP   | Internal representation section               |
 | **JAK**            | SectionAnalyzer -> `section_missing:implementation`, SectionContentAnalyzer **[EMBEDDING+LLM]** -> `section_offtopic:implementation` / `section_superficial:implementation` | IPP   | Implementation description ("jak to funguje") |
-| **MDLINES**        | TypographyAnalyzer -> `markdown_line_length_exceeded`                                                                                                                       | IPP   | Markdown line length violations               |
+| **MDLINES**        | TypographyAnalyzer -> `markdown_line_break`                                                                                                                                 | IPP   | Markdown paragraph line break formatting      |
 
 ---
 
@@ -74,6 +74,11 @@ Extractors use heuristic techniques to pull structured data from documents.
   - Word counts, paragraph counts, averages
   - Findings: `too_short`, `too_long`
 
+**Notes**:
+
+- Find best default values based on dataset
+- Confidence amplified by other findings
+
 #### 4. MetadataExtractor
 
 - **Purpose**: Extract and validate first-page/header metadata
@@ -94,13 +99,14 @@ Extractors use heuristic techniques to pull structured data from documents.
 
 Process all images/tables.
 
-#### 5. DiagramAnalyzer **[VISION+OCR]**
+#### 5. DiagramAnalyzer **[LLM+VISION?+OCR?]**
 
 - **Purpose**: Identify, classify, and validate diagrams (finite automaton for IFJ, UML for IPP)
 - **Inputs**: Figure blocks from IR, extracted images, pdf
 - **AI Components**:
-  - **Vision Model**: Classify diagram type
-  - **OCR**: Extract text from diagram for validation, later check in code
+  - Commercial LLM for diagram understanding
+  <!-- - **Vision Model**: Classify diagram type
+  - **OCR**: Extract text from diagram for validation, later check in code -->
 - **Outputs**:
   - Diagram inventory with types
   - **IFJ findings**: `automaton_missing`, `automaton_incorrect`, `automaton_unreadable`
@@ -112,7 +118,9 @@ Process all images/tables.
  3. Heuristic validation (e.g., UML must have classes with attributes/methods)
  4. Context validation: caption mentions "automat", "UML" or other relevant terms?
 
-- Require multiple signals (vision + OCR or vision + caption)
+<!-- - Require multiple signals (vision + OCR or vision + caption) -->
+- Thoroughly verify the model actually understands factual correctness of these diagrams
+- Focus on commercial LLM capabilities, avoid OCR + heuristics where possible
 
 #### 6. TableAnalyzer **[VISION+LLM]**
 
@@ -132,6 +140,10 @@ Process all images/tables.
  3. For LL/precedence: LLM validates structure
  4. Quality checks: font size, alignment, header clarity
  Might require header keywords
+
+**Notes**:
+
+- Thoroughly verify the model actually understands factual correctness of these tables
 
 #### 7. CaptionAnalyzer
 
@@ -207,7 +219,7 @@ Analyze text content with AI models.
 - **Inputs**: IR with style metadata (fonts, spacing), PDF font info, MD fence markers, linter rules?
 - **Outputs**:
   - Typography compliance metrics
-  - Findings: `typography_violation`, `code_not_monospace`, `not_block_justified`, `markdown_line_length_exceeded`
+  - Findings: `typography_violation`, `code_not_monospace`, `not_block_justified`, `markdown_line_break`
 - **Method**:
 TBD
 
@@ -292,6 +304,7 @@ TBD
 
 - Allow short quoted prompts with citation
 - Ignore boilerplate (headings, standard phrases)
+- Possible eventual extension: interstudent plagiarism detection if time allows
 
 #### 15. CitationAnalyzer
 
