@@ -99,14 +99,14 @@ def main(argv: list[str] | None = None) -> int:
         "-d", "--debug", action="store_true", help="Enable debug logging"
     )
     parser.add_argument(
-        "--out", default="test/findings_out", help="Output directory for findings"
+        "--out", default="out/findings/", help="Output directory for findings"
     )
     parser.add_argument(
         "-c", "--config", help="Path to JSON config file for detectors", default=None
     )
     args = parser.parse_args(argv)
 
-    outdir = Path(args.out)
+    base_outdir = Path(args.out)
     if args.debug:
         set_debug(True)
         debug("debug logging enabled")
@@ -162,6 +162,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"File not found: {path}")
             continue
 
+        # Per-file output directory = base_outdir / <filename stem>
+        file_outdir = base_outdir / path.stem
+
         # Run detectors that work before parsing
         for det in detectors:
             if det.runs_before_parsing:
@@ -171,9 +174,9 @@ def main(argv: list[str] | None = None) -> int:
                     debug_dump_finding_json(f)
                 print()
                 print(format_findings(det, findings))
-                paths = write_findings_json(det, findings, outdir)
+                paths = write_findings_json(det, findings, file_outdir)
                 print(
-                    f"\n[{det.code}] Written {len(paths)} finding file(s) to {outdir}/"
+                    f"\n[{det.code}] Written {len(paths)} finding file(s) to {file_outdir}/"
                 )
                 pre_parse_findings.append(findings)
 
@@ -184,7 +187,8 @@ def main(argv: list[str] | None = None) -> int:
         if doc is None:
             print(f"Skipping unsupported file type: {path}")
             continue
-        _run_pipeline(doc, file_path=path, outdir=outdir, detectors=detectors)
+        file_outdir = base_outdir / path.stem
+        _run_pipeline(doc, file_path=path, outdir=file_outdir, detectors=detectors)
     return 0
 
 
