@@ -67,7 +67,7 @@ class DocumentInfoExtractor(BaseDetector):
                 )
             )
             return findings
-
+        doc_hash = compute_doc_hash(str(file_path))
         # Check document type
         file_ext = file_path.suffix.lower()
         if file_ext not in self.cfg["accepted_extensions"]:
