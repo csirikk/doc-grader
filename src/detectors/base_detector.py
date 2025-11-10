@@ -93,6 +93,7 @@ class BaseDetector:
         self, *, run_id: Optional[str] = None, params: Optional[Dict[str, Any]] = None
     ):
         self.params: Dict[str, Any] = params or {}
+        self._slug_counts = {}
         self.info = DetectorInfo(
             code=self.code,
             name=self.name,
@@ -310,6 +311,14 @@ class BaseDetector:
             written.append(path)
         return written
 
+    def _make_slug(self, doc_hash: str, slug: str) -> str:
+        key = (self.code, doc_hash, slug)
+        count = self._slug_counts.get(key, 0)
+        self._slug_counts[key] = count + 1
+        if count == 0:
+            return slug
+        return f"{slug}-{count}"
+
     def emit(
         self,
         *,
@@ -337,10 +346,12 @@ class BaseDetector:
         if extra_evidence:
             evidence.extend(extra_evidence)
 
+        new_slug = self._make_slug(doc_hash, slug)
+
         return Finding(
             detector=self.info,
             document=DocumentRef(source_path=doc.source_path, hash=doc_hash),
-            finding_id=_build_finding_id(self.code, doc_hash, slug),
+            finding_id=_build_finding_id(self.code, doc_hash, new_slug),
             doc_id=doc_hash,
             code=self.code,
             title=title,
