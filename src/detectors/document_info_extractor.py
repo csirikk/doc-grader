@@ -46,8 +46,6 @@ class DocumentInfoExtractor(BaseDetector):
     def detect_file(self, file_path: Path) -> List[Finding]:
         """Check file metadata before parsing."""
         findings: List[Finding] = []
-        doc_hash = compute_doc_hash(str(file_path))
-
         # Create minimal document ref for findings
         from ..schemas.ir import Document
 
@@ -55,6 +53,7 @@ class DocumentInfoExtractor(BaseDetector):
 
         # Check if source path exists
         if not file_path.exists():
+            doc_hash = compute_doc_hash(str(file_path))
             findings.append(
                 self.emit(
                     doc=doc,
