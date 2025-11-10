@@ -1,5 +1,7 @@
 """Parser interface."""
 
+# TODO: clean up after parse?
+# e.g. make short paragraphs count as headings
 from pathlib import Path
 from typing import Optional
 
