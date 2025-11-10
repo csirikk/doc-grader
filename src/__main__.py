@@ -6,6 +6,8 @@ import json
 from typing import List, Optional
 
 from .parsers import parse
+from .detectors.caption_analyzer import CaptionAnalyzer
+from .detectors.typography_analyzer import TypographyAnalyzer
 from .detectors.length_analyzer import LengthAnalyzer
 from .detectors.document_info_extractor import DocumentInfoExtractor
 from .detectors.metadata_extractor import MetadataExtractor
@@ -122,6 +124,8 @@ def main(argv: list[str] | None = None) -> int:
             "METADATA": MetadataExtractor,
             "STRUCT": StructureAnalyzer,
             "SECTION": SectionAnalyzer,
+            "TYPO": TypographyAnalyzer,
+            "CAPTION": CaptionAnalyzer,
         }
 
         for detector_cfg in app_config.detectors:
