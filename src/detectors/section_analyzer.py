@@ -30,6 +30,7 @@ class SectionAnalyzer(BaseDetector):
         "ifj": {
             "lexer": [
                 "lexikální analýza",
+                "lexikálna analýza",
                 "scanner",
                 "lexer",
                 "tokenizace",
@@ -43,6 +44,7 @@ class SectionAnalyzer(BaseDetector):
             ],
             "precedence_analysis": [  # TODO: need more variants (syntakticka analyza vyrazov)
                 "precedenční analýza",
+                "precedenčná analýza",
                 "precedence",
                 "precedenč",
                 "precedenční",
@@ -50,11 +52,14 @@ class SectionAnalyzer(BaseDetector):
             "error_handling": ["zpracování chyb", "error handling", "chyb", "error"],
             "team_work": [
                 "rozdělení",
+                "rozdelenie",
                 "division of labor",
                 "prace",
                 "práce",
+                "práca",
                 "division of work",
                 "práce v týmu",
+                "práca v tíme",
                 "teamwork",
             ],
         },
@@ -147,15 +152,17 @@ class SectionAnalyzer(BaseDetector):
             # Skip TOC sections - they are not authoritative for content
             if getattr(section, "is_toc", False):
                 continue
-
-            heading_text_lower = section.heading_text.lower()
+            heading_text = section.heading_text or ""
             for pattern in patterns:
-                if pattern.lower().strip() in heading_text_lower:
+                pat = (pattern or "").strip()
+                if not pat:
+                    continue
+                rx = re.compile(rf"\b{re.escape(pat)}\b", re.IGNORECASE)
+                if rx.search(heading_text):
                     debug(
                         "SectionAnalyzer: Found match for pattern '%s' in heading '%s'",
                         pattern,
                         section.heading_text,
                     )
                     return True
-
         return False
