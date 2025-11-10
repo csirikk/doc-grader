@@ -41,7 +41,7 @@ class SectionAnalyzer(BaseDetector):
                 "parser",
                 "syntaktick",
             ],
-            "precedence_analysis": [
+            "precedence_analysis": [  # TODO: need more variants (syntakticka analyza vyrazov)
                 "precedenční analýza",
                 "precedence",
                 "precedenč",
