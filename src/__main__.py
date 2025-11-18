@@ -153,6 +153,8 @@ def main(argv: list[str] | None = None) -> int:
         detectors.append(StructureAnalyzer())
         detectors.append(SectionAnalyzer())
         detectors.append(LengthAnalyzer())
+        detectors.append(TypographyAnalyzer())
+        detectors.append(CaptionAnalyzer())
 
     # Run pre-parsing detectors on all files first
     pre_parse_findings: List[List] = []
