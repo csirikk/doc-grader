@@ -13,6 +13,7 @@ from .detectors.document_info_extractor import DocumentInfoExtractor
 from .detectors.metadata_extractor import MetadataExtractor
 from .detectors.structure_analyzer import StructureAnalyzer
 from .detectors.section_analyzer import SectionAnalyzer
+from .detectors.language_analyzer import LanguageAnalyzer
 from .detectors.base_detector import BaseDetector
 from .schemas.config import load_config, AppConfig, DetectorConfig
 from .schemas.ir import Document
@@ -126,6 +127,7 @@ def main(argv: list[str] | None = None) -> int:
             "SECTION": SectionAnalyzer,
             "TYPO": TypographyAnalyzer,
             "CAPTION": CaptionAnalyzer,
+            "LANG": LanguageAnalyzer,
         }
 
         for detector_cfg in app_config.detectors:
@@ -154,6 +156,7 @@ def main(argv: list[str] | None = None) -> int:
         detectors.append(SectionAnalyzer())
         detectors.append(LengthAnalyzer())
         detectors.append(TypographyAnalyzer())
+        detectors.append(LanguageAnalyzer())
         detectors.append(CaptionAnalyzer())
 
     # Run pre-parsing detectors on all files first
