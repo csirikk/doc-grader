@@ -8,5 +8,5 @@ test/
 out/
 
 # Data
-data/*
+data/raw
 !data/overview.xlsx
