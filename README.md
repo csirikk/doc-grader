@@ -29,6 +29,16 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+## Notebook setup
+
+```bash
+conda env create -f environment.yml
+conda activate doc-grader
+python -m ipykernel install --user --name doc-grader
+```
+
+Open notebooks in VSCode and select the kernel named **doc-grader miniconda**.
+
 ## Command line usage
 
 Process one or more input files (markdown or PDF).
