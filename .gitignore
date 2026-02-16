@@ -6,6 +6,7 @@ __pycache__/
 # Messing around in here
 test/
 out/
+deprecated/*
 
 # Data
 data/raw
