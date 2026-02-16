@@ -12,6 +12,8 @@ from .logger import (
     set_debug,
 )
 from .parsers import parse
+from .schemas.ir import Document
+from .util import compute_doc_hash
 
 
 def _export_markdown(doc: DoclingDocument, file_path: Path, outdir: Path) -> None:
@@ -35,19 +37,17 @@ def _export_json(doc: DoclingDocument, file_path: Path, outdir: Path) -> None:
         print(f"Error exporting JSON to {json_file}: {e}", file=sys.stderr)
 
 
-def _print_statistics(doc: DoclingDocument) -> None:
-    num_texts = len(doc.texts)
-    num_tables = len(doc.tables)
-    num_pics = len(doc.pictures)
-
+def _print_statistics(ir_doc: Document) -> None:
     print("Docling stats:")
-    print(f"  Paragraphs: {num_texts}")
-    print(f"  Tables:     {num_tables}")
-    print(f"  Pictures:   {num_pics}")
+    print(f"  Paragraphs: {ir_doc.total_paragraphs}")
+    print(f"  Headings:   {ir_doc.total_headings}")
+    print(f"  Words:      {ir_doc.total_words}")
+    print(f"  Tables:     {len(ir_doc.docling_doc.tables)}")
+    print(f"  Pictures:   {len(ir_doc.docling_doc.pictures)}")
 
 
 def run_docling_demo(
-    doc: DoclingDocument,
+    ir_doc: Document,
     *,
     file_path: Path,
     outdir: Path,
@@ -61,22 +61,22 @@ def run_docling_demo(
         except OSError as e:
             print(f"Error creating directory {outdir}: {e}", file=sys.stderr)
             return
+    _export_markdown(ir_doc.docling_doc, file_path, outdir)
+    _export_json(ir_doc.docling_doc, file_path, outdir)
+    _print_statistics(ir_doc)
 
-    _export_markdown(doc, file_path, outdir)
-    _export_json(doc, file_path, outdir)
-    _print_statistics(doc)
 
-
-def parse_input_to_document(path: Path) -> Optional[DoclingDocument]:
-    if not path.exists():
-        print(f"Error: Missing file {path}", file=sys.stderr)
+def parse_input_to_ir(path: Path) -> Optional[Document]:
+    """Parse file and wrap in IR Document."""
+    doc = parse(path)
+    if doc is None:
         return None
     try:
-        return parse(path)
-    except Exception as e:
-        print(f"Error parsing {path}: {e}", file=sys.stderr)
-        debug("Exception while parsing %s: %s", path, e)
+        sha256 = compute_doc_hash(str(path))
+    except OSError:
         return None
+
+    return Document.from_docling(doc=doc, source_path=str(path), sha256=sha256)
 
 
 def main(argv: Optional[list[str]] = None) -> int:
@@ -104,18 +104,21 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     for raw_path in args.inputs:
         path = Path(raw_path)
-        doc = parse_input_to_document(path)
-        if doc is None:
+
+        ir_doc = parse_input_to_ir(path)
+
+        if ir_doc is None:
             print(f"Skipping unsupported file type: {path}")
             exit_code = 1
             continue
+
         file_outdir = base_outdir / path.stem
 
-        if isinstance(doc, DoclingDocument):
-            run_docling_demo(doc, file_path=path, outdir=file_outdir)
+        if isinstance(ir_doc, Document):
+            run_docling_demo(ir_doc, file_path=path, outdir=file_outdir)
         else:
             print(
-                f"Error: Unexpected document type returned: {type(doc)}",
+                f"Error: Unexpected document type returned: {type(ir_doc)}",
                 file=sys.stderr,
             )
             exit_code = 1

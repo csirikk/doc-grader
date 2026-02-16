@@ -1,7 +1,9 @@
 """Parser interface."""
 
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
+
+from docling.datamodel.document import DoclingDocument
 
 from ..logger import debug
 from .docling_parser import DoclingParser
@@ -9,7 +11,7 @@ from .docling_parser import DoclingParser
 _parser = DoclingParser()
 
 
-def parse(path: Path) -> Optional[Any]:
+def parse(path: Path) -> Optional[DoclingDocument]:
     if not path.exists():
         return None
 
