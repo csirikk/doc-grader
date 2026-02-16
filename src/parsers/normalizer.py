@@ -1,4 +1,5 @@
 """Text normalization for parsed IR documents.
+DEPRECATED
 
 Applies post-parse normalization to text content in IR blocks.
 """
@@ -6,9 +7,8 @@ Applies post-parse normalization to text content in IR blocks.
 from __future__ import annotations
 
 import re
+
 from ..schemas.ir import (
-    Block,
-    CodeBlock,
     Document,
     Heading,
     ListBlock,

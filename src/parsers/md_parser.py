@@ -1,31 +1,31 @@
 """Markdown parser producing an IR (internal representation).
+DEPRECATED
 
 Parses headings, paragraphs, lists (with nesting), code blocks, block quotes,
 tables, and images (as figures). It uses `markdown-it-py` tokens and converts
 them to typed blocks with span information.
 """
 
-import pprint
 from pathlib import Path
 from typing import List, Optional, Tuple
 
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
+from .. import logger
 from ..schemas.ir import (
-    Document,
-    Paragraph,
-    Span,
-    Heading,
     CodeBlock,
+    Document,
+    Figure,
+    Heading,
     ListBlock,
     ListItem,
+    Paragraph,
     Quote,
-    Figure,
+    Span,
     Table,
 )
 from ..util import next_id, norm
-from .. import logger
 
 # Global parser instance
 md = MarkdownIt("commonmark").enable("table")

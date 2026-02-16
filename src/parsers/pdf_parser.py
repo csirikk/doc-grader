@@ -1,25 +1,26 @@
 """PDF parser producing an IR (internal representation).
+DEPRECATED
 
 Parses text and image blocks from PDF using PyMuPDF and converts them to typed blocks with span information.
 Currently just paragraphs and figures are supported.
 """
 
 from pathlib import Path
-from typing import List, Dict, Any
-
-from ..schemas.ir import (
-    Document,
-    Paragraph,
-    Heading,
-    Span,
-    Figure,
-    Table,
-    BBox,
-)
-from ..util import next_id, norm
-from ..logger import debug
+from typing import Any, Dict, List
 
 import pymupdf
+
+from ..logger import debug
+from ..schemas.ir import (
+    BBox,
+    Document,
+    Figure,
+    Heading,
+    Paragraph,
+    Span,
+    Table,
+)
+from ..util import next_id, norm
 
 DPI = 300
 
@@ -350,7 +351,7 @@ def _handle_image_block(
     # Output folder (name-without-ext)/images/
     root = Path(path).with_suffix("")
     outdir = root / "images"
-    base = f"{Path(path).stem}-p{page_index+1}-{next_id('img')}"
+    base = f"{Path(path).stem}-p{page_index + 1}-{next_id('img')}"
 
     png_path = _rasterize_clip(page, bbox, outdir, base, dpi=DPI)
 
@@ -433,7 +434,7 @@ def _handle_vector_drawings(
         if cluster_area < min_cluster_area:
             continue
         span = build_span(path, page_index, bbox)
-        base = f"{Path(path).stem}-p{page_index+1}-{next_id('vec')}"
+        base = f"{Path(path).stem}-p{page_index + 1}-{next_id('vec')}"
         png_path = _rasterize_clip(page, bbox, outdir, base, dpi=DPI)
 
         out.append(

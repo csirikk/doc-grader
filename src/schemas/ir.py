@@ -1,6 +1,10 @@
-"""Internal representation (IR) models for parsed documents."""
+"""
+DEPRECATED
+Internal representation (IR) models for parsed documents.
+"""
 
-from typing import Annotated, Literal, Optional, Union, List, Dict, Any
+from typing import Annotated, Any, Dict, List, Literal, Optional, Union
+
 from pydantic import BaseModel, Field, field_validator
 
 

@@ -1,97 +1,85 @@
 """CLI entry point."""
 
 import argparse
+import sys
 from pathlib import Path
-import json
-from typing import List, Optional
+from typing import Optional
 
-from .parsers import parse
-from .detectors.caption_analyzer import CaptionAnalyzer
-from .detectors.typography_analyzer import TypographyAnalyzer
-from .detectors.length_analyzer import LengthAnalyzer
-from .detectors.document_info_extractor import DocumentInfoExtractor
-from .detectors.metadata_extractor import MetadataExtractor
-from .detectors.structure_analyzer import StructureAnalyzer
-from .detectors.section_analyzer import SectionAnalyzer
-from .detectors.language_analyzer import LanguageAnalyzer
-from .detectors.base_detector import BaseDetector
-from .schemas.config import load_config, AppConfig, DetectorConfig
-from .schemas.ir import Document
-from .util import (
-    compute_doc_hash,
-    summarize_document,
-    format_findings,
-    write_findings_json,
-)
-from .rule_engine import RuleEngine
+from docling.datamodel.document import DoclingDocument
+
 from .logger import (
-    set_debug,
     debug,
-    debug_dump_ir_json,
-    debug_dump_finding_json,
-    dump_config_json,
+    set_debug,
 )
+from .parsers import parse
 
 
-def _run_pipeline(
-    doc: Document,
+def _export_markdown(doc: DoclingDocument, file_path: Path, outdir: Path) -> None:
+    md_file = outdir / f"{file_path.stem}.md"
+    try:
+        md_output = doc.export_to_markdown()
+        with open(md_file, "w", encoding="utf-8") as f:
+            f.write(md_output)
+        debug(f"Exported Markdown to: {md_file}")
+    except Exception as e:
+        print(f"Error exporting Markdown to {md_file}: {e}", file=sys.stderr)
+
+
+def _export_json(doc: DoclingDocument, file_path: Path, outdir: Path) -> None:
+    json_file = outdir / f"{file_path.stem}.json"
+    try:
+        with open(json_file, "w", encoding="utf-8") as f:
+            f.write(doc.model_dump_json())
+        debug(f"Exported JSON structure to: {json_file}")
+    except Exception as e:
+        print(f"Error exporting JSON to {json_file}: {e}", file=sys.stderr)
+
+
+def _print_statistics(doc: DoclingDocument) -> None:
+    num_texts = len(doc.texts)
+    num_tables = len(doc.tables)
+    num_pics = len(doc.pictures)
+
+    print("Docling stats:")
+    print(f"  Paragraphs: {num_texts}")
+    print(f"  Tables:     {num_tables}")
+    print(f"  Pictures:   {num_pics}")
+
+
+def run_docling_demo(
+    doc: DoclingDocument,
     *,
     file_path: Path,
     outdir: Path,
-    detectors: Optional[List[BaseDetector]] = None,
-) -> int:
-    doc_hash = compute_doc_hash(doc.source_path)
+) -> None:
     print("=" * 80)
-    print(f"File: {doc.source_path}")
-    print(f"Hash: {doc_hash}")
-    summary = summarize_document(doc)
-    print("IR Summary:")
-    print(json.dumps(summary, indent=2, ensure_ascii=False))
-    debug_dump_ir_json(doc)
+    print(f"File: {file_path}")
 
-    detectors = detectors or [LengthAnalyzer()]
-    per_detector_findings: List[List] = []
-    for det in detectors:
-        debug("running detector %s on %s", det.code, doc.source_path)
-        findings = det.detect(doc, doc_hash)
-        for f in findings:
-            debug_dump_finding_json(f)
-        print()
-        print(format_findings(det, findings))
-        paths = write_findings_json(det, findings, outdir)
-        print(f"\n[{det.code}] Written {len(paths)} finding file(s) to {outdir}/")
-        per_detector_findings.append(findings)
+    if not outdir.exists():
+        try:
+            outdir.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            print(f"Error creating directory {outdir}: {e}", file=sys.stderr)
+            return
 
-    engine = RuleEngine()
-    aggregated, agg_summary = engine.process(per_detector_findings)
-    print()
-    print(format_findings(detector_label="AGG", detector=engine, findings=aggregated))
-    if agg_summary:
-        print("\n[AGG] Summary:")
-        from pprint import pprint as _pprint
-
-        _pprint(agg_summary)
-    all_findings = len(aggregated)
-
-    print("=" * 80)
-    print(f"Done.\nTotal findings: {all_findings}")
-    debug("finished processing %s with %d findings", doc.source_path, all_findings)
-    return all_findings
+    _export_markdown(doc, file_path, outdir)
+    _export_json(doc, file_path, outdir)
+    _print_statistics(doc)
 
 
-def parse_input_to_document(path: Path) -> Optional[Document]:
+def parse_input_to_document(path: Path) -> Optional[DoclingDocument]:
     if not path.exists():
-        print(f"Missing file: {path}")
+        print(f"Error: Missing file {path}", file=sys.stderr)
         return None
     try:
         return parse(path)
     except Exception as e:
-        print(f"Error parsing {path}: {e}")
+        print(f"Error parsing {path}: {e}", file=sys.stderr)
         debug("Exception while parsing %s: %s", path, e)
         return None
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(prog="project")
     parser.add_argument(
         "inputs", nargs="+", help="One or more input paths (.md, .markdown, .pdf)"
@@ -107,95 +95,33 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    base_outdir = Path(args.out)
     if args.debug:
         set_debug(True)
         debug("debug logging enabled")
-    detectors: List[BaseDetector] = []
-    if args.config:
-        config_path = Path(args.config)
-        if not config_path.exists():
-            raise SystemExit(f"Config file not found: {config_path}")
-        app_config: AppConfig = load_config(config_path)
-        run_id = app_config.run_id
-        global_course = app_config.course
-        detector_list = {
-            "LENGTH": LengthAnalyzer,
-            "DOCINFO": DocumentInfoExtractor,
-            "METADATA": MetadataExtractor,
-            "STRUCT": StructureAnalyzer,
-            "SECTION": SectionAnalyzer,
-            "TYPO": TypographyAnalyzer,
-            "CAPTION": CaptionAnalyzer,
-            "LANG": LanguageAnalyzer,
-        }
 
-        for detector_cfg in app_config.detectors:
-            dump_config_json(detector_cfg)
-            if not detector_cfg.enabled:
-                continue
+    base_outdir = Path(args.out)
+    exit_code = 0
 
-            detector_class = detector_list.get(detector_cfg.code.upper())
-            if not detector_class:
-                print(f"[warn] Unknown detector code in config: {detector_cfg.code}")
-                continue
-            params = detector_cfg.params.copy()
-
-            # Set course if applicable
-            if global_course:
-                if detector_cfg.code.upper() == "METADATA":
-                    params["expected_course"] = global_course
-                elif detector_cfg.code.upper() == "SECTION":
-                    params["course"] = global_course
-
-            detectors.append(detector_class(run_id=run_id, params=params))
-    else:
-        detectors.append(DocumentInfoExtractor())
-        detectors.append(MetadataExtractor())
-        detectors.append(StructureAnalyzer())
-        detectors.append(SectionAnalyzer())
-        detectors.append(LengthAnalyzer())
-        detectors.append(TypographyAnalyzer())
-        detectors.append(LanguageAnalyzer())
-        detectors.append(CaptionAnalyzer())
-
-    # Run pre-parsing detectors on all files first
-    pre_parse_findings: List[List] = []
-    for raw in args.inputs:
-        path = Path(raw)
-        if not path.exists():
-            print(f"File not found: {path}")
-            continue
-
-        # Per-file output directory = base_outdir / <filename stem>
-        file_outdir = base_outdir / path.stem
-
-        # Run detectors that work before parsing
-        for det in detectors:
-            if det.runs_before_parsing:
-                debug("running pre-parse detector %s on %s", det.code, path)
-                findings = det.detect_file(path)
-                for f in findings:
-                    debug_dump_finding_json(f)
-                print()
-                print(format_findings(det, findings))
-                paths = write_findings_json(det, findings, file_outdir)
-                print(
-                    f"\n[{det.code}] Written {len(paths)} finding file(s) to {file_outdir}/"
-                )
-                pre_parse_findings.append(findings)
-
-    # Parse and run regular detectors
-    for raw in args.inputs:
-        path = Path(raw)
+    for raw_path in args.inputs:
+        path = Path(raw_path)
         doc = parse_input_to_document(path)
         if doc is None:
             print(f"Skipping unsupported file type: {path}")
+            exit_code = 1
             continue
         file_outdir = base_outdir / path.stem
-        _run_pipeline(doc, file_path=path, outdir=file_outdir, detectors=detectors)
-    return 0
+
+        if isinstance(doc, DoclingDocument):
+            run_docling_demo(doc, file_path=path, outdir=file_outdir)
+        else:
+            print(
+                f"Error: Unexpected document type returned: {type(doc)}",
+                file=sys.stderr,
+            )
+            exit_code = 1
+
+    return exit_code
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())
