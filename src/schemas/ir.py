@@ -5,16 +5,24 @@ from docling_core.types.doc.labels import DocItemLabel
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class DocumentRef(BaseModel):
+    """Reference to the source document."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source_path: str
+    sha256: Optional[str] = Field(default=None, description="sha256:<64hex> hash")
+    mimetype: Optional[str] = None
+
+
 class Document(BaseModel):
     """Docling Document wrapper for custom stats and metadata."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
-
-    source_path: str = Field(description="Original file path")
-    sha256: str = Field(description="sha256:<64hex> hash of the file")
-    mimetype: Optional[str] = Field(default=None)
-
-    docling_doc: DoclingDocument = Field(description="The underlying Docling document")
+    document_ref: DocumentRef
+    docling_doc: DoclingDocument = Field(
+        exclude=True, description="The underlying Docling document"
+    )
 
     # Custom stats
     total_words: int = Field(default=0, description="Total detected words")
@@ -26,27 +34,31 @@ class Document(BaseModel):
         cls,
         doc: DoclingDocument,
         source_path: str,
-        sha256: str,
+        sha256: Optional[str],
         mimetype: Optional[str] = None,
     ) -> "Document":
         """Calculates custom stats instantly after creation."""
         words, paras, headings = 0, 0, 0
+        paragraph_labels = {DocItemLabel.TEXT, DocItemLabel.PARAGRAPH}
 
         for item, _ in doc.iterate_items():
+            if getattr(item, "label", None) == DocItemLabel.SECTION_HEADER:
+                headings += 1
+
             if isinstance(item, TextItem):
-                if item.label == DocItemLabel.TEXT:
+                if item.label in paragraph_labels:
                     paras += 1
-                elif item.label == DocItemLabel.SECTION_HEADER:
-                    headings += 1
 
                 if item.text:
                     words += len(item.text.split())
 
         return cls(
+            document_ref=DocumentRef(
+                source_path=source_path,
+                sha256=sha256,
+                mimetype=mimetype,
+            ),
             docling_doc=doc,
-            source_path=source_path,
-            sha256=sha256,
-            mimetype=mimetype,
             total_words=words,
             total_paragraphs=paras,
             total_headings=headings,

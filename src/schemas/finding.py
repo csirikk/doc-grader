@@ -7,6 +7,8 @@ from docling_core.types.doc.document import (
 )
 from pydantic import BaseModel, ConfigDict, Field
 
+from .ir import DocumentRef
+
 
 class StrictModel(BaseModel):
     """Base model with no extra fields allowed."""
@@ -18,7 +20,7 @@ class AnalyserInfo(StrictModel):
     """Info about the analyser that generated a finding."""
 
     analyser_id: str = Field(
-        ..., description="Unique code for the analyser (e.g. 'LANG')"
+        ..., description="Analyser implementation identifier (e.g. 'section_analyser')"
     )
     name: str = Field(..., description="Human-readable analyser name")
     run_id: Optional[str] = None
@@ -26,14 +28,7 @@ class AnalyserInfo(StrictModel):
     params: Optional[dict[str, Any]] = None
 
 
-class DocumentInfo(StrictModel):
-    """Info about the document associated with a finding."""
-
-    source_path: str
-    sha256: str = Field(..., description="sha256:<64hex> hash of the file")
-    mimetype: Optional[str] = None
-
-
+# TODO: add helper to transform to docling_item anchor
 class Anchor(StrictModel):
     """Evidence: Canonical pointer into a DoclingDocument."""
 
@@ -73,9 +68,9 @@ class Finding(StrictModel):
 
     # Context
     analyser: AnalyserInfo
-    document: DocumentInfo
+    document: DocumentRef
     finding_id: str = Field(
-        ..., description="Unique ID for this finding (e.g. 'STRUCT-001')"
+        ..., description="Unique ID for this finding (e.g. 'PARSER:MISSING-1')"
     )
     ac_code: str = Field(..., description="Assessment Criteria code (e.g. 'STRUCT')")
     title: str
