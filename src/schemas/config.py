@@ -12,7 +12,9 @@ class AnalyserConfig(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    code: str = Field(..., description="Analyser code identifier")
+    analyser_id: str = Field(
+        ..., description="Analyser implementation identifier used by analyser list"
+    )
     enabled: bool = Field(default=True, description="Whether analyser is enabled")
     params: dict[str, Any] = Field(
         default_factory=dict, description="Analyser-specific parameters"
