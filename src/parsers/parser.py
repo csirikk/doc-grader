@@ -11,7 +11,7 @@ from pydantic import Field
 
 from ..schemas.finding import AnalyserInfo, Finding, StrictModel
 from ..schemas.ir import Document, DocumentRef
-from ..util import compute_doc_hash, next_id
+from ..utils import compute_doc_hash, next_id
 
 logger = logging.getLogger(__name__)
 
