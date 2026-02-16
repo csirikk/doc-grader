@@ -1,9 +1,8 @@
-"""Rule engine for post-processing detector findings.
+"""Rule engine for post-processing analyser findings.
 
-1. Aggregate findings from multiple detectors.
+1. Aggregate findings from multiple analysers.
 2. Apply simple normalization / filtering rules.
-   - Keep only findings with confidence >= HIGH_CONFIDENCE_THRESHOLD when a
-     confidence value is present.
+   - Keep only findings with confidence >= HIGH_CONFIDENCE_THRESHOLD when a confidence value is present.
    - If a finding has no confidence specified, keep it for now
 3. De-duplicate identical finding_ids
 

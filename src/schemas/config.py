@@ -1,4 +1,4 @@
-"""Configuration schema for detectors and pipeline."""
+"""Configuration schema for analysers and pipeline."""
 
 import json
 from pathlib import Path
@@ -7,15 +7,15 @@ from typing import Any, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class DetectorConfig(BaseModel):
-    """Configuration for a single detector."""
+class AnalyserConfig(BaseModel):
+    """Configuration for a single analyser."""
 
     model_config = ConfigDict(extra="forbid")
 
-    code: str = Field(..., description="Detector code identifier")
-    enabled: bool = Field(default=True, description="Whether detector is enabled")
+    code: str = Field(..., description="Analyser code identifier")
+    enabled: bool = Field(default=True, description="Whether analyser is enabled")
     params: dict[str, Any] = Field(
-        default_factory=dict, description="Detector-specific parameters"
+        default_factory=dict, description="Analyser-specific parameters"
     )
 
 
@@ -29,8 +29,8 @@ class AppConfig(BaseModel):
     course: Optional[str] = Field(
         default=None, description="Course code: 'ifj' or 'ipp', None to auto-detect"
     )
-    detectors: list[DetectorConfig] = Field(
-        default_factory=list, description="List of detector configurations"
+    analysers: list[AnalyserConfig] = Field(
+        default_factory=list, description="List of analyser configurations"
     )
 
 

@@ -91,7 +91,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         "-o", "--out", default="out/default/", help="Output directory for findings"
     )
     parser.add_argument(
-        "-c", "--config", help="Path to JSON config file for detectors", default=None
+        "-c", "--config", help="Path to JSON config file for analysers", default=None
     )
     args = parser.parse_args(argv)
 

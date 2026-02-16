@@ -1,7 +1,4 @@
 pydantic
-markdown-it-py
-PyMuPDF
-
 jupyter
 pandas
 docling

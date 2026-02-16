@@ -14,13 +14,13 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class DetectorInfo(StrictModel):
-    """Info about the detector that generated a finding."""
+class AnalyserInfo(StrictModel):
+    """Info about the analyser that generated a finding."""
 
-    detector_id: str = Field(
-        ..., description="Unique code for the detector (e.g. 'LANG')"
+    analyser_id: str = Field(
+        ..., description="Unique code for the analyser (e.g. 'LANG')"
     )
-    name: str = Field(..., description="Human-readable detector name")
+    name: str = Field(..., description="Human-readable analyser name")
     run_id: Optional[str] = None
     config_hash: Optional[str] = None
     params: Optional[dict[str, Any]] = None
@@ -72,7 +72,7 @@ class Finding(StrictModel):
     )
 
     # Context
-    detector: DetectorInfo
+    analyser: AnalyserInfo
     document: DocumentInfo
     finding_id: str = Field(
         ..., description="Unique ID for this finding (e.g. 'STRUCT-001')"
