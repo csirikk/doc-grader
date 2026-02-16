@@ -8,7 +8,7 @@ from typing import Optional
 
 from docling.datamodel.document import DoclingDocument
 
-from .logger import configure_logging
+from .logger import configure_logging, debug_dump_model_json
 from .parsers import parse
 from .schemas.ir import Document
 from .util import compute_doc_hash
@@ -88,7 +88,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         "-d", "--debug", action="store_true", help="Enable debug logging"
     )
     parser.add_argument(
-        "--out", default="out/findings/", help="Output directory for findings"
+        "-o", "--out", default="out/default/", help="Output directory for findings"
     )
     parser.add_argument(
         "-c", "--config", help="Path to JSON config file for detectors", default=None
@@ -108,6 +108,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         path = Path(raw_path)
 
         ir_doc = parse_input_to_ir(path)
+
+        debug_dump_model_json(logger, "IR Document", ir_doc)
 
         if ir_doc is None:
             logger.warning(f"Skipping unsupported file type: {path}")
