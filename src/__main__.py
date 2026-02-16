@@ -1,19 +1,19 @@
 """CLI entry point."""
 
 import argparse
+import logging
 import sys
 from pathlib import Path
 from typing import Optional
 
 from docling.datamodel.document import DoclingDocument
 
-from .logger import (
-    debug,
-    set_debug,
-)
+from .logger import configure_logging
 from .parsers import parse
 from .schemas.ir import Document
 from .util import compute_doc_hash
+
+logger = logging.getLogger(__name__)
 
 
 def _export_markdown(doc: DoclingDocument, file_path: Path, outdir: Path) -> None:
@@ -22,9 +22,9 @@ def _export_markdown(doc: DoclingDocument, file_path: Path, outdir: Path) -> Non
         md_output = doc.export_to_markdown()
         with open(md_file, "w", encoding="utf-8") as f:
             f.write(md_output)
-        debug(f"Exported Markdown to: {md_file}")
+        logger.debug(f"Exported Markdown to: {md_file}")
     except Exception as e:
-        print(f"Error exporting Markdown to {md_file}: {e}", file=sys.stderr)
+        logger.error(f"Error exporting Markdown to {md_file}: {e}")
 
 
 def _export_json(doc: DoclingDocument, file_path: Path, outdir: Path) -> None:
@@ -32,9 +32,9 @@ def _export_json(doc: DoclingDocument, file_path: Path, outdir: Path) -> None:
     try:
         with open(json_file, "w", encoding="utf-8") as f:
             f.write(doc.model_dump_json())
-        debug(f"Exported JSON structure to: {json_file}")
+        logger.debug(f"Exported JSON structure to: {json_file}")
     except Exception as e:
-        print(f"Error exporting JSON to {json_file}: {e}", file=sys.stderr)
+        logger.error(f"Error exporting JSON to {json_file}: {e}")
 
 
 def _print_statistics(ir_doc: Document) -> None:
@@ -59,7 +59,7 @@ def run_docling_demo(
         try:
             outdir.mkdir(parents=True, exist_ok=True)
         except OSError as e:
-            print(f"Error creating directory {outdir}: {e}", file=sys.stderr)
+            logger.error(f"Error creating directory {outdir}: {e}")
             return
     _export_markdown(ir_doc.docling_doc, file_path, outdir)
     _export_json(ir_doc.docling_doc, file_path, outdir)
@@ -96,8 +96,10 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = parser.parse_args(argv)
 
     if args.debug:
-        set_debug(True)
-        debug("debug logging enabled")
+        configure_logging(logging.DEBUG)
+        logger.debug("Debug logging enabled")
+    else:
+        configure_logging(logging.INFO)
 
     base_outdir = Path(args.out)
     exit_code = 0
@@ -108,7 +110,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         ir_doc = parse_input_to_ir(path)
 
         if ir_doc is None:
-            print(f"Skipping unsupported file type: {path}")
+            logger.warning(f"Skipping unsupported file type: {path}")
             exit_code = 1
             continue
 
@@ -117,10 +119,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         if isinstance(ir_doc, Document):
             run_docling_demo(ir_doc, file_path=path, outdir=file_outdir)
         else:
-            print(
-                f"Error: Unexpected document type returned: {type(ir_doc)}",
-                file=sys.stderr,
-            )
+            logger.error(f"Unexpected document type returned: {type(ir_doc)}")
             exit_code = 1
 
     return exit_code

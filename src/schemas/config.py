@@ -1,10 +1,13 @@
 """Configuration schema for detectors and pipeline."""
 
-from typing import List, Optional, Any, Dict
-from pathlib import Path
 import json
-from ..logger import debug
+import logging
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 
 class DetectorConfig(BaseModel):
@@ -24,5 +27,5 @@ class AppConfig(BaseModel):
 
 def load_config(path: Path) -> AppConfig:
     data = json.loads(path.read_text(encoding="utf-8"))
-    print(f"Loaded config from {path}\n")
+    logger.info(f"Loaded config from {path}")
     return AppConfig.model_validate(data)

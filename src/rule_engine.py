@@ -14,7 +14,7 @@ Future extensions?
  - Configurable rule sets loaded from JSON / YAML
 """
 
-from typing import Iterable, List, Dict, Set
+from typing import Dict, Iterable, List, Set
 
 from .schemas.finding import Finding
 
@@ -22,7 +22,6 @@ HIGH_CONFIDENCE_THRESHOLD: float = 0.80
 
 
 class RuleEngine:
-
     def __init__(self, *, high_confidence_threshold: float | None = None):
         self.high_confidence_threshold = (
             high_confidence_threshold
