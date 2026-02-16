@@ -7,11 +7,10 @@ Emits findings for missing critical sections.
 import re
 from typing import List, Optional
 
-from .base_detector import BaseDetector
-from ..schemas.ir import Document, SectionBoundary
-from ..schemas.finding import Finding, Stat
 from ..logger import debug
-
+from ..schemas.finding import Finding, Stat
+from ..schemas.ir import Document, SectionBoundary
+from .base_detector import BaseDetector
 
 DEFAULTS = dict(
     course=None,  # "ifj" or "ipp" - if None, skips section checks

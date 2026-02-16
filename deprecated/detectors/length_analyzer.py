@@ -6,10 +6,9 @@ Emits at most one finding per condition (too-short or too-long) with supporting 
 
 from typing import List, Optional
 
-from .base_detector import BaseDetector
-from ..schemas.ir import Document, Paragraph, Heading, ListBlock, Block
 from ..schemas.finding import Finding, Stat
-from ..util import count_words
+from ..schemas.ir import Document
+from .base_detector import BaseDetector
 
 # TODO: improve/add more heuristics
 # TODO: tweak thresholds based on dataset

@@ -6,10 +6,10 @@ and detects structural issues like empty sections or heading chains.
 
 from typing import List, Optional
 
-from .base_detector import BaseDetector
-from ..schemas.ir import Document, Heading, SectionBoundary
-from ..schemas.finding import Finding, Stat
 from ..logger import debug
+from ..schemas.finding import Finding, Stat
+from ..schemas.ir import Document, Heading, SectionBoundary
+from .base_detector import BaseDetector
 
 DEFAULTS = dict(
     min_content_blocks_per_section=1,

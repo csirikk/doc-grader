@@ -7,9 +7,9 @@ Emits findings for missing captions or unreferenced assets.
 import re
 from typing import List, Optional
 
-from .base_detector import BaseDetector
-from ..schemas.ir import Document, Figure, Table, Paragraph, Block
 from ..schemas.finding import Finding, Stat
+from ..schemas.ir import Document, Figure
+from .base_detector import BaseDetector
 
 # TODO: add table checks?
 REFERENCE_PATTERNS = {

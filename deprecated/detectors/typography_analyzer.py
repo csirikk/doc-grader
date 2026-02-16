@@ -4,14 +4,13 @@ Basic typography checks for document formatting compliance.
 Detects issues like improper code formatting and line length violations. TODO: add mdlines soft break checks
 """
 
-import re
-from typing import List, Optional
 from pathlib import Path
+from typing import List, Optional
 
-from .base_detector import BaseDetector
-from ..schemas.ir import Document, Paragraph, CodeBlock, Block
-from ..schemas.finding import Finding, Stat
 from ..logger import debug
+from ..schemas.finding import Finding, Stat
+from ..schemas.ir import Document
+from .base_detector import BaseDetector
 
 DEFAULTS = dict(
     max_md_line_length=120,

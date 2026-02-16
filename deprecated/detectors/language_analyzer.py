@@ -5,13 +5,13 @@ Detects undesired languages (anything outside cs/sk/en) and flags mixed-language
 
 from collections import Counter
 from dataclasses import dataclass
-from typing import List, Optional, Tuple, Dict, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 from langdetect import DetectorFactory, LangDetectException, detect_langs
 
-from .base_detector import BaseDetector
-from ..schemas.ir import Block, Document
 from ..schemas.finding import Finding, Stat
+from ..schemas.ir import Block, Document
+from .base_detector import BaseDetector
 
 DetectorFactory.seed = 0  # deterministic predictions
 

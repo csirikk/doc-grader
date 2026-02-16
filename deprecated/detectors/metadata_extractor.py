@@ -5,12 +5,11 @@ Emits findings for missing or malformed metadata.
 """
 
 import re
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
-from .base_detector import BaseDetector
-from ..schemas.ir import Document, Paragraph, Heading, Block
 from ..schemas.finding import Finding, Stat
-
+from ..schemas.ir import Document
+from .base_detector import BaseDetector
 
 DEFAULTS = dict(
     header_block_limit=10,
@@ -100,7 +99,7 @@ class MetadataExtractor(BaseDetector):
 
         # Only validate course if expected_course is configured
         expected_course = self.cfg.get("expected_course")
-        if expected_course and not expected_course.lower() in header_text.lower():
+        if expected_course and expected_course.lower() not in header_text.lower():
             missing_fields.append(f"course identification ({expected_course.upper()})")
 
         if missing_fields:

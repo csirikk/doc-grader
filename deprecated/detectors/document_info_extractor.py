@@ -7,11 +7,10 @@ Emits findings for wrong document type, format violations, or missing documents.
 from pathlib import Path
 from typing import List, Optional
 
-from .base_detector import BaseDetector
-from ..schemas.ir import Document
 from ..schemas.finding import Finding, Stat
+from ..schemas.ir import Document
 from ..util import compute_doc_hash
-
+from .base_detector import BaseDetector
 
 # Thresholds based on rough average
 DEFAULTS = dict(

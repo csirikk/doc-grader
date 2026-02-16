@@ -6,32 +6,31 @@ Subclasses implement `detect`.
 
 import re
 from pathlib import Path
-from typing import List, Optional, Any, Dict, Union, Literal, Type
+from typing import Any, Dict, List, Literal, Optional, Union
 
-from ..schemas.ir import (
-    Document,
-    Span,
-    Block,
-    Heading,
-    Paragraph,
-    ListBlock,
-    ListItem,
-    CodeBlock,
-    Quote,
-    Table,
-    Figure,
-)
 from ..schemas.finding import (
-    Finding,
+    BlockRef,
     DetectorInfo,
-    DocumentRef,
+    DocumentInfo,
+    Finding,
     Location,
     SpanRef,
-    BlockRef,
     TextSpan,
 )
-from ..schemas.ir import DocumentMeta, SectionBoundary
-from ..util import compute_doc_hash
+from ..schemas.ir import (
+    Block,
+    CodeBlock,
+    Document,
+    DocumentMeta,
+    Figure,
+    Heading,
+    ListBlock,
+    Paragraph,
+    Quote,
+    SectionBoundary,
+    Span,
+    Table,
+)
 
 BlockType = Literal[
     "Heading", "Paragraph", "List", "CodeBlock", "Quote", "Table", "Figure"
@@ -78,7 +77,6 @@ def _build_location(
 
 
 class BaseDetector:
-
     # override in subclasses
     code: str = "BASE"
     name: str = "BaseDetector"
@@ -350,7 +348,7 @@ class BaseDetector:
 
         return Finding(
             detector=self.info,
-            document=DocumentRef(source_path=doc.source_path, hash=doc_hash),
+            document=DocumentInfo(source_path=doc.source_path, hash=doc_hash),
             finding_id=_build_finding_id(self.code, doc_hash, new_slug),
             doc_id=doc_hash,
             code=self.code,
