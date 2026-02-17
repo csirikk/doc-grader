@@ -9,27 +9,39 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from .schemas.config import AppConfig, load_config
+# Analysers
+from .analysers.section_analyser import SectionAnalyser
+from .schemas.config import AnalyserConfig, AppConfig, load_config
 from .utils import (
     compute_config_hash,
     configure_logging,
-    log_model_json,
+    log_json,
     reset_id_counters,
     write_json,
 )
 
 if TYPE_CHECKING:
+    from .analysers.base_analyser import BaseAnalyser
     from .schemas.finding import Finding
     from .schemas.ir import Document
 
 logger = logging.getLogger(__name__)
 
-ANALYSER_LIST: dict[str, Any] = {}
+ANALYSER_LIST: dict[str, type[BaseAnalyser]] = {
+    SectionAnalyser.analyser_id: SectionAnalyser,
+}
 
 
 def _load_app_config(config_path: str | None) -> AppConfig:
+    """Load application config from JSON file, or return default if no path provided."""
+
     if not config_path:
-        return AppConfig()
+        return AppConfig(
+            analysers=[
+                AnalyserConfig(analyser_id=a_id, enabled=True)
+                for a_id in ANALYSER_LIST.keys()
+            ]
+        )
     return load_config(Path(config_path))
 
 
@@ -40,17 +52,21 @@ def _run_analysers(ir: Document, config: AppConfig) -> list[Finding]:
         if not analyser_cfg.enabled:
             continue
 
-        analyser = ANALYSER_LIST.get(analyser_cfg.analyser_id)
-        if analyser is None:
+        analyser_class = ANALYSER_LIST.get(analyser_cfg.analyser_id)
+        if analyser_class is None:
             logger.warning(
-                "Analyser '%s' is enabled but not registered",
-                analyser_cfg.analyser_id,
+                "Analyser '%s' is enabled but not registered", analyser_cfg.analyser_id
             )
             continue
 
-        result = analyser.analyse(ir, analyser_cfg.params)
-        if result:
-            findings.extend(result)
+        try:
+            # Separate instance per document
+            analyser_instance = analyser_class()
+            result = analyser_instance.analyse(ir, params=analyser_cfg.params)
+            if result:
+                findings.extend(result)
+        except Exception:
+            logger.exception("Error running analyser %s", analyser_cfg.analyser_id)
 
     return findings
 
@@ -115,9 +131,9 @@ def main(argv: list[str] | None = None) -> int:
         parser_findings = parse_output.parser_findings
         ir_doc = parse_output.ir
 
-        log_model_json(logger, "Parse output", parse_output)
+        log_json(logger, "Parse output", parse_output)
 
-        doc_ref = parse_output.document_ref
+        doc_ref = parse_output.doc_ref
 
         info = {
             "input": doc_ref.model_dump(mode="json"),
@@ -149,7 +165,9 @@ def main(argv: list[str] | None = None) -> int:
         info["counts"]["n_findings"] = len(analyser_findings)
         write_json(file_outdir / "info.json", info)
 
-        log_model_json(logger, "IR Document", ir_doc)
+        log_json(logger, "IR Document", ir_doc)
+        for finding in analyser_findings:
+            log_json(logger, f"Finding: {finding.title}", finding)
 
     return exit_code
 
