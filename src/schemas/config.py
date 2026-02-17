@@ -1,14 +1,12 @@
 """Configuration schema for analysers and pipeline."""
 
 import json
-from typing import TYPE_CHECKING, Any
+from pathlib import Path  # noqa: TC003
+from typing import Any
 
 from pydantic import Field
 
 from .base import StrictModel
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 
 class AnalyserConfig(StrictModel):

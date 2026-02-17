@@ -2,16 +2,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-from docling.datamodel.document import TextItem
+from docling_core.types.doc.document import DoclingDocument, TextItem
 from docling_core.types.doc.labels import DocItemLabel
 from pydantic import ConfigDict, Field
 
 from .base import StrictModel
-
-if TYPE_CHECKING:
-    from docling.datamodel.document import DoclingDocument
 
 
 class DocumentRef(StrictModel):

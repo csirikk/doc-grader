@@ -2,21 +2,17 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal
+from datetime import datetime  # noqa: TC003
+from typing import Any, Literal
 
+from docling_core.types.doc.document import (
+    FineRef,  # noqa: TC002
+    ProvenanceItem,  # noqa: TC002
+)
 from pydantic import Field
 
 from .base import StrictModel, utc_now
-
-if TYPE_CHECKING:
-    from datetime import datetime
-
-    from docling_core.types.doc.document import (
-        FineRef,
-        ProvenanceItem,
-    )
-
-    from .ir import DocumentRef
+from .ir import DocumentRef  # noqa: TC001
 
 
 class AnalyserInfo(StrictModel):
