@@ -8,7 +8,8 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, TypeAdapter
+from docling_core.types.doc.document import DoclingDocument
+from pydantic import BaseModel
 from rich.logging import RichHandler
 
 
@@ -22,38 +23,40 @@ def configure_logging(level: int) -> None:
     )
 
 
-def log_model_json(
-    logger: logging.Logger,
-    label: str,
-    model: BaseModel | None,
-    *,
-    indent: int = 2,
-) -> None:
-    if not logger.isEnabledFor(logging.DEBUG):
-        return
-    if model is None:
-        logger.debug("[%s] <None>", label)
-        return
-    try:
-        logger.debug("[%s]\n%s", label, model.model_dump_json(indent=indent))
-    except Exception:
-        logger.exception("Failed to dump model JSON for %s", label)
+def _to_jsonable(x: Any) -> Any:
+    """Convert various objects to JSON-serializable Python structures."""
+    if isinstance(x, DoclingDocument):  # uses by_alias=True, exclude_none=True
+        return x.export_to_dict()
+    if isinstance(x, BaseModel):
+        return x.model_dump(by_alias=True, exclude_none=True)
+    if isinstance(x, Path):
+        return str(x)
+    if isinstance(x, dict):
+        return {k: _to_jsonable(v) for k, v in x.items()}
+    if isinstance(x, (list, tuple)):
+        return [_to_jsonable(v) for v in x]
+    return x
 
 
 def write_json(path: Path, payload: Any) -> None:
-    """Write any JSON to file."""
+    """Write any JSON-serializable payload to file."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    text = (
-        TypeAdapter(Any)
-        .dump_json(
-            payload,
-            indent=2,
-            ensure_ascii=False,
-            fallback=str,
-        )
-        .decode("utf-8")
+    payload_json = _to_jsonable(payload)
+    path.write_text(
+        json.dumps(payload_json, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
-    path.write_text(text + "\n", encoding="utf-8")
+
+
+def log_json(logger: logging.Logger, label: str, payload: Any) -> None:
+    """Log any JSON-serializable payload"""
+    if not logger.isEnabledFor(logging.DEBUG):
+        return
+    try:
+        payload_json = _to_jsonable(payload)
+        text = json.dumps(payload_json, indent=2, ensure_ascii=False)
+        logger.debug("[%s]\n%s", label, text)
+    except Exception:
+        logger.exception("Failed to dump JSON for %s", label)
 
 
 _id_counters: dict[str, int] = {}
