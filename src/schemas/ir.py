@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from docling_core.types.doc.document import DoclingDocument, TextItem
+from docling_core.types.doc.document import DoclingDocument
 from docling_core.types.doc.labels import DocItemLabel
 from pydantic import Field
 
@@ -47,12 +47,11 @@ class Document(StrictModel):
             if item.label == DocItemLabel.SECTION_HEADER:
                 headings += 1
 
-            if isinstance(item, TextItem):
-                if item.label in paragraph_labels:
-                    paras += 1
+            if item.label in paragraph_labels:
+                paras += 1
 
-                if item.text:
-                    words += len(item.text.split())
+            if item.text:
+                words += len(item.text.split())
 
         return cls(
             document_ref=DocumentRef(
