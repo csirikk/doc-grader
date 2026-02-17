@@ -17,7 +17,10 @@ class DocumentRef(StrictModel):
 
     source_path: str
     origin: DocumentOrigin | None = None
-    sha256: str | None = Field(default=None, description="sha256:<64hex> hash")
+    binary_hash: int | None = Field(
+        default=None,
+        description=("Docling content hash (binary_hash)."),
+    )
 
 
 class Document(StrictModel):

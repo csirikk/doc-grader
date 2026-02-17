@@ -130,7 +130,7 @@ class DocumentParser:
         config_hash: str | None = None,
     ) -> ParseOutput:
         """Parse the given document."""
-        doc_ref = DocumentRef(source_path=str(path), origin=None, sha256=None)
+        doc_ref = DocumentRef(source_path=str(path), origin=None, binary_hash=None)
 
         parse_meta = ParseMeta(
             used_ocr=self.do_ocr,
@@ -165,14 +165,24 @@ class DocumentParser:
             logger.debug("Parsing %s with Docling...", path)
             doc = self.converter.convert(path).document
 
+            if doc.origin is None:
+                return self._create_error_output(
+                    doc_ref,
+                    parse_meta,
+                    "PARSE_NO_ORIGIN",
+                    "Missing document origin",
+                    "Docling did not populate document origin.",
+                    "Missing origin",
+                    run_id,
+                    config_hash,
+                )
+
             doc_ref.origin = doc.origin
+            doc_ref.binary_hash = int(doc.origin.binary_hash)
             parse_meta.parsed_ok = True
             parse_meta.error = None
 
-            ir = Document.from_docling(
-                doc=doc,
-                doc_ref=doc_ref,
-            )
+            ir = Document.from_docling(doc=doc, doc_ref=doc_ref)
             return ParseOutput(
                 doc_ref=doc_ref,
                 ir=ir,
