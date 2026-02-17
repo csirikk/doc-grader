@@ -4,14 +4,16 @@ from __future__ import annotations
 
 import logging
 import mimetypes
-from pathlib import Path
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from pydantic import Field
 
 from ..schemas.finding import AnalyserInfo, Finding, StrictModel
 from ..schemas.ir import Document, DocumentRef
 from ..utils import compute_doc_hash, next_id
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +22,7 @@ SUPPORTED_EXTENSIONS = {".pdf", ".md", ".markdown"}
 
 class ParseOutput(StrictModel):
     document_ref: DocumentRef
-    ir: Optional[Document] = None
+    ir: Document | None = None
     parser_findings: list[Finding] = Field(default_factory=list)
     parse_meta: dict[str, Any] = Field(default_factory=dict)
 
@@ -58,8 +60,8 @@ class DocumentParser:
         ac_code: str,
         title: str,
         summary: str,
-        run_id: Optional[str],
-        config_hash: Optional[str],
+        run_id: str | None,
+        config_hash: str | None,
     ) -> Finding:
         return Finding(
             analyser=AnalyserInfo(
@@ -79,8 +81,8 @@ class DocumentParser:
         self,
         path: Path,
         *,
-        run_id: Optional[str] = None,
-        config_hash: Optional[str] = None,
+        run_id: str | None = None,
+        config_hash: str | None = None,
     ) -> ParseOutput:
         mimetype, _ = mimetypes.guess_type(str(path))
         source_path = str(path)

@@ -1,0 +1,45 @@
+[project]
+name = "doc-grader"
+description = "A tool to assist with grading student project documentation for the IFJ & IPP courses at BUT FIT."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic",
+    "jupyter",
+    "pandas",
+    "docling",
+]
+
+[project.scripts]
+doc-grader = "src.__main__:main"
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle
+    "F",    # Pyflakes
+    "UP",   # pyupgrade
+    "I",    # isort
+    "FA",   # flake8-future-annotations
+    "TC",   # flake8-type-checking
+    "PTH",  # Pathlib
+    "RUF",  # Ruff
+]
+ignore = []
+fixable = ["ALL"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.optional-dependencies]
+dev = ["build", "ruff"]

@@ -1,5 +1,3 @@
-from typing import Optional
-
 from docling.datamodel.document import DoclingDocument, TextItem
 from docling_core.types.doc.labels import DocItemLabel
 from pydantic import BaseModel, ConfigDict, Field
@@ -11,8 +9,8 @@ class DocumentRef(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     source_path: str
-    sha256: Optional[str] = Field(default=None, description="sha256:<64hex> hash")
-    mimetype: Optional[str] = None
+    sha256: str | None = Field(default=None, description="sha256:<64hex> hash")
+    mimetype: str | None = None
 
 
 class Document(BaseModel):
@@ -34,8 +32,8 @@ class Document(BaseModel):
         cls,
         doc: DoclingDocument,
         source_path: str,
-        sha256: Optional[str],
-        mimetype: Optional[str] = None,
+        sha256: str | None,
+        mimetype: str | None = None,
     ) -> "Document":
         """Calculates custom stats instantly after creation."""
         words, paras, headings = 0, 0, 0

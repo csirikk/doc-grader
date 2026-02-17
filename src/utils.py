@@ -4,7 +4,7 @@ import hashlib
 import json
 import logging
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, TypeAdapter
 from rich.logging import RichHandler
@@ -23,7 +23,7 @@ def configure_logging(level: int) -> None:
 def log_model_json(
     logger: logging.Logger,
     label: str,
-    model: Optional[BaseModel],
+    model: BaseModel | None,
     *,
     indent: int = 2,
 ) -> None:
@@ -65,7 +65,8 @@ def next_id(prefix: str) -> str:
 
 
 def reset_id_counters(*prefixes: str) -> None:
-    """Reset internal id counters.
+    """
+    Reset internal id counters.
     Without arguments resets all prefixes. If one or more `prefixes` are
     provided only those counters are cleared.
     """
@@ -78,7 +79,7 @@ def reset_id_counters(*prefixes: str) -> None:
 
 def compute_doc_hash(path: str | Path) -> str:
     hasher = hashlib.sha256()
-    with open(path, "rb") as f:
+    with Path(path).open("rb") as f:
         while True:
             chunk = f.read(1024 * 1024)
             if not chunk:

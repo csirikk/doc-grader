@@ -5,9 +5,9 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from .schemas.config import AppConfig, load_config
 from .utils import (
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 ANALYSER_LIST: dict[str, Any] = {}
 
 
-def _load_app_config(config_path: Optional[str]) -> AppConfig:
+def _load_app_config(config_path: str | None) -> AppConfig:
     if not config_path:
         return AppConfig()
     return load_config(Path(config_path))
@@ -58,7 +58,7 @@ def _run_analysers(ir: Document, config: AppConfig) -> list[Finding]:
 def _run_id_from_config(config: AppConfig) -> str:
     if config.run_id:
         return config.run_id
-    return datetime.now(timezone.utc).strftime("run-%Y%m%dT%H%M%SZ")
+    return datetime.now(UTC).strftime("run-%Y%m%dT%H%M%SZ")
 
 
 def _config_for_hash(config: AppConfig) -> dict[str, Any]:
@@ -67,7 +67,7 @@ def _config_for_hash(config: AppConfig) -> dict[str, Any]:
     return payload
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     arg_parser = argparse.ArgumentParser(prog="project")
     arg_parser.add_argument(
         "inputs", nargs="+", help="One or more input paths (.md, .markdown, .pdf)"

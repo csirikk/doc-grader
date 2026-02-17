@@ -2,18 +2,19 @@
 
 1. Aggregate findings from multiple analysers.
 2. Apply simple normalization / filtering rules.
-   - Keep only findings with confidence >= HIGH_CONFIDENCE_THRESHOLD when a confidence value is present.
-   - If a finding has no confidence specified, keep it for now
+    - Keep only findings with confidence >= HIGH_CONFIDENCE_THRESHOLD
+        when a confidence value is present.
+    - If a finding has no confidence specified, keep it for now
 3. De-duplicate identical finding_ids
 
 Future extensions?
- - Severity normalization
- - Tag-based grouping and merging
- - Impact score computation & grade suggestion
- - Configurable rule sets loaded from JSON / YAML
+    - Severity normalization
+    - Tag-based grouping and merging
+    - Impact score computation & grade suggestion
+    - Configurable rule sets loaded from JSON / YAML
 """
 
-from typing import Dict, Iterable, List, Set
+from collections.abc import Iterable
 
 from .schemas.finding import Finding
 
@@ -28,10 +29,12 @@ class RuleEngine:
             else HIGH_CONFIDENCE_THRESHOLD
         )
 
-    def process(self, batches: Iterable[List[Finding]]) -> tuple[List[Finding], Dict]:
-        """Aggregate and normalize findings. Returns (filtered_findings, summary_dict)."""
-        aggregated: List[Finding] = []
-        seen_ids: Set[str] = set()
+    def process(self, batches: Iterable[list[Finding]]) -> tuple[list[Finding], dict]:
+        """
+        Aggregate and normalize findings. Returns (filtered_findings, summary_dict).
+        """
+        aggregated: list[Finding] = []
+        seen_ids: set[str] = set()
         dropped_low_conf: int = 0
         dropped_dupe: int = 0
 

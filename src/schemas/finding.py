@@ -1,5 +1,5 @@
-from datetime import datetime, timezone
-from typing import Any, List, Literal, Optional, Union
+from datetime import UTC, datetime
+from typing import Any, Literal
 
 from docling_core.types.doc.document import (
     FineRef,
@@ -11,7 +11,7 @@ from .ir import DocumentRef
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class StrictModel(BaseModel):
@@ -24,12 +24,13 @@ class AnalyserInfo(StrictModel):
     """Info about the analyser that generated a finding."""
 
     analyser_id: str = Field(
-        ..., description="Analyser implementation identifier (e.g. 'section_analyser')"
+        ...,
+        description="Analyser implementation identifier (e.g. 'section_analyser')",
     )
     name: str = Field(..., description="Human-readable analyser name")
-    run_id: Optional[str] = None
-    config_hash: Optional[str] = None
-    params: Optional[dict[str, Any]] = None
+    run_id: str | None = None
+    config_hash: str | None = None
+    params: dict[str, Any] | None = None
 
 
 # TODO: add helper to transform to docling_item anchor
@@ -37,26 +38,26 @@ class Anchor(StrictModel):
     """Evidence: Canonical pointer into a DoclingDocument."""
 
     target: FineRef
-    snippet: Optional[str] = None
-    prov: List[ProvenanceItem] = Field(default_factory=list)
+    snippet: str | None = None
+    prov: list[ProvenanceItem] = Field(default_factory=list)
 
 
 class Stat(StrictModel):
     """Evidence: Measurable attribute."""
 
     name: str
-    value: Union[bool, int, float, str, None]
-    unit: Optional[str] = None
-    notes: Optional[str] = None
+    value: bool | int | float | str | None
+    unit: str | None = None
+    notes: str | None = None
 
 
 class ModelEval(StrictModel):
     """Evidence: Output from an ML model evaluation."""
 
-    model_name: Optional[str] = None
-    label: Optional[str] = None
-    score: Optional[float] = None
-    raw: Optional[Any] = None
+    model_name: str | None = None
+    label: str | None = None
+    score: float | None = None
+    raw: Any | None = None
 
 
 class Finding(StrictModel):
@@ -80,14 +81,14 @@ class Finding(StrictModel):
     title: str
     summary: str
 
-    severity: Optional[float] = Field(default=None, ge=0.0, le=1.0)
-    confidence: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    severity: float | None = Field(default=None, ge=0.0, le=1.0)
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
 
     # Evidence
-    anchors: List[Anchor] = Field(default_factory=list)
-    stats: List[Stat] = Field(default_factory=list)
-    model_evals: List[ModelEval] = Field(default_factory=list)
-    notes: List[str] = Field(default_factory=list)
+    anchors: list[Anchor] = Field(default_factory=list)
+    stats: list[Stat] = Field(default_factory=list)
+    model_evals: list[ModelEval] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
 
     status: Literal["proposed", "approved", "dismissed"] = "proposed"
-    meta: Optional[dict[str, Any]] = None
+    meta: dict[str, Any] | None = None
