@@ -10,6 +10,10 @@ from pydantic import BaseModel, ConfigDict, Field
 from .ir import DocumentRef
 
 
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
 class StrictModel(BaseModel):
     """Base model with no extra fields allowed."""
 
@@ -62,7 +66,7 @@ class Finding(StrictModel):
     """
 
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=utc_now,
         description="UTC timestamp for when the finding was created",
     )
 
