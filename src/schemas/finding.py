@@ -1,13 +1,15 @@
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
-from docling_core.types.doc.document import (
-    FineRef,
-    ProvenanceItem,
-)
 from pydantic import BaseModel, ConfigDict, Field
 
-from .ir import DocumentRef
+if TYPE_CHECKING:
+    from docling_core.types.doc.document import (
+        FineRef,
+        ProvenanceItem,
+    )
+
+    from .ir import DocumentRef
 
 
 def utc_now() -> datetime:

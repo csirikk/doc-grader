@@ -1,10 +1,12 @@
 """Configuration schema for analysers and pipeline."""
 
 import json
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, ConfigDict, Field
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class AnalyserConfig(BaseModel):

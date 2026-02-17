@@ -14,9 +14,12 @@ Future extensions?
     - Configurable rule sets loaded from JSON / YAML
 """
 
-from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
-from .schemas.finding import Finding
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from .schemas.finding import Finding
 
 HIGH_CONFIDENCE_THRESHOLD: float = 0.80
 
