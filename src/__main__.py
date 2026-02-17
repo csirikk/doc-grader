@@ -125,7 +125,7 @@ def main(argv: list[str] | None = None) -> int:
                 "run_id": run_id,
                 "config_hash": config_hash,
             },
-            "parse": parse_output.parse_meta,
+            "parse": parse_output.parse_meta.model_dump(mode="json"),
             "counts": {
                 "n_parser_findings": len(parser_findings),
                 "n_findings": 0,
