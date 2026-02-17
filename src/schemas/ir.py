@@ -44,7 +44,7 @@ class Document(StrictModel):
         paragraph_labels = {DocItemLabel.TEXT, DocItemLabel.PARAGRAPH}
 
         for item, _ in doc.iterate_items():
-            if getattr(item, "label", None) == DocItemLabel.SECTION_HEADER:
+            if item.label == DocItemLabel.SECTION_HEADER:
                 headings += 1
 
             if isinstance(item, TextItem):
