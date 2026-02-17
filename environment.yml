@@ -5,3 +5,5 @@ dependencies:
   - python=3.14
   - pandas
   - ipykernel
+  - pydantic
+  - jupyter

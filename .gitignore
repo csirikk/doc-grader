@@ -2,6 +2,7 @@ __pycache__/
 .venv/
 .vscode/
 .copilotignore
+src/doc_grader.egg-info
 
 # Messing around in here
 test/

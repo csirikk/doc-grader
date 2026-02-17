@@ -21,12 +21,23 @@ src/                 Source code
 
 ## Installation
 
-Create and activate a virtual environment, then install the dependencies:
+Conda:
+
+```bash
+# create and activate conda env
+conda env create -f environment.yml
+conda activate doc-grader
+
+# install the project
+python -m pip install -e '.[dev]'
+```
+
+venv:
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+python -m pip install -e '.[dev]'
 ```
 
 ## Notebook Setup

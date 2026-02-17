@@ -1,5 +1,0 @@
-pydantic
-jupyter
-pandas
-docling
-

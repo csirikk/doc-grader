@@ -1,10 +1,11 @@
 [project]
 name = "doc-grader"
+version = "0.5"
 description = "A tool to assist with grading student project documentation for the IFJ & IPP courses at BUT FIT."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 dependencies = [
-    "pydantic",
+    "pydantic>=2.0",
     "jupyter",
     "pandas",
     "docling",
@@ -15,7 +16,7 @@ doc-grader = "src.__main__:main"
 
 [tool.ruff]
 line-length = 88
-target-version = "py311"
+target-version = "py314"
 
 [tool.ruff.lint]
 select = [
