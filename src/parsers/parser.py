@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import mimetypes
 from typing import TYPE_CHECKING
 
 from pydantic import Field
@@ -11,7 +10,7 @@ from pydantic import Field
 from ..schemas.base import StrictModel
 from ..schemas.finding import AnalyserInfo, Finding
 from ..schemas.ir import Document, DocumentRef
-from ..utils import compute_doc_hash, next_id
+from ..utils import next_id
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -35,7 +34,7 @@ class ParseMeta(StrictModel):
 class ParseOutput(StrictModel):
     """Output from the parsing process."""
 
-    document_ref: DocumentRef
+    doc_ref: DocumentRef
     ir: Document | None = None
     parser_findings: list[Finding] = Field(default_factory=list)
     parse_meta: ParseMeta = Field(default_factory=ParseMeta)
@@ -78,7 +77,7 @@ class DocumentParser:
 
     def _make_finding(
         self,
-        document_ref: DocumentRef,
+        doc_ref: DocumentRef,
         ac_code: str,
         title: str,
         summary: str,
@@ -92,7 +91,7 @@ class DocumentParser:
                 run_id=run_id,
                 config_hash=config_hash,
             ),
-            document=document_ref,
+            document=doc_ref,
             finding_id=next_id(f"PARSER:{ac_code}"),
             ac_code=ac_code,
             title=title,
@@ -117,7 +116,7 @@ class DocumentParser:
             doc_ref, ac_code, title, summary, run_id, config_hash
         )
         return ParseOutput(
-            document_ref=doc_ref,
+            doc_ref=doc_ref,
             ir=None,
             parser_findings=[finding],
             parse_meta=parse_meta,
@@ -131,13 +130,7 @@ class DocumentParser:
         config_hash: str | None = None,
     ) -> ParseOutput:
         """Parse the given document."""
-        mimetype, _ = mimetypes.guess_type(str(path))
-        source_path = str(path)
-        doc_ref = DocumentRef(
-            source_path=source_path,
-            sha256=None,
-            mimetype=mimetype,
-        )
+        doc_ref = DocumentRef(source_path=str(path), origin=None, sha256=None)
 
         parse_meta = ParseMeta(
             used_ocr=self.do_ocr,
@@ -169,34 +162,19 @@ class DocumentParser:
             )
 
         try:
-            doc_ref.sha256 = compute_doc_hash(path)
-        except OSError as e:
-            return self._create_error_output(
-                doc_ref,
-                parse_meta,
-                "IO_ERROR",
-                "Cannot read file",
-                f"Failed to read: {e}",
-                str(e),
-                run_id,
-                config_hash,
-            )
-
-        try:
             logger.debug("Parsing %s with Docling...", path)
             doc = self.converter.convert(path).document
 
+            doc_ref.origin = doc.origin
             parse_meta.parsed_ok = True
             parse_meta.error = None
 
             ir = Document.from_docling(
                 doc=doc,
-                source_path=doc_ref.source_path,
-                sha256=doc_ref.sha256,
-                mimetype=doc_ref.mimetype,
+                doc_ref=doc_ref,
             )
             return ParseOutput(
-                document_ref=doc_ref,
+                doc_ref=doc_ref,
                 ir=ir,
                 parser_findings=[],
                 parse_meta=parse_meta,
