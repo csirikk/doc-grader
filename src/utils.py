@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -26,9 +27,11 @@ def configure_logging(level: int) -> None:
 def _to_jsonable(x: Any) -> Any:
     """Convert various objects to JSON-serializable Python structures."""
     if isinstance(x, DoclingDocument):  # uses by_alias=True, exclude_none=True
-        return x.export_to_dict()
+        return _to_jsonable(x.export_to_dict())
     if isinstance(x, BaseModel):
-        return x.model_dump(by_alias=True, exclude_none=True)
+        return _to_jsonable(x.model_dump(by_alias=True, exclude_none=True))
+    if isinstance(x, datetime):
+        return x.isoformat()
     if isinstance(x, Path):
         return str(x)
     if isinstance(x, dict):
