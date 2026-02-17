@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_EXTENSIONS = {".pdf", ".md", ".markdown"}
+SUPPORTED_EXTENSIONS = {".pdf", ".md"}
 
 
 class ParseMeta(StrictModel):

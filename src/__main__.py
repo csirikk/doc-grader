@@ -86,7 +86,7 @@ def _config_for_hash(config: AppConfig) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     arg_parser = argparse.ArgumentParser(prog="project")
     arg_parser.add_argument(
-        "inputs", nargs="+", help="One or more input paths (.md, .markdown, .pdf)"
+        "inputs", nargs="+", help="One or more paths to the input files (.md, .pdf)"
     )
     arg_parser.add_argument(
         "-d", "--debug", action="store_true", help="Enable debug logging"
@@ -95,7 +95,7 @@ def main(argv: list[str] | None = None) -> int:
         "-o", "--out", default="out/default/", help="Output directory for findings"
     )
     arg_parser.add_argument(
-        "-c", "--config", help="Path to JSON config file for analysers", default=None
+        "-c", "--config", default=None, help="Path to JSON config file for analysers"
     )
     args = arg_parser.parse_args(argv)
 
