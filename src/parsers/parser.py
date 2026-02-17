@@ -51,22 +51,29 @@ class DocumentParser:
             PdfPipelineOptions,
             TableStructureOptions,
         )
-        from docling.document_converter import DocumentConverter, PdfFormatOption
+        from docling.document_converter import (
+            DocumentConverter,
+            MarkdownFormatOption,
+            PdfFormatOption,
+        )
 
         self.do_ocr = True
         self.do_table_structure = True
 
-        pipeline_options = PdfPipelineOptions()
-        pipeline_options.do_ocr = self.do_ocr
-        pipeline_options.do_table_structure = self.do_table_structure
-        pipeline_options.table_structure_options = TableStructureOptions(
+        pdf_options = PdfPipelineOptions()
+        pdf_options.do_ocr = self.do_ocr
+        pdf_options.do_table_structure = self.do_table_structure
+        pdf_options.ocr_options.lang = ["ces", "eng", "slk"]
+        pdf_options.table_structure_options = TableStructureOptions(
             do_cell_matching=True
         )
 
         self.converter: DocumentConverter = DocumentConverter(
+            allowed_formats=[InputFormat.PDF, InputFormat.MD],
             format_options={
-                InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
-            }
+                InputFormat.PDF: PdfFormatOption(pipeline_options=pdf_options),
+                InputFormat.MD: MarkdownFormatOption(),
+            },
         )
 
     def _make_finding(
