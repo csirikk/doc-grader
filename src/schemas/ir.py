@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from docling_core.types.doc.document import DoclingDocument, TextItem
 from docling_core.types.doc.labels import DocItemLabel
-from pydantic import ConfigDict, Field
+from pydantic import Field
 
 from .base import StrictModel
 
@@ -19,8 +19,6 @@ class DocumentRef(StrictModel):
 
 class Document(StrictModel):
     """Docling Document wrapper for custom stats and metadata."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     document_ref: DocumentRef
     docling_doc: DoclingDocument = Field(
