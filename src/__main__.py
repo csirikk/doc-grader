@@ -136,12 +136,14 @@ def main(argv: list[str] | None = None) -> int:
         doc_ref = parse_output.doc_ref
 
         info = {
-            "input": doc_ref.model_dump(mode="json"),
+            "input": doc_ref.model_dump(mode="json", by_alias=True, exclude_none=True),
             "run": {
                 "run_id": run_id,
                 "config_hash": config_hash,
             },
-            "parse": parse_output.parse_meta.model_dump(mode="json"),
+            "parse": parse_output.parse_meta.model_dump(
+                mode="json", by_alias=True, exclude_none=True
+            ),
             "counts": {
                 "n_parser_findings": len(parser_findings),
                 "n_findings": 0,
