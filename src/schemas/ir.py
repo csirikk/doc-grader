@@ -1,22 +1,32 @@
-from docling.datamodel.document import DoclingDocument, TextItem
+"""Intermediate Representation schema."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from docling.datamodel.document import TextItem
 from docling_core.types.doc.labels import DocItemLabel
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
+
+from .base import StrictModel
+
+if TYPE_CHECKING:
+    from docling.datamodel.document import DoclingDocument
 
 
-class DocumentRef(BaseModel):
+class DocumentRef(StrictModel):
     """Reference to the source document."""
-
-    model_config = ConfigDict(extra="forbid")
 
     source_path: str
     sha256: str | None = Field(default=None, description="sha256:<64hex> hash")
     mimetype: str | None = None
 
 
-class Document(BaseModel):
+class Document(StrictModel):
     """Docling Document wrapper for custom stats and metadata."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     document_ref: DocumentRef
     docling_doc: DoclingDocument = Field(
         exclude=True, description="The underlying Docling document"
@@ -36,6 +46,7 @@ class Document(BaseModel):
         mimetype: str | None = None,
     ) -> Document:
         """Calculates custom stats instantly after creation."""
+
         words, paras, headings = 0, 0, 0
         paragraph_labels = {DocItemLabel.TEXT, DocItemLabel.PARAGRAPH}
 

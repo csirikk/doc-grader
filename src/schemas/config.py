@@ -3,16 +3,16 @@
 import json
 from typing import TYPE_CHECKING, Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Field
+
+from .base import StrictModel
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 
-class AnalyserConfig(BaseModel):
+class AnalyserConfig(StrictModel):
     """Configuration for a single analyser."""
-
-    model_config = ConfigDict(extra="forbid")
 
     analyser_id: str = Field(
         ...,
@@ -24,10 +24,8 @@ class AnalyserConfig(BaseModel):
     )
 
 
-class AppConfig(BaseModel):
+class AppConfig(StrictModel):
     """Configuration for the application."""
-
-    model_config = ConfigDict(extra="forbid")
 
     version: str = Field(default="config/0.1", description="Configuration version")
     run_id: str | None = Field(default=None, description="Unique run identifier")

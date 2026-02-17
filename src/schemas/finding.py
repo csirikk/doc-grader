@@ -1,25 +1,22 @@
-from datetime import UTC, datetime
+"""Finding schema definition."""
+
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Field
+
+from .base import StrictModel, utc_now
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from docling_core.types.doc.document import (
         FineRef,
         ProvenanceItem,
     )
 
     from .ir import DocumentRef
-
-
-def utc_now() -> datetime:
-    return datetime.now(UTC)
-
-
-class StrictModel(BaseModel):
-    """Base model with no extra fields allowed."""
-
-    model_config = ConfigDict(extra="forbid")
 
 
 class AnalyserInfo(StrictModel):
