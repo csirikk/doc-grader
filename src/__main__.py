@@ -13,7 +13,7 @@ from .schemas.config import AppConfig, load_config
 from .utils import (
     compute_config_hash,
     configure_logging,
-    debug_dump_model_json,
+    log_model_json,
     reset_id_counters,
     write_json,
 )
@@ -115,7 +115,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         parser_findings = parse_output.parser_findings
         ir_doc = parse_output.ir
 
-        debug_dump_model_json(logger, "Parse output", parse_output)
+        log_model_json(logger, "Parse output", parse_output)
 
         doc_ref = parse_output.document_ref
 
@@ -149,7 +149,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         info["counts"]["n_findings"] = len(analyser_findings)
         write_json(file_outdir / "info.json", info)
 
-        debug_dump_model_json(logger, "IR Document", ir_doc)
+        log_model_json(logger, "IR Document", ir_doc)
 
     return exit_code
 

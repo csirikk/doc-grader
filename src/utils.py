@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from typing import Any, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter
 from rich.logging import RichHandler
 
 
@@ -20,7 +20,7 @@ def configure_logging(level: int) -> None:
     )
 
 
-def debug_dump_model_json(
+def log_model_json(
     logger: logging.Logger,
     label: str,
     model: Optional[BaseModel],
@@ -39,18 +39,18 @@ def debug_dump_model_json(
 
 
 def write_json(path: Path, payload: Any) -> None:
-    """Write JSON to file."""
+    """Write any JSON to file."""
     path.parent.mkdir(parents=True, exist_ok=True)
-
-    if hasattr(payload, "model_dump_json"):
-        # 1. Pydantic model
-        text = payload.model_dump_json(indent=2)
-    else:
-        # 2. List of Pydantic models or other JSON data
-        if isinstance(payload, list) and payload and hasattr(payload[0], "model_dump"):
-            payload = [item.model_dump(mode="json") for item in payload]
-        text = json.dumps(payload, indent=2, ensure_ascii=False)
-
+    text = (
+        TypeAdapter(Any)
+        .dump_json(
+            payload,
+            indent=2,
+            ensure_ascii=False,
+            fallback=str,
+        )
+        .decode("utf-8")
+    )
     path.write_text(text + "\n", encoding="utf-8")
 
 
