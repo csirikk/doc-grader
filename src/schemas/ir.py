@@ -34,7 +34,7 @@ class Document(BaseModel):
         source_path: str,
         sha256: str | None,
         mimetype: str | None = None,
-    ) -> "Document":
+    ) -> Document:
         """Calculates custom stats instantly after creation."""
         words, paras, headings = 0, 0, 0
         paragraph_labels = {DocItemLabel.TEXT, DocItemLabel.PARAGRAPH}
