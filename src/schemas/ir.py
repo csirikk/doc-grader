@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from docling_core.types.doc.document import DoclingDocument
+from docling_core.types.doc.document import DoclingDocument  # noqa: TC002
 from docling_core.types.doc.labels import DocItemLabel
 from pydantic import Field
 
