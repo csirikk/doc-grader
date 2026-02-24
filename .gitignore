@@ -11,4 +11,5 @@ deprecated/*
 
 # Data
 data/raw
+data/clean_ipp_data.csv
 !data/overview.xlsx
