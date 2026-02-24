@@ -1,3 +1,7 @@
+"""IPP assessment csv parser and analysis helpers."""
+
+from __future__ import annotations
+
 import re
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -237,8 +241,7 @@ def check_suffix(text: str) -> tuple[int | None, bool, str | None]:
     valid_match = valid_matches[-1]
     val = get_match_val(valid_match)
 
-    match_start = valid_match.start()
-    match_end = valid_match.end()
+    match_start, match_end = valid_match.span()
 
     part_before = text[:match_start]
     part_after = text[match_end:]
@@ -439,7 +442,7 @@ def parse_comment(text: str) -> list[Event]:
 
 
 def extract_rows_from_dataframe(
-    df: pd.DataFrame, filename: str, year: str, course: str
+    df: pd.DataFrame, filename: str, year: str, task_variant: str
 ) -> Iterator[dict[str, Any]]:
     """
     Processes a DataFrame row by row, extracting Events from the comment column.
@@ -449,6 +452,9 @@ def extract_rows_from_dataframe(
         text = str(comment_val) if not pd.isna(comment_val) else ""
 
         row_id = getattr(row, "id", None)
+        points = None if pd.isna(v := getattr(row, "points", None)) else v
+        doc_type = None if pd.isna(v := getattr(row, "doc_type", None)) else v
+        bonus_points = None if pd.isna(v := getattr(row, "bonus_points", None)) else v
 
         events = parse_comment(text)
 
@@ -459,7 +465,7 @@ def extract_rows_from_dataframe(
                 yield {
                     "id": row_id,
                     "year": year,
-                    "course": course,
+                    "task_variant": task_variant,
                     "code": code,
                     "impact": evt.impact_value,
                     "impact_given": evt.impact_value is not None,
@@ -469,13 +475,16 @@ def extract_rows_from_dataframe(
                     "comment": evt.comment,
                     "raw_text": evt.raw_span,
                     "source_file": filename,
+                    "points": points,
+                    "doc_type": doc_type,
+                    "bonus_points": bonus_points,
                 }
 
 
 # --- MAIN ---
 
 
-def main():
+def main() -> None:
     root_dir = Path(__file__).parent.parent
     data_dir = root_dir / "data" / "raw" / "ipp_13_to_24" / "ipp_assessments"
     all_files = list(data_dir.glob("ipp*.csv"))
@@ -498,10 +507,12 @@ def main():
         filename = file_path.name
         match = re.search(r"\d{2}", filename)
         year = "20" + match.group(0) if match else "Unknown"
-        course = filename.split("-")[1].split(".")[0] if "-" in filename else "Unknown"
+        task_variant = (
+            filename.split("-")[1].split(".")[0] if "-" in filename else "Unknown"
+        )
 
         all_extracted_rows.extend(
-            extract_rows_from_dataframe(df, filename, year, course)
+            extract_rows_from_dataframe(df, filename, year, task_variant)
         )
 
     if all_extracted_rows:
