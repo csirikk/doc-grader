@@ -9,6 +9,9 @@ dependencies = [
     "jupyter",
     "pandas",
     "docling",
+    "matplotlib",
+    "seaborn",
+    "scipy",
 ]
 
 [project.scripts]
