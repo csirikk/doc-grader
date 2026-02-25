@@ -99,7 +99,6 @@ DOC_CODES = {
     "BADUML",
     "NOUML",
     "WHY",
-    "NVI",  # old: navrhovy vzor
     "OOP",  # old: popis a terminologia oop
     "EX",
     "HOW",
