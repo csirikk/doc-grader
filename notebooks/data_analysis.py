@@ -290,8 +290,8 @@ def check_suffix(text: str) -> tuple[int | None, bool, str | None]:
     if not valid_matches:
         return None, False, None
 
-    # If multiple numbers exist in the suffix, use the last
-    valid_match = valid_matches[-1]
+    # If multiple numbers exist in the suffix, use the first
+    valid_match = valid_matches[0]
     val = get_match_val(valid_match)
 
     match_start, match_end = valid_match.span()
