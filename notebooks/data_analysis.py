@@ -74,6 +74,51 @@ IPP_CODES = {
     "DP",
 }
 
+DOC_CODES = {
+    "DOCTYPE",
+    "MISSING",
+    "FORMAT",
+    "FORM",
+    "STRUCT",
+    "SHORT",
+    "CONTENT",
+    "KAPTXT",
+    "LANG",
+    "CH",
+    "ICH",
+    "STYLE",
+    "FILO",
+    "HOV",
+    "TERM",
+    "BLOK",
+    "PRED",
+    "SAZBA",
+    "COMMENT",
+    "IR",
+    "JAK",
+    "BADUML",
+    "NOUML",
+    "WHY",
+    "NVI",  # old: navrhovy vzor
+    "OOP",  # old: popis a terminologia oop
+    "EX",
+    "HOW",
+    "SPACETAB",
+    "EXT",
+    "MEZ",
+    "UML",
+    "COPY",
+    "MDLINES",
+    "BADDP",  # old: dokumentacia neodpoveda skriptu
+    "OWNDIF",
+    "NV",  # old: navrhovy vzor
+    "NVPDOC",
+    "BW",  # old: ?
+    "OK",
+    "SINGLETON",
+    "DP",
+}
+
 CODE_ALIASES = {
     "PŘED": "PRED",
     "BLOCK": "BLOK",
@@ -86,7 +131,15 @@ CODE_ALIASES = {
     "SAZAB": "SAZBA",
     "COMMENTS": "COMMENT",
     "OO": "OOP",
+    "TERM.": "TERM",
+    "NVI": "NV",
 }
+
+
+def filter_doc_codes(df: pd.DataFrame) -> pd.DataFrame:
+    """Filter DataFrame to keep only documentation related codes."""
+    return df[df["code"].isin(DOC_CODES)].copy()
+
 
 # --- REGEX  ---
 
