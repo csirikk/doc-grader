@@ -270,69 +270,61 @@ def check_leading_parens(
     )
 
 
-def check_suffix(text: str) -> tuple[int | None, bool, str | None]:
-    """
-    Scan suffix for signed numbers from right to left.
-    Returns: (impact_value, has_sign, comment_str)
-    Example: "comment -10" -> val=-10, comment="comment"
-    """
-    matches = list(SUFFIX_NUMBER_RE.finditer(text))
+def check_suffix(text: str, limit: int = 40) -> tuple[int | None, bool, str | None]:
+    """Scan suffix for a signed number and return (value, has_sign, comment)."""
+    valid_match = None
 
-    # Ensure the number is a standalone token by checking boundaries
-    valid_matches = [
-        match
-        for match in matches
-        if (match.start() == 0 or text[match.start() - 1] in DELIMITERS_LEFT)
-        and (match.end() == len(text) or text[match.end()] in DELIMITERS_RIGHT)
-    ]
+    # Search and validate boundaries
+    for match in SUFFIX_NUMBER_RE.finditer(text):
+        is_start_valid = (
+            match.start() == 0 or text[match.start() - 1] in DELIMITERS_LEFT
+        )
+        is_end_valid = match.end() == len(text) or text[match.end()] in DELIMITERS_RIGHT
 
-    if not valid_matches:
+        if is_start_valid and is_end_valid:
+            valid_match = match
+            break
+
+    # Match validation and limit check
+    if not valid_match:
         return None, False, None
+    if valid_match.start() > limit:
+        return None, False, clean_comment(text)
 
-    # If multiple numbers exist in the suffix, use the first
-    valid_match = valid_matches[0]
+    # Extraction and cleanup
     val = get_match_val(valid_match)
+    start, end = valid_match.span()
 
-    match_start, match_end = valid_match.span()
+    part_before = text[:start].rstrip(" ,;:")
+    part_after = text[end:].lstrip(" ,;:")
 
-    part_before = text[:match_start]
-    part_after = text[match_end:]
+    if part_after == ")" and part_before.endswith("("):
+        part_before, part_after = part_before[:-1], ""
 
-    clean_before = part_before.rstrip(" ,;:")
-    clean_after = part_after.lstrip(" ,;:")
-
-    if clean_after == ")" and clean_before.endswith("("):
-        clean_before = clean_before[:-1]
-        clean_after = ""
-
-    raw_comment = clean_before + " " + clean_after
-    return val, True, clean_comment(raw_comment)
+    return val, True, clean_comment(f"{part_before} {part_after}")
 
 
-def check_prefix(target_idx: int, original_text: str) -> tuple[int | None, bool]:
-    """
-    Checks text immediately before the target index for a signed number.
-    Returns (impact_value, impact_has_sign) or (None, False).
-    Example: "text -10 CODE" with target_idx at "C" -> val=-10
-    """
-    prefix_limit = 60  # 60 chars should be good
-    prefix_start = max(0, target_idx - prefix_limit)
-    prefix_text = original_text[prefix_start:target_idx]
+def check_prefix(
+    target_idx: int, original_text: str, limit: int = 40
+) -> tuple[int | None, bool]:
+    """Scan prefix for a signed number and return (value, has_sign)."""
+    prefix_start = max(0, target_idx - limit)
+    text = original_text[prefix_start:target_idx]
 
-    match = PREFIX_NUMBER_RE.search(prefix_text)
+    # Search
+    match = PREFIX_NUMBER_RE.search(text)
+
+    # Match validation
     if not match:
         return None, False
 
-    match_start = match.start()
-    preceding = prefix_text[:match_start]
+    # Validate boundaries
+    preceding = text[: match.start()]
+    is_at_start = match.start() == 0 and prefix_start == 0
+    is_after_space = not preceding.strip() and prefix_start == 0
+    is_after_delim = bool(re.search(r"[,;:\.\n]\s*$", preceding))
 
-    is_valid = (
-        (match_start == 0 and prefix_start == 0)
-        or bool(re.search(r"[,;:\.\n]\s*$", preceding))
-        or (not preceding.strip() and prefix_start == 0)
-    )
-
-    if is_valid:
+    if is_at_start or is_after_space or is_after_delim:
         return get_match_val(match), True
 
     return None, False
