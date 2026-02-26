@@ -1,4 +1,4 @@
-"""IPP assessment csv parser and analysis helpers."""
+"""IPP assessment CSV parser."""
 
 from __future__ import annotations
 
@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+
+# --- CONSTANTS ---
 
 DELIMITERS_LEFT = " \t\n\r,:;.(["
 DELIMITERS_RIGHT = " \t\n\r,:;.)]"
@@ -135,12 +137,15 @@ CODE_ALIASES = {
 }
 
 
+# --- UTILITIES ---
+
+
 def filter_doc_codes(df: pd.DataFrame) -> pd.DataFrame:
-    """Filter DataFrame to keep only documentation related codes."""
+    """Filter event rows to keep only documentation-related codes."""
     return df[df["code"].isin(DOC_CODES)].copy()
 
 
-# --- REGEX  ---
+# --- REGEX ---
 
 
 def make_code_token_regex() -> re.Pattern:
