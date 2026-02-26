@@ -95,7 +95,6 @@ DOC_CODES = {
     "BLOK",
     "PRED",
     "SAZBA",
-    "COMMENT",
     "IR",
     "JAK",
     "BADUML",
@@ -528,7 +527,7 @@ def extract_rows_from_dataframe(
                     "comment": evt.comment,
                     "raw_text": evt.raw_span,
                     "source_file": filename,
-                    "points": row.points,
+                    "doc_points": row.points,
                     "doc_type": row.doc_type,
                     "bonus_points": row.bonus_points,
                 }
