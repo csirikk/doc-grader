@@ -159,17 +159,21 @@ def make_code_token_regex() -> re.Pattern:
     for code in sorted_codes:
         # Match long codes or digit-containing codes case-insensitively
         if len(code) >= 3 or any(char.isdigit() for char in code):
-            p = "".join(
-                f"[{char.upper()}{char.lower()}]" if char.isalpha() else re.escape(char)
-                for char in code
-            )
-            long_patterns.append(p)
+            long_patterns.append(re.escape(code))
         else:
             short_patterns.append(re.escape(code))
 
-    combined_pattern = "|".join(long_patterns + short_patterns)
+    # Long patterns use case-insensitive flag
+    parts = []
+    if long_patterns:
+        parts.append(f"(?i:{'|'.join(long_patterns)})")
+    if short_patterns:
+        parts.append("|".join(short_patterns))
+
+    combined_pattern = "|".join(parts)
+
     # Look behind and ahead to match whole words
-    return re.compile(r"(?<![\w])(" + combined_pattern + r")(?![\w])")
+    return re.compile(rf"(?<![\w])({combined_pattern})(?![\w])")
 
 
 CODE_TOKEN_RE = make_code_token_regex()
