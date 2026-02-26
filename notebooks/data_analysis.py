@@ -348,7 +348,7 @@ class Event:
 
 def resolve_span_impact(event: Event, suffix_text: str, original_text: str) -> None:
     """
-    Chain of responsibility to find impact/comment.
+    Resolves the impact score and comment for an event.
     """
     paren_match_length, paren_impact, paren_has_sign, paren_comment = (
         check_leading_parens(suffix_text)
@@ -491,14 +491,14 @@ def extract_rows_from_dataframe(
     """
     Processes a DataFrame row by row, extracting Events from the comment column.
     """
-    for row in df.itertuples(index=False):
-        comment_val = getattr(row, "comment", None)
-        text = str(comment_val) if not pd.isna(comment_val) else ""
+    # Normalise
+    for col in ["id", "points", "doc_type", "bonus_points"]:
+        if col not in df.columns:
+            df[col] = None
+    df = df.replace({float("nan"): None, pd.NA: None})
 
-        row_id = getattr(row, "id", None)
-        points = None if pd.isna(v := getattr(row, "points", None)) else v
-        doc_type = None if pd.isna(v := getattr(row, "doc_type", None)) else v
-        bonus_points = None if pd.isna(v := getattr(row, "bonus_points", None)) else v
+    for row in df.itertuples(index=False):
+        text = str(row.comment) if row.comment else ""
 
         events = parse_comment(text)
 
@@ -507,7 +507,7 @@ def extract_rows_from_dataframe(
 
             for code in evt.codes:
                 yield {
-                    "id": row_id,
+                    "id": row.id,
                     "year": year,
                     "task_variant": task_variant,
                     "code": code,
@@ -519,9 +519,9 @@ def extract_rows_from_dataframe(
                     "comment": evt.comment,
                     "raw_text": evt.raw_span,
                     "source_file": filename,
-                    "points": points,
-                    "doc_type": doc_type,
-                    "bonus_points": bonus_points,
+                    "points": row.points,
+                    "doc_type": row.doc_type,
+                    "bonus_points": row.bonus_points,
                 }
 
 
