@@ -187,8 +187,8 @@ PAREN_ANY_SIGNED_NUM_RE = re.compile(
 )
 
 
-def normalize_code_alias(code: str) -> str:
-    """Normalize code to canonical uppercase form."""
+def normalise_code_alias(code: str) -> str:
+    """Normalise code to canonical uppercase form."""
     u = code.upper()
     return CODE_ALIASES.get(u, u)
 
@@ -220,7 +220,7 @@ def get_match_val(match: re.Match) -> int:
 
 def extract_impact_from_parens(content: str) -> tuple[int | None, bool, str | None]:
     """
-    Analyzes content inside parentheses.
+    Analyses content inside parentheses.
     Returns (impact_value, impact_has_sign, comment_text).
     Example: "-10mb comment" -> (-10, True, "comment")
     """
@@ -248,14 +248,14 @@ def extract_impact_from_parens(content: str) -> tuple[int | None, bool, str | No
 
 
 def check_leading_parens(
-    normalized_suffix: str,
+    normalised_suffix: str,
 ) -> tuple[int, int | None, bool, str | None]:
     """
     Checks if suffix starts with parentheses and extracts impact.
     Returns: (match_end_idx, impact_value, has_sign, comment_str)
     Example: "(-10) comment" -> val=-10, comment="comment"
     """
-    paren_match = PAREN_CONTENT_RE.match(normalized_suffix)
+    paren_match = PAREN_CONTENT_RE.match(normalised_suffix)
     if not paren_match:
         return 0, None, False, None
 
@@ -433,7 +433,7 @@ def parse_comment(text: str) -> list[Event]:
             continue
 
         raw_code = match.group(1)
-        code = normalize_code_alias(raw_code)
+        code = normalise_code_alias(raw_code)
         if code in IPP_CODES:
             tokens.append({"code": code, "start": match.start(), "end": match.end()})
 
