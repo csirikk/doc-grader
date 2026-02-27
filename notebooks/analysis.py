@@ -675,6 +675,7 @@ def visualise_code_points_correlation(
     )
 
     ax.set_xlabel("Correlation with Documentation Score")
+    ax.set_ylabel("Codes")
     ax.set_title("Impact on Documentation Score")
     ax.legend(title="Category", loc="upper right")
     _save_or_show(fig, save_path)
