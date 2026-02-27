@@ -142,7 +142,6 @@ _CATEGORY_PALETTE: dict[str, tuple] = {
 
 # Figure size constants
 _FIG_W: int = 10  # standard width
-_FIG_W2: int = 14  # dual-panel width
 _FIG_H: int = 6  # standard height
 _FIG_H_PER_ITEM: float = 0.4  # height per row for list charts
 
@@ -792,17 +791,12 @@ def summarise_language_distribution(language_df: pd.DataFrame) -> pd.Series:
     return language_df["language"].value_counts()
 
 
-def visualise_language_distribution(
+def visualise_language_distribution_overall(
     language_df: pd.DataFrame, save_path: Path | None = None
-) -> tuple[plt.Axes, plt.Axes]:
-    """
-    Plot comment language distribution overall and broken down by year.
-    Expects the pre-computed output of `analyse_language_distribution`.
-    """
+) -> plt.Axes:
+    """Bar chart of comment language totals."""
     lang_counts = language_df["language"].value_counts()
-
-    fig, axes = plt.subplots(1, 2, figsize=(_FIG_W2, _FIG_H), layout="constrained")
-
+    fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
     sns.countplot(
         data=language_df,
         x="language",
@@ -810,10 +804,19 @@ def visualise_language_distribution(
         order=lang_counts.index,
         hue_order=lang_counts.index,
         legend=False,
-        ax=axes[0],
+        ax=ax,
     )
-    axes[0].set_title("Comment Language (Overall)")
+    ax.set_title("Comment Language (Overall)")
+    _save_or_show(fig, save_path)
+    return ax
 
+
+def visualise_language_distribution_by_year(
+    language_df: pd.DataFrame, save_path: Path | None = None
+) -> plt.Axes:
+    """Stacked proportion chart of comment language per year."""
+    lang_counts = language_df["language"].value_counts()
+    fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
     sns.histplot(
         data=language_df,
         x="year",
@@ -822,15 +825,14 @@ def visualise_language_distribution(
         multiple="fill",
         discrete=True,
         shrink=0.8,
-        ax=axes[1],
+        ax=ax,
     )
-    axes[1].set_title("Comment Language (by Year)")
-    axes[1].set_ylabel("Proportion")
-    axes[1].yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
-    axes[1].tick_params(axis="x", rotation=45)
-
+    ax.set_title("Comment Language (by Year)")
+    ax.set_ylabel("Proportion")
+    ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
+    ax.tick_params(axis="x", rotation=45)
     _save_or_show(fig, save_path)
-    return (axes[0], axes[1])
+    return ax
 
 
 def analyse_comment_keywords(df: pd.DataFrame, n_keywords: int = 30) -> pd.DataFrame:
