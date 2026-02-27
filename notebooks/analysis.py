@@ -479,7 +479,10 @@ def visualise_shared_vs_individual_impact(
         var_name="Penalty scope",
         value_name="impact_normalised",
     )
-    fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_W), layout="constrained")
+    fig, ax = plt.subplots(
+        figsize=(_FIG_W, max(_FIG_H, len(combined) * _FIG_H_PER_ITEM)),
+        layout="constrained",
+    )
     sns.lineplot(
         data=melted,
         x="impact_normalised",
