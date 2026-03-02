@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 from docling_core.types.doc.document import TextItem
 from docling_core.types.doc.labels import DocItemLabel
 
+from ..schemas.finding import Stat
 from .base_analyser import BaseAnalyser
 
 if TYPE_CHECKING:
@@ -18,7 +19,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-SHORT_MIN_WORDS: int = 486  # 486 threshold accounts for ~90% of recorded SHORT docs
+SHORT_MIN_WORDS: int = 486  # Accounts for ~90% of recorded SHORT docs
+SHORT_MIN_CHARS: int = 3422  # Accounts for ~90% of recorded SHORT docs
+SHORT_MIN_STRUCT: int = 7  # Accounts for ~75% of recorded SHORT docs
 
 
 class SectionAnalyser(BaseAnalyser):
@@ -134,37 +137,59 @@ class SectionAnalyser(BaseAnalyser):
         return findings
 
     def check_short(
-        self, doc: Document, min_words: int = SHORT_MIN_WORDS
+        self,
+        doc: Document,
+        min_words: int = SHORT_MIN_WORDS,
+        min_chars: int = SHORT_MIN_CHARS,
+        min_struct: int = SHORT_MIN_STRUCT,
     ) -> list[Finding]:
-        """Detect documents that are shorter than the required word count.
+        """Detect documents that are not detailed enough based on length and structure.
 
         Args:
             doc: Parsed document.
-            min_words: Minimum acceptable word count. Defaults to SHORT_MIN_WORDS.
+            min_words: Minimum acceptable word count.
+            min_chars: Minimum acceptable character count.
+            min_struct: Minimum acceptable structural blocks (paragraphs).
         """
         w = doc.total_words
-        if w >= min_words:
+        c = doc.total_chars
+        s = doc.total_paragraphs
+
+        # If any of the metrics exceed the threshold, arguably not a 'short' doc
+        if w >= min_words and c >= min_chars and s >= min_struct:
             return []
 
-        ratio = w / min_words
-        if ratio < 0.5:
+        word_ratio = w / min_words if min_words > 0 else 1.0
+        char_ratio = c / min_chars if min_chars > 0 else 1.0
+        struct_ratio = s / min_struct if min_struct > 0 else 1.0
+
+        # Use the lowest ratio to determine the severity penalty
+        lowest_ratio = min(word_ratio, char_ratio, struct_ratio)
+
+        if lowest_ratio < 0.5:
             severity = 0.9
-        elif ratio < 0.75:
+        elif lowest_ratio < 0.75:
             severity = 0.7
         else:
             severity = 0.5
 
-        return [
-            self._make_finding(
-                doc=doc,
-                ac_code="SHORT",
-                title="Document is too short",
-                summary=(f"Document contains only {w} words."),
-                evidence_item=None,
-                severity=severity,
-                confidence=1.0,
-            )
+        finding = self._make_finding(
+            doc=doc,
+            ac_code="SHORT",
+            title="Document is too short",
+            summary=(f"Content is insufficient ({w} words, {c} chars, {s} blocks)."),
+            evidence_item=None,
+            severity=severity,
+            confidence=0.8,
+        )
+
+        finding.stats = [
+            Stat(name="word_count", value=w, unit="words"),
+            Stat(name="char_count", value=c, unit="chars"),
+            Stat(name="structure_count", value=s, unit="blocks"),
         ]
+
+        return [finding]
 
     def analyse(
         self, doc: Document, params: dict[str, Any] | None = None
@@ -174,6 +199,13 @@ class SectionAnalyser(BaseAnalyser):
         findings.extend(self.check_kaptxt(doc))
 
         p = params or {}
-        findings.extend(self.check_short(doc, int(p.get("min_words", SHORT_MIN_WORDS))))
+        findings.extend(
+            self.check_short(
+                doc,
+                min_words=int(p.get("min_words", SHORT_MIN_WORDS)),
+                min_chars=int(p.get("min_chars", SHORT_MIN_CHARS)),
+                min_struct=int(p.get("min_struct", SHORT_MIN_STRUCT)),
+            )
+        )
 
         return findings
