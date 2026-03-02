@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from docling_core.types.doc.document import (  # noqa: TC002
+from docling_core.types.doc.document import (
     DoclingDocument,
     DocumentOrigin,
+    TextItem,
 )
 from docling_core.types.doc.labels import DocItemLabel
 from pydantic import Field
@@ -33,6 +34,7 @@ class Document(StrictModel):
 
     # Custom stats
     total_words: int = Field(default=0, description="Total detected words")
+    total_chars: int = Field(default=0, description="Total detected characters")
     total_paragraphs: int = Field(default=0, description="Total detected paragraphs")
     total_headings: int = Field(default=0, description="Total detected headings")
 
@@ -40,7 +42,7 @@ class Document(StrictModel):
     def from_docling(cls, doc: DoclingDocument, doc_ref: DocumentRef) -> Document:
         """Calculates custom stats instantly after creation."""
 
-        words, paras, headings = 0, 0, 0
+        words, chars, paras, headings = 0, 0, 0, 0
         paragraph_labels = {DocItemLabel.TEXT, DocItemLabel.PARAGRAPH}
 
         for item, _ in doc.iterate_items():
@@ -50,13 +52,15 @@ class Document(StrictModel):
             if item.label in paragraph_labels:
                 paras += 1
 
-            if item.text:
+            if isinstance(item, TextItem) and item.text:
                 words += len(item.text.split())
+                chars += len(item.text)
 
         return cls(
             doc_ref=doc_ref,
             docling_doc=doc,
             total_words=words,
+            total_chars=chars,
             total_paragraphs=paras,
             total_headings=headings,
         )
