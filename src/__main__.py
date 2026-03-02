@@ -11,12 +11,14 @@ from typing import TYPE_CHECKING, Any
 
 # Analysers
 from .analysers.section_analyser import SectionAnalyser
-from .schemas.config import AnalyserConfig, AppConfig, load_config
+from .schemas.config import AppConfig, load_config
 from .utils import (
     compute_config_hash,
     configure_logging,
+    findings_to_csv_rows,
     log_json,
     reset_id_counters,
+    write_csv,
     write_json,
 )
 
@@ -32,17 +34,12 @@ ANALYSER_LIST: dict[str, type[BaseAnalyser]] = {
 }
 
 
-def _load_app_config(config_path: str | None) -> AppConfig:
-    """Load application config from JSON file, or return default if no path provided."""
+_DEFAULT_CONFIG = Path(__file__).parent.parent / "config" / "default.json"
 
-    if not config_path:
-        return AppConfig(
-            analysers=[
-                AnalyserConfig(analyser_id=a_id, enabled=True)
-                for a_id in ANALYSER_LIST.keys()
-            ]
-        )
-    return load_config(Path(config_path))
+
+def _load_app_config(config_path: str | None) -> AppConfig:
+    """Load application config from JSON file, falling back to config/default.json."""
+    return load_config(Path(config_path) if config_path else _DEFAULT_CONFIG)
 
 
 def _run_analysers(ir: Document, config: AppConfig) -> list[Finding]:
@@ -97,6 +94,16 @@ def main(argv: list[str] | None = None) -> int:
     arg_parser.add_argument(
         "-c", "--config", default=None, help="Path to JSON config file for analysers"
     )
+    arg_parser.add_argument(
+        "--csv-out",
+        default=None,
+        metavar="PATH",
+        help=(
+            "If provided, write all findings as a CSV to this path. "
+            "Columns match the clean_ipp_data.csv schema from dataset_parser.py, "
+            "enabling direct comparison with the ground-truth assessment dataset."
+        ),
+    )
     args = arg_parser.parse_args(argv)
 
     if args.debug:
@@ -116,6 +123,7 @@ def main(argv: list[str] | None = None) -> int:
 
     base_outdir = Path(args.out)
     exit_code = 0
+    csv_rows: list = []  # accumulated across all input documents for --csv-out
 
     from .parsers.parser import DocumentParser
 
@@ -164,12 +172,19 @@ def main(argv: list[str] | None = None) -> int:
         analyser_findings = _run_analysers(ir_doc, config)
         write_json(file_outdir / "findings.json", analyser_findings)
 
+        csv_rows.extend(findings_to_csv_rows(path, analyser_findings))
+
         info["counts"]["n_findings"] = len(analyser_findings)
         write_json(file_outdir / "info.json", info)
 
         log_json(logger, "IR Document", ir_doc)
         for finding in analyser_findings:
             log_json(logger, f"Finding: {finding.title}", finding)
+
+    if args.csv_out:
+        csv_path = Path(args.csv_out)
+        write_csv(csv_path, csv_rows)
+        logger.info("CSV with %d finding rows written to %s", len(csv_rows), csv_path)
 
     return exit_code
 

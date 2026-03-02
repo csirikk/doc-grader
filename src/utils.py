@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
+import csv
 import hashlib
 import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from docling_core.types.doc.document import DoclingDocument
 from pydantic import BaseModel
 from rich.logging import RichHandler
+
+if TYPE_CHECKING:
+    from .schemas.finding import Finding
 
 
 def configure_logging(level: int) -> None:
@@ -99,3 +103,69 @@ def compute_doc_hash(path: str | Path) -> str:
 def compute_config_hash(config: dict) -> str:
     canonical = json.dumps(config, sort_keys=True, separators=(",", ":"))
     return "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+# --- CSV export ---
+
+# Column order mirrors clean_ipp_data.csv produced by dataset_parser.py
+# Columns (grade points, year, variant) are left as None.
+CSV_COLUMNS: list[str] = [
+    "id",
+    "year",
+    "task_variant",
+    "code",
+    "impact",
+    "impact_given",
+    "impact_has_sign",
+    "impact_source",
+    "impact_shared",
+    "comment",
+    "raw_text",
+    "source_file",
+    "doc_points",
+    "doc_type",
+    "bonus_points",
+    # Extras
+    "severity",
+    "confidence",
+    "finding_id",
+]
+
+
+def findings_to_csv_rows(path: Path, findings: list[Finding]) -> list[dict[str, Any]]:
+    """Convert a list of Findings for one document into CSV-ready row dicts."""
+    doc_type = path.suffix.lstrip(".").lower() or None
+    rows: list[dict[str, Any]] = []
+    for f in findings:
+        rows.append(
+            {
+                "id": path.stem,
+                "year": None,
+                "task_variant": None,
+                "code": f.ac_code,
+                "impact": None,
+                "impact_given": False,
+                "impact_has_sign": False,
+                "impact_source": None,
+                "impact_shared": False,
+                "comment": f.summary,
+                "raw_text": f.summary,
+                "source_file": path.name,
+                "doc_points": None,
+                "doc_type": doc_type,
+                "bonus_points": None,
+                "severity": f.severity,
+                "confidence": f.confidence,
+                "finding_id": f.finding_id,
+            }
+        )
+    return rows
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    """Write a list of row dicts to a CSV file using the canonical column order."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=CSV_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
