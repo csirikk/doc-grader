@@ -175,6 +175,34 @@ def analyse_volume(df: pd.DataFrame, proj: pd.DataFrame | None = None) -> None:
     print(f"Total grading events with impacts: {df['impact_given'].sum()}")
 
 
+def summarise_score_imbalance(proj: pd.DataFrame) -> None:
+    """Print statistics about projects with zero documentation deductions."""
+    perfect_docs = (proj["total_impact"] >= 0).sum()
+    total_docs = len(proj)
+    perfect_ratio = (perfect_docs / total_docs) * 100
+    print(
+        f"Projects with 0 deductions: {perfect_docs} / {total_docs} ({perfect_ratio:.1f}%)"
+    )
+
+
+def visualise_total_impact_distribution(
+    proj: pd.DataFrame, save_path: Path | None = None
+) -> plt.Axes:
+    """Plot the distribution of total impact per project."""
+    fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
+    sns.histplot(
+        data=proj,
+        x="total_impact",
+        bins=30,
+        ax=ax,
+    )
+    ax.set_title("Distribution of Total Documentation Deductions per Project")
+    ax.set_xlabel("Total Deduction (mb)")
+    ax.set_ylabel("Number of Projects")
+    _save_or_show(fig, save_path)
+    return ax
+
+
 # --- CODE IMPACT ---
 
 
@@ -244,7 +272,7 @@ def visualise_format_impact(
         linewidth=2.5,
         ax=ax,
     )
-    ax.set_xlabel("Percentile of Students")
+    ax.set_xlabel("Fraction of Students")
     ax.set_ylabel("Documentation Score (% of Maximum)")
     ax.set_title("Cumulative Documentation Score Distribution by Document Format")
     ax.axvline(x=0.5, color="gray", linestyle="--", alpha=0.5, zorder=1)
@@ -289,10 +317,13 @@ def visualise_zero_impact_warnings(
     Plot the ratio of zero-impact warnings vs actual penalties per code.
     Expects the pre-computed output of `analyse_zero_impact_warnings`.
     """
-    # sort bars by total frequency
-    order = (
-        warnings_df.groupby("code").size().sort_values(ascending=False).index.tolist()
+    warning_props = (
+        warnings_df.assign(is_warning=(warnings_df["penalty_type"] == "Warning (0)"))
+        .groupby("code")["is_warning"]
+        .mean()
+        .sort_values(ascending=False)
     )
+    order = warning_props.index.tolist()
     plot_data = warnings_df.assign(
         code=pd.Categorical(warnings_df["code"], categories=order, ordered=True)
     )
