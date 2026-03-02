@@ -35,8 +35,8 @@ class BaseAnalyser(ABC):
         title: str,
         summary: str,
         evidence_item: DocItem | None = None,
-        severity: float | None = 0,
-        confidence: float | None = 0,
+        severity: float | None = None,
+        confidence: float | None = None,
         run_id: str | None = None,
         config_hash: str | None = None,
     ) -> Finding:
