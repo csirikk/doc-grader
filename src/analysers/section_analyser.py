@@ -18,6 +18,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+SHORT_MIN_WORDS: int = 486  # 486 threshold accounts for ~90% of recorded SHORT docs
+
 
 class SectionAnalyser(BaseAnalyser):
     """
@@ -131,10 +133,47 @@ class SectionAnalyser(BaseAnalyser):
 
         return findings
 
+    def check_short(
+        self, doc: Document, min_words: int = SHORT_MIN_WORDS
+    ) -> list[Finding]:
+        """Detect documents that are shorter than the required word count.
+
+        Args:
+            doc: Parsed document.
+            min_words: Minimum acceptable word count. Defaults to SHORT_MIN_WORDS.
+        """
+        w = doc.total_words
+        if w >= min_words:
+            return []
+
+        ratio = w / min_words
+        if ratio < 0.5:
+            severity = 0.9
+        elif ratio < 0.75:
+            severity = 0.7
+        else:
+            severity = 0.5
+
+        return [
+            self._make_finding(
+                doc=doc,
+                ac_code="SHORT",
+                title="Document is too short",
+                summary=(f"Document contains only {w} words."),
+                evidence_item=None,
+                severity=severity,
+                confidence=1.0,
+            )
+        ]
+
     def analyse(
         self, doc: Document, params: dict[str, Any] | None = None
     ) -> list[Finding]:
         """Run all section checks."""
         findings: list[Finding] = []
         findings.extend(self.check_kaptxt(doc))
+
+        p = params or {}
+        findings.extend(self.check_short(doc, int(p.get("min_words", SHORT_MIN_WORDS))))
+
         return findings
