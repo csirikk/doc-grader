@@ -533,6 +533,62 @@ def extract_rows_from_dataframe(
                 }
 
 
+def parse_document_tokens(
+    df: pd.DataFrame, doc_base: Path, n_samples_per_type: int = 50
+) -> pd.DataFrame:
+    """
+    Sample documents, parse their content via Docling and tokenise it.
+    Returns a dataframe containing token counts for sampled MD and PDF documents.
+    """
+    import tiktoken
+    from docling.document_converter import DocumentConverter
+
+    tokenizer = tiktoken.get_encoding("cl100k_base")
+    converter = DocumentConverter()
+
+    recent_docs_df = (
+        df[df["doc_type"].isin(["md", "pdf"])][["id", "source_file", "doc_type"]]
+        .drop_duplicates()
+        .reset_index(drop=True)
+    )
+
+    # Sample
+    md_docs = recent_docs_df[recent_docs_df["doc_type"] == "md"].head(
+        n_samples_per_type
+    )
+    pdf_docs = recent_docs_df[recent_docs_df["doc_type"] == "pdf"].head(
+        n_samples_per_type
+    )
+    sampled_docs_df = pd.concat([md_docs, pdf_docs]).reset_index(drop=True)
+
+    token_records = []
+
+    for student_id, source_file, doc_type in sampled_docs_df.itertuples(index=False):
+        cohort = Path(source_file).stem
+        f = doc_base / cohort / f"{student_id}.{doc_type}"
+
+        if not f.exists():
+            continue
+
+        try:
+            conversion_result = converter.convert(f)
+            text = conversion_result.document.export_to_markdown()
+            tokens = tokenizer.encode(text)
+
+            token_records.append(
+                {
+                    "id": student_id,
+                    "cohort": cohort,
+                    "format": doc_type,
+                    "tokens": len(tokens),
+                }
+            )
+        except Exception:
+            continue
+
+    return pd.DataFrame(token_records)
+
+
 # --- MAIN ---
 
 

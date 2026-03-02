@@ -897,3 +897,58 @@ def analyse_comment_keywords(df: pd.DataFrame, n_keywords: int = 30) -> pd.DataF
         .rename(columns={"index": "keyword"})
         .assign(top_codes=lambda d: d["keyword"].map(top_codes))
     )
+
+
+# --- INPUT DATA ---
+
+
+def summarise_token_limits(token_df: pd.DataFrame) -> None:
+    """Print statistics about token length distribution."""
+    if token_df.empty:
+        print("No tokens processed. Please check if the datasets exist.")
+        return
+
+    p95 = token_df["tokens"].quantile(0.95)
+    print(f"95th Percentile Token Length: {int(p95)} tokens")
+    print(f"Max Token Length: {token_df['tokens'].max()}")
+    print("Llama3 Context Limit: 4096 tokens")
+    print("GPT-4 Context Limit: 8192 tokens")
+
+
+def visualise_token_limits(
+    token_df: pd.DataFrame, save_path: Path | None = None
+) -> plt.Axes:
+    """Plot the distribution of document token lengths."""
+    fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
+    sns.histplot(
+        data=token_df,
+        x="tokens",
+        hue="format",
+        multiple="stack",
+        bins=30,
+        ax=ax,
+    )
+
+    llama3_limit = 4096
+    gpt4_limit = 8192
+    palette = sns.color_palette("deep")
+
+    ax.axvline(
+        llama3_limit,
+        color=palette[3],
+        linestyle="--",
+        label=f"LLaMA3 Limit ({llama3_limit})",
+    )
+    ax.axvline(
+        gpt4_limit,
+        color=palette[2],
+        linestyle="--",
+        label=f"GPT-4 Limit ({gpt4_limit})",
+    )
+
+    ax.set_title("Token Length Distribution for Sampled Documents")
+    ax.set_xlabel("Token Count (cl100k_base)")
+    ax.set_ylabel("Number of Documents")
+    ax.legend(title="Format & Limits")
+    _save_or_show(fig, save_path)
+    return ax
