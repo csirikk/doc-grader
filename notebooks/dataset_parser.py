@@ -128,7 +128,6 @@ CODE_ALIASES = {
     "TYP.": "TYP",
     "GRAM.": "GRAM",
     "NOOOP": "NOOP",
-    "SAZAB": "SAZBA",
     "COMMENTS": "COMMENT",
     "OO": "OOP",
     "TERM.": "TERM",
@@ -503,7 +502,7 @@ def extract_rows_from_dataframe(
     for col in ["id", "points", "doc_type", "bonus_points"]:
         if col not in df.columns:
             df[col] = None
-    df = df.replace({float("nan"): None, pd.NA: None})
+    df = df.replace({float("nan"): None})
 
     for row in df.itertuples(index=False):
         text = str(row.comment) if row.comment else ""
@@ -520,7 +519,6 @@ def extract_rows_from_dataframe(
                     "task_variant": task_variant,
                     "code": code,
                     "impact": evt.impact_value,
-                    "impact_given": evt.impact_value is not None,
                     "impact_has_sign": evt.impact_has_sign,
                     "impact_source": evt.impact_source,
                     "impact_shared": is_shared,
@@ -612,7 +610,7 @@ def main() -> None:
             print(f"Skipping {file_path}, no 'comment' column")
             continue
 
-        filename = file_path.name
+        filename = file_path.name  # "ipp13-php.csv"
         match = re.search(r"\d{2}", filename)
         year = "20" + match.group(0) if match else "Unknown"
         task_variant = (

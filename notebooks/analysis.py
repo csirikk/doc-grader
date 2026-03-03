@@ -58,7 +58,6 @@ def load_clean_data(path: Path | None = None) -> pd.DataFrame:
     df["impact"] = pd.to_numeric(df["impact"], errors="coerce")
     df["doc_points"] = pd.to_numeric(df["doc_points"], errors="coerce")
     df["bonus_points"] = pd.to_numeric(df["bonus_points"], errors="coerce")
-    df["impact_given"] = df["impact_given"].astype(bool)
     df["impact_has_sign"] = df["impact_has_sign"].astype(bool)
     df["impact_shared"] = df["impact_shared"].astype(bool)
     df["max_doc_points"] = [
@@ -122,7 +121,7 @@ def filter_for_impact_stats(
     Filter to rows that have a given impact value.
     If exclude_shared=True, also exclude impact_shared=True rows.
     """
-    mask = df["impact_given"]
+    mask = df["impact"].notna()
     if exclude_shared:
         mask = mask & ~df["impact_shared"]
     return df[mask]
@@ -172,7 +171,7 @@ def analyse_volume(df: pd.DataFrame, proj: pd.DataFrame | None = None) -> None:
     print(f"Year range: {(df['year'].min(), df['year'].max())}")
     print(f"Task Variants: {sorted(df['task_variant'].unique())}")
     print(f"Total grading events: {len(df)}")
-    print(f"Total grading events with impacts: {df['impact_given'].sum()}")
+    print(f"Total grading events with impacts: {df['impact'].notna().sum()}")
 
 
 def summarise_score_imbalance(proj: pd.DataFrame) -> None:
@@ -214,7 +213,7 @@ def analyse_impact_statistics(
     Returns DataFrame sorted by mean impact ascending.
     """
     df = filter_to_normalised_years(df)
-    has_impact = df["impact_given"]
+    has_impact = df["impact"].notna()
     if exclude_shared:
         has_impact = has_impact & ~df["impact_shared"]
     # impact_for_stats is NaN for rows without a counted impact, .agg() skips it
@@ -222,7 +221,7 @@ def analyse_impact_statistics(
         df.assign(impact_for_stats=df["impact_normalised"].where(has_impact))
         .groupby("code")
         .agg(
-            total=("impact_given", "count"),
+            total=("code", "count"),
             pct_no_impact=("impact_for_stats", lambda x: 1 - x.notna().mean()),
             count=("impact_for_stats", "count"),
             mean=("impact_for_stats", "mean"),
@@ -292,7 +291,7 @@ def visualise_format_impact(
 
 def analyse_zero_impact_warnings(df: pd.DataFrame, n_codes: int = 20) -> pd.DataFrame:
     """Prepare warning vs penalty events for top codes."""
-    events = df[(df["code"] != "OK") & df["impact_given"]]
+    events = df[(df["code"] != "OK") & df["impact"].notna()]
     codes = events["code"].value_counts().head(n_codes).index.tolist()
     return events[events["code"].isin(codes)].assign(
         penalty_type=lambda d: np.where(d["impact"] == 0, "Warning (0)", "Penalty (<0)")
