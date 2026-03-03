@@ -421,7 +421,7 @@ def parse_comment(text: str) -> list[Event]:
     Example: "STRUCT -10 (comment), SHORT" -> [Event(STRUCT, -10), Event(SHORT)]
     """
 
-    text = text.replace("−", "-").replace("–", "-").replace("—", "-")  # noqa: RUF001
+    text = text.translate(str.maketrans("−–—", "---"))  # noqa: RUF001
 
     tokens = []
     paren_ranges = []
