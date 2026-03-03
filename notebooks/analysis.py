@@ -633,7 +633,7 @@ def visualise_code_usage_trends(
     g.set_axis_labels("Year", "Fraction of projects")
     g.tick_params(axis="x", rotation=45)
     g.figure.suptitle(
-        "Code usage over time\n(shaded area shows the 95% confidence interval)",
+        "Code Usage Over Time\n(shaded area shows the 95% confidence interval)",
         y=1.05,
     )
     _save_or_show(g.figure, save_path)
@@ -673,7 +673,7 @@ def visualise_code_impact_trends(
     g.set_axis_labels("Year", "Mean penalty")
     g.tick_params(axis="x", rotation=45)
     g.figure.suptitle(
-        "Penalty severity over time\n(shaded area shows the 95% confidence interval)",
+        "Code Impact Over Time\n(shaded area shows the 95% confidence interval)",
         y=1.05,
     )
     _save_or_show(g.figure, save_path)
@@ -907,7 +907,7 @@ def visualise_language_distribution_by_year(
         shrink=0.8,
         ax=ax,
     )
-    ax.set_title("Comment Language (by Year)")
+    ax.set_title("Comment Language (By Year)")
     ax.set_ylabel("Proportion")
     ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
     ax.tick_params(axis="x", rotation=45)
