@@ -591,7 +591,16 @@ def visualise_code_usage_trends(
     The shaded area around each line shows the 95% confidence interval.
     """
     proj = _ensure_proj(df, proj)
-    codes = codes or df["code"].value_counts().head(n_codes).index.tolist()
+
+    if codes is None:
+        all_codes = df["code"].unique().tolist()
+        code_project_counts = pd.Series(
+            {
+                c: proj["codes_list"].map(lambda cl, c=c: c in cl).sum()
+                for c in all_codes
+            }
+        )
+        codes = code_project_counts.nlargest(n_codes).index.tolist()
 
     # one binary column per code, then melt to long form for relplot
     binary = pd.DataFrame(
