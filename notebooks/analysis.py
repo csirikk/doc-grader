@@ -98,7 +98,6 @@ def build_project_df(df: pd.DataFrame) -> pd.DataFrame:
         )
         .reset_index()
         .assign(doc_score_pct=lambda d: (d["doc_points"] / d["max_doc_points"]) * 100)
-        .drop(columns=["max_doc_points"])
     )
 
 
@@ -184,15 +183,20 @@ def visualise_total_impact_distribution(
     proj: pd.DataFrame, save_path: Path | None = None
 ) -> plt.Axes:
     """Plot the distribution of total impact per project."""
+    plot_data = proj.assign(
+        total_impact_normalised=lambda d: d["total_impact"] / d["max_doc_points"]
+    ).dropna(subset=["total_impact_normalised"])
+
     fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
     sns.histplot(
-        data=proj,
-        x="total_impact",
+        data=plot_data,
+        x="total_impact_normalised",
         bins=30,
         ax=ax,
     )
+    ax.xaxis.set_major_formatter(PercentFormatter(xmax=1.0))
     ax.set_title("Distribution of Total Documentation Deductions per Project")
-    ax.set_xlabel("Total Deduction (mb)")
+    ax.set_xlabel("Total Deduction (% of Total Grade)")
     ax.set_ylabel("Number of Projects")
     _save_or_show(fig, save_path)
     return ax
@@ -209,22 +213,27 @@ def analyse_impact_statistics(
     Returns DataFrame sorted by mean impact ascending.
     """
     df = filter_to_normalised_years(df)
-    has_impact = df["impact"].notna()
+
+    is_warning = df["impact"].isna()
+    valid_for_math = df["impact"].notna()
     if exclude_shared:
-        has_impact = has_impact & ~df["impact_shared"]
-    # impact_for_stats is NaN for rows without a counted impact, .agg() skips it
+        valid_for_math = valid_for_math & ~df["impact_shared"].fillna(False)
+
     return (
-        df.assign(impact_for_stats=df["impact_normalised"].where(has_impact))
+        df.assign(
+            is_warning=is_warning,
+            math_impact=df["impact_normalised"].where(valid_for_math),
+        )
         .groupby("code")
         .agg(
             total=("code", "count"),
-            pct_no_impact=("impact_for_stats", lambda x: 1 - x.notna().mean()),
-            count=("impact_for_stats", "count"),
-            mean=("impact_for_stats", "mean"),
-            median=("impact_for_stats", "median"),
-            std=("impact_for_stats", "std"),
-            min=("impact_for_stats", "min"),
-            max=("impact_for_stats", "max"),
+            pct_no_impact=("is_warning", "mean"),
+            count=("math_impact", "count"),
+            mean=("math_impact", "mean"),
+            median=("math_impact", "median"),
+            std=("math_impact", "std"),
+            min=("math_impact", "min"),
+            max=("math_impact", "max"),
         )
         .reset_index()
         .sort_values("mean")
@@ -289,8 +298,13 @@ def analyse_zero_impact_warnings(df: pd.DataFrame, n_codes: int = 20) -> pd.Data
     """Prepare warning vs penalty events for top codes."""
     events = df[(df["code"] != "OK") & df["impact"].notna()]
     codes = events["code"].value_counts().head(n_codes).index.tolist()
+
     return events[events["code"].isin(codes)].assign(
-        penalty_type=lambda d: np.where(d["impact"] == 0, "Warning (0)", "Penalty (<0)")
+        penalty_type=lambda d: np.select(
+            [d["impact"] == 0, d["impact"] > 0, d["impact"] < 0],
+            ["Warning (0)", "Bonus (>0)", "Penalty (<0)"],
+            default="Unknown",
+        )
     )
 
 
@@ -390,7 +404,7 @@ def visualise_code_frequency(
     df: pd.DataFrame, n_codes: int = 20, save_path: Path | None = None
 ) -> plt.Axes:
     """Plot the n_codes most frequently used codes by occurrence count."""
-    codes = df["code"].value_counts().head(n_codes).index.tolist()
+    codes = df["code"].value_counts().head(n_codes).index.tolist()[::-1]
     plot_data = df[df["code"].isin(codes)]
 
     fig, ax = plt.subplots(
@@ -439,21 +453,6 @@ def visualise_impact_boxplots(
     code_hue = (
         subset["code"].isin(DOC_CODES).map({True: "Doc code", False: "Other code"})
     )
-    sns.stripplot(
-        data=subset,
-        y="code",
-        x="impact_normalised",
-        order=order,
-        hue=code_hue,
-        dodge=False,
-        palette=_CATEGORY_PALETTE,
-        ax=ax,
-        orient="h",
-        alpha=0.35,
-        size=3,
-        jitter=True,
-        legend=False,
-    )
     sns.boxplot(
         data=subset,
         y="code",
@@ -464,7 +463,24 @@ def visualise_impact_boxplots(
         palette=_CATEGORY_PALETTE,
         ax=ax,
         orient="h",
+        fill=False,
         flierprops={"alpha": 0},
+        legend=False,
+    )
+    sns.stripplot(
+        data=subset,
+        y="code",
+        x="impact_normalised",
+        order=order,
+        hue=code_hue,
+        dodge=False,
+        palette=_CATEGORY_PALETTE,
+        ax=ax,
+        orient="h",
+        alpha=0.5,
+        size=4,
+        jitter=True,
+        legend=True,
     )
     ax.set_xlabel("Impact")
     ax.set_title("Impact Distribution per Code")
@@ -685,7 +701,7 @@ def visualise_code_points_correlation(
     )
 
     correlations = binary.corrwith(proj["doc_score_pct"]).sort_values(
-        key=abs, ascending=False
+        key=abs, ascending=True
     )
 
     fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_W), layout="constrained")
@@ -829,7 +845,6 @@ def visualise_language_distribution_overall(
         x="language",
         hue="language",
         order=lang_counts.index,
-        hue_order=lang_counts.index,
         legend=False,
         ax=ax,
     )
