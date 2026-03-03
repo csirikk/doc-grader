@@ -349,7 +349,8 @@ def visualise_zero_impact_warnings(
     )
     ax.set_xlabel("Proportion")
     ax.xaxis.set_major_formatter(PercentFormatter(xmax=1.0))
-    ax.set_title("Warning (0 impact) vs Penalty Rate per Code")
+    ax.set_title("Warning vs Penalty vs Bonus Rate per Code")
+    sns.move_legend(ax, loc="lower right", title="Type")
     _save_or_show(fig, save_path)
     return ax
 
