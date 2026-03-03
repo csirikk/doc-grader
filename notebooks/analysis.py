@@ -781,6 +781,12 @@ _STOPWORDS = {
     "jen",
     "ve",
     "ze",
+    "není",
+    "být",
+    "také",
+    "bez",
+    "atp",
+    "např",
 }
 
 
