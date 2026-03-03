@@ -130,9 +130,25 @@ def filter_to_normalised_years(df: pd.DataFrame) -> pd.DataFrame:
 
 # --- VISUALISATION UTILITIES ---
 
-_CATEGORY_PALETTE: dict[str, tuple] = {
+CODE_TYPE_PALETTE: dict[str, tuple] = {
     "Doc code": sns.color_palette("deep")[2],  # green
     "Other code": sns.color_palette("deep")[4],  # purple
+}
+TASK_VARIANT_PALETTE: dict[str, tuple] = {
+    "php": sns.color_palette("deep")[0],  # blue
+    "py": sns.color_palette("deep")[1],  # orange
+    "par": sns.color_palette("deep")[2],  # green
+    "int": sns.color_palette("deep")[3],  # red
+}
+FORMAT_PALETTE: dict[str, tuple] = {
+    "md": sns.color_palette("deep")[0],  # blue
+    "pdf": sns.color_palette("deep")[1],  # orange
+}
+LANGUAGE_PALETTE: dict[str, tuple] = {
+    "cs": sns.color_palette("deep")[0],  # blue
+    "sk": sns.color_palette("deep")[1],  # orange
+    "en": sns.color_palette("deep")[2],  # green
+    "unknown": sns.color_palette("deep")[7],  # gray
 }
 
 # Figure size constants
@@ -274,6 +290,7 @@ def visualise_format_impact(
         data=format_impact_df,
         y="doc_score_pct",
         hue="doc_type",
+        palette=FORMAT_PALETTE,
         linewidth=2.5,
         ax=ax,
     )
@@ -372,6 +389,8 @@ def visualise_doc_type_distribution(
         data=data,
         x="year",
         hue="doc_type",
+        hue_order=list(FORMAT_PALETTE),
+        palette=FORMAT_PALETTE,
         multiple="fill",
         discrete=True,
         shrink=0.8,
@@ -394,7 +413,9 @@ def visualise_task_variant_distribution(
     data = _ensure_proj(df, proj).sort_values("year")
 
     fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
-    sns.countplot(data=data, x="year", hue="task_variant", ax=ax)
+    sns.countplot(
+        data=data, x="year", hue="task_variant", palette=TASK_VARIANT_PALETTE, ax=ax
+    )
     ax.set_ylabel("Number of Projects")
     ax.set_title("Projects per Task Variant by Year")
     ax.legend(title="Task variant")
@@ -419,7 +440,7 @@ def visualise_code_frequency(
         hue=plot_data["code"]
         .isin(DOC_CODES)
         .map({True: "Doc code", False: "Other code"}),
-        palette=_CATEGORY_PALETTE,
+        palette=CODE_TYPE_PALETTE,
         dodge=False,
         ax=ax,
     )
@@ -462,7 +483,7 @@ def visualise_impact_boxplots(
         order=order,
         hue=code_hue,
         dodge=False,
-        palette=_CATEGORY_PALETTE,
+        palette=CODE_TYPE_PALETTE,
         ax=ax,
         orient="h",
         fill=False,
@@ -476,7 +497,7 @@ def visualise_impact_boxplots(
         order=order,
         hue=code_hue,
         dodge=False,
-        palette=_CATEGORY_PALETTE,
+        palette=CODE_TYPE_PALETTE,
         ax=ax,
         orient="h",
         alpha=0.5,
@@ -591,7 +612,7 @@ def visualise_code_usage_trends(
         y="has_code",
         col="code",
         hue=melted["code"].isin(DOC_CODES).map({True: "Doc code", False: "Other code"}),
-        palette=_CATEGORY_PALETTE,
+        palette=CODE_TYPE_PALETTE,
         col_wrap=4,
         kind="line",
         errorbar=("ci", 95),
@@ -631,7 +652,7 @@ def visualise_code_impact_trends(
         y="impact_normalised",
         col="code",
         hue=subset["code"].isin(DOC_CODES).map({True: "Doc code", False: "Other code"}),
-        palette=_CATEGORY_PALETTE,
+        palette=CODE_TYPE_PALETTE,
         col_wrap=4,
         kind="line",
         errorbar=("ci", 95),
@@ -713,7 +734,7 @@ def visualise_code_points_correlation(
         hue=pd.Series(correlations.index)
         .isin(DOC_CODES)
         .map({True: "Doc code", False: "Other code"}),
-        palette=_CATEGORY_PALETTE,
+        palette=CODE_TYPE_PALETTE,
         dodge=False,
         ax=ax,
     )
@@ -840,13 +861,13 @@ def visualise_language_distribution_overall(
     language_df: pd.DataFrame, save_path: Path | None = None
 ) -> plt.Axes:
     """Bar chart of comment language totals."""
-    lang_counts = language_df["language"].value_counts()
     fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
     sns.countplot(
         data=language_df,
         x="language",
         hue="language",
-        order=lang_counts.index,
+        hue_order=list(LANGUAGE_PALETTE),
+        palette=LANGUAGE_PALETTE,
         legend=False,
         ax=ax,
     )
@@ -859,13 +880,13 @@ def visualise_language_distribution_by_year(
     language_df: pd.DataFrame, save_path: Path | None = None
 ) -> plt.Axes:
     """Stacked proportion chart of comment language per year."""
-    lang_counts = language_df["language"].value_counts()
     fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
     sns.histplot(
         data=language_df,
         x="year",
         hue="language",
-        hue_order=lang_counts.index,
+        hue_order=list(LANGUAGE_PALETTE),
+        palette=LANGUAGE_PALETTE,
         multiple="fill",
         discrete=True,
         shrink=0.8,
