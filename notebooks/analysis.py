@@ -52,19 +52,22 @@ def load_clean_data(path: Path | None = None) -> pd.DataFrame:
     """
     if path is None:
         path = Path(__file__).parent.parent / "data" / "clean_ipp_data.csv"
+
     df = pd.read_csv(path)
-    years = sorted(df["year"].astype(str).unique())
-    df["year"] = pd.Categorical(df["year"].astype(str), categories=years, ordered=True)
-    df["impact"] = pd.to_numeric(df["impact"], errors="coerce")
-    df["doc_points"] = pd.to_numeric(df["doc_points"], errors="coerce")
-    df["bonus_points"] = pd.to_numeric(df["bonus_points"], errors="coerce")
-    df["impact_has_sign"] = df["impact_has_sign"].astype(bool)
-    df["impact_shared"] = df["impact_shared"].astype(bool)
-    df["max_doc_points"] = [
-        MAX_DOC_POINTS.get((y, t)) for y, t in zip(df["year"], df["task_variant"])
-    ]
-    df["impact_normalised"] = df["impact"] / df["max_doc_points"]
-    return df
+
+    df["year"] = df["year"].astype(str)
+    df["task_variant"] = df["task_variant"].astype(str)
+    years = sorted(df["year"].unique())
+
+    return df.assign(
+        year=pd.Categorical(df["year"], categories=years, ordered=True),
+        impact=pd.to_numeric(df["impact"], errors="coerce"),
+        doc_points=pd.to_numeric(df["doc_points"], errors="coerce"),
+        bonus_points=pd.to_numeric(df["bonus_points"], errors="coerce"),
+        impact_has_sign=df["impact_has_sign"].astype("boolean"),
+        impact_shared=df["impact_shared"].astype("boolean"),
+        max_doc_points=df.set_index(["year", "task_variant"]).index.map(MAX_DOC_POINTS),
+    ).assign(impact_normalised=lambda d: d["impact"] / d["max_doc_points"])
 
 
 def build_project_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -76,13 +79,14 @@ def build_project_df(df: pd.DataFrame) -> pd.DataFrame:
     has_any_comment, source_file.
     """
     df_temp = df.assign(
-        individual_impact=df["impact"].where(~df["impact_shared"]),
+        individual_impact=df["impact"].where(~df["impact_shared"].fillna(False)),
         has_comment=df["comment"].notna(),
     )
-    proj = (
+    return (
         df_temp.groupby(["id", "year", "task_variant"], sort=False)
         .agg(
             doc_points=("doc_points", "first"),
+            max_doc_points=("max_doc_points", "first"),
             doc_type=("doc_type", "first"),
             bonus_points=("bonus_points", "first"),
             n_events=("code", "size"),
@@ -93,17 +97,9 @@ def build_project_df(df: pd.DataFrame) -> pd.DataFrame:
             source_file=("source_file", "first"),
         )
         .reset_index()
+        .assign(doc_score_pct=lambda d: (d["doc_points"] / d["max_doc_points"]) * 100)
+        .drop(columns=["max_doc_points"])
     )
-    # normalise each project doc score to % of the doc max for that year/variant
-    max_doc_points = pd.Series(
-        [
-            MAX_DOC_POINTS.get((y, t), np.nan)
-            for y, t in zip(proj["year"], proj["task_variant"])
-        ],
-        index=proj.index,
-    )
-    proj["doc_score_pct"] = proj["doc_points"] / max_doc_points * 100
-    return proj
 
 
 # --- UTILITIES ---

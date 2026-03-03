@@ -140,7 +140,7 @@ CODE_ALIASES = {
 
 def filter_doc_codes(df: pd.DataFrame) -> pd.DataFrame:
     """Filter event rows to keep only documentation-related codes."""
-    return df[df["code"].isin(DOC_CODES)].copy()
+    return df[df["code"].isin(DOC_CODES)]
 
 
 # --- REGEX ---
@@ -499,13 +499,14 @@ def extract_rows_from_dataframe(
     Processes a DataFrame row by row, extracting Events from the comment column.
     """
     # Normalise
-    for col in ["id", "points", "doc_type", "bonus_points"]:
-        if col not in df.columns:
-            df[col] = None
-    df = df.replace({float("nan"): None})
+    required_cols = ["id", "points", "doc_type", "bonus_points"]
+    missing_cols = {col: None for col in required_cols if col not in df.columns}
+    if missing_cols:
+        df = df.assign(**missing_cols)
+    df["comment"] = df["comment"].fillna("").astype(str)
 
     for row in df.itertuples(index=False):
-        text = str(row.comment) if row.comment else ""
+        text = str(row.comment) if pd.notna(row.comment) else ""
 
         events = parse_comment(text)
 
@@ -545,19 +546,17 @@ def parse_document_tokens(
     converter = DocumentConverter()
 
     recent_docs_df = (
-        df[df["doc_type"].isin(["md", "pdf"])][["id", "source_file", "doc_type"]]
+        df.loc[df["doc_type"].isin(["md", "pdf"]), ["id", "source_file", "doc_type"]]
         .drop_duplicates()
         .reset_index(drop=True)
     )
 
     # Sample
-    md_docs = recent_docs_df[recent_docs_df["doc_type"] == "md"].head(
-        n_samples_per_type
+    sampled_docs_df = (
+        recent_docs_df.groupby("doc_type")
+        .head(n_samples_per_type)
+        .reset_index(drop=True)
     )
-    pdf_docs = recent_docs_df[recent_docs_df["doc_type"] == "pdf"].head(
-        n_samples_per_type
-    )
-    sampled_docs_df = pd.concat([md_docs, pdf_docs]).reset_index(drop=True)
 
     token_records = []
 
@@ -611,8 +610,8 @@ def main() -> None:
             continue
 
         filename = file_path.name  # "ipp13-php.csv"
-        match = re.search(r"\d{2}", filename)
-        year = "20" + match.group(0) if match else "Unknown"
+        year_match = re.search(r"\d{2}", filename)
+        year = "20" + year_match.group(0) if year_match else "Unknown"
         task_variant = (
             filename.split("-")[1].split(".")[0] if "-" in filename else "Unknown"
         )
