@@ -959,6 +959,19 @@ def visualise_token_limits(
     ax.set_title("Token Length Distribution for Sampled Documents")
     ax.set_xlabel("Token Count (cl100k_base)")
     ax.set_ylabel("Number of Documents")
-    ax.legend(title="Format & Limits")
+
+    _seaborn_legend = ax.get_legend()
+    _seaborn_legend.remove()
+
+    format_handles = _seaborn_legend.legend_handles
+    format_labels = [t.get_text() for t in _seaborn_legend.get_texts()]
+
+    line_handles, line_labels = ax.get_legend_handles_labels()
+    ax.legend(
+        handles=format_handles + line_handles,
+        labels=format_labels + line_labels,
+        title="Format & Limits",
+    )
+
     _save_or_show(fig, save_path)
     return ax
