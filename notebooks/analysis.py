@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -764,8 +765,8 @@ _STOPWORDS = {
 
 def detect_comment_language(text: str) -> str:
     """Detect the language of a comment string using langdetect."""
-    # langdetect is unreliable on short strings
-    if not text or len(text.strip()) < 5:
+    stripped = text.strip() if text else ""
+    if len(stripped) < 5 or not re.search(r"[A-Za-zÀ-ž]", stripped):
         return "unknown"
     try:
         lang = detect(text)
