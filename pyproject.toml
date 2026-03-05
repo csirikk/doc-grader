@@ -12,6 +12,7 @@ dependencies = [
     "matplotlib",
     "seaborn",
     "scipy",
+    "langdetect",
 ]
 
 [project.scripts]
