@@ -8,94 +8,91 @@ This document maps Analyser findings to assessment criteria used in IFJ/IPP proj
 |---------------|--------------------|-------|------------------------------------------------------------------------|
 | **DOCTYPE**   | *parser*           | Both  | Not a PDF/MD / unreadable / wrong doc type                             |
 | **FORMAT**    | *parser*           | Both  | Mechanically checkable submission constraints                          |
-| **FORM**      | TypographyAnalyser | Both  | Bad visual formatting/polish (typography + captions/assets)            |
-| **STRUCT**    | SectionAnalyser    | IPP   | Insufficient document structure                                        |
-| **strukt.**   | SectionAnalyser    | IFJ   | Insufficient document structure                                        |
 | **MISSING**   | *parser*           | Both  | Missing document                                                       |
-| **SHORT**     | SectionAnalyser    | Both  | Too short overall (uses parser metrics)                                |
-| **LANG**      | TextAnalyser       | Both  | Language mixing (cs/sk/en)                                             |
-| **CH**        | TextAnalyser       | IPP   | Spelling/grammar mistakes                                              |
-| **gram.**     | TextAnalyser       | IFJ   | Grammar mistakes                                                       |
-| **MEZ**       | TextAnalyser       | Both  | Incorrect whitespace usage (around brackets)                           |
+| **STRUCT**    | StructureAnalyser  | IPP   | Insufficient document structure                                        |
+| **strukt.**   | StructureAnalyser  | IFJ   | Insufficient document structure                                        |
+| **SHORT**     | StructureAnalyser  | Both  | Too short overall (uses parser metrics)                                |
+| **KAPTXT**    | StructureAnalyser  | Both  | Consecutive headings without content                                   |
+| **1. strana** | StructureAnalyser  | IFJ   | Missing information on the first page                                  |
+| **FORM**      | TypographyAnalyser | Both  | Bad visual formatting/polish (typography + captions/assets)            |
 | **PRED**      | TypographyAnalyser | IPP   | One-letter prepositions at end of line                                 |
-| **ICH**       | TextAnalyser       | IPP   | First-person singular usage                                            |
-| **STYLE**     | TextAnalyser       | Both  | Unclear or poor writing style                                          |
-| **FILO**      | TextAnalyser       | IPP   | Missing/insufficient design philosophy                                 |
-| **HOV**       | TextAnalyser       | Both  | Informal, conversational, slang words                                  |
-| **TERM**      | TextAnalyser       | IPP   | Incorrect technical terms                                              |
-| **term.**     | TextAnalyser       | IFJ   | Incorrect technical terms                                              |
-| **CONTENT**   | SectionAnalyser    | IPP   | Sections off-topic (time, feelings, subjectivity)                      |
-| **COPY**      | IntegrityAnalyser  | IPP   | Copied/uncited text (spec/internet/other students)                     |
-| **1. strana** | SectionAanlyser    | IFJ   | Missing information on the first page                                  |
 | **BLOK**      | TypographyAnalyser | Both  | Align-left instead of justified text                                   |
 | **SAZBA**     | TypographyAnalyser | Both  | Insufficient typesetting                                               |
 | **typ.**      | TypographyAnalyser | IFJ   | General typography issues                                              |
-| **KAPTXT**    | SectionAnalyser    | Both  | Consecutive headings without content                                   |
-| **KA**        | AssetAnalyser      | IFJ   | Errors within FSM                                                      |
-| **LLT**       | AssetAnalyser      | IFJ   | Missing/insufficient LL table (incomplete coverage, ...)               |
-| **LL**        | AssetAnalyser      | IFJ   | Errors in the LL table                                                 |
-| **PT**        | AssetAnalyser      | IFJ   | Errors in precedence table                                             |
-| **SA**        | SectionAnalyser    | IFJ   | Insufficient syntax analysis description                               |
-| **SAV**       | SectionAnalyser    | IFJ   | Insufficient expression parsing description                            |
-| **SéA**       | SectionAnalyser    | IFJ   | Insufficient semantic analysis description                             |
-| **PSA**       | SectionAnalyser    | IFJ   | Insufficient precedence syntax analysis description                    |
-| **TS**        | SectionAnalyser    | IFJ   | Insufficient symbol table description                                  |
-| **GK**        | SectionAnalyser    | IFJ   | Insufficient code generation description                               |
-| **RP**        | SectionAnalyser    | IFJ   | Division of work section                                               |
+| **MDLINES**   | TypographyAnalyser | IPP   | Incorrect markdown paragraph line break formatting                     |
+| **MEZ**       | TypographyAnalyser | Both  | Incorrect whitespace usage (around brackets)                           |
+| **LANG**      | TextAnalyser       | Both  | Language mixing (cs/sk/en)                                             |
+| **CH**        | TextAnalyser       | IPP   | Spelling/grammar mistakes                                              |
+| **gram.**     | TextAnalyser       | IFJ   | Grammar mistakes                                                       |
+| **ICH**       | TextAnalyser       | IPP   | First-person singular usage                                            |
+| **TERM**      | TextAnalyser       | IPP   | Incorrect technical terms                                              |
+| **term.**     | TextAnalyser       | IFJ   | Incorrect technical terms                                              |
+| **COPY**      | IntegrityAnalyser  | IPP   | Copied/uncited text (spec/internet/other students)                     |
 | **NOUML**     | AssetAnalyser      | IPP   | UML class diagram missing                                              |
 | **BADUML**    | AssetAnalyser      | IPP   | Syntax errors, missing methods/interactions, or auto-generated garbage |
 | **OWNDIF**    | AssetAnalyser      | IPP   | Diagram does not distinguish own vs library classes                    |
 | **BW**        | AssetAnalyser      | IPP   | Dark-background diagram pasted into light doc                          |
-| **NOOOP**     | AssetAnalyser      | IPP   | Code ignores OOP; functions merely wrapped in classes                  |
-| **NOSRP**     | AssetAnalyser      | IPP   | Violation of Single Responsibility Principle                           |
-| **BADDP**     | AssetAnalyser      | IPP   | Inappropriate use or bad implementation of a design pattern            |
-| **EXT**       | SectionAnalyser    | IPP   | Insufficient extensibility description                                 |
-| **IR**        | SectionAnalyser    | IPP   | Insufficient internal representation description                       |
-| **JAK**       | SectionAnalyser    | IPP   | Insufficient implementation description                                |
-| **MDLINES**   | TypographyAnalyser | IPP   | Incorrect markdown paragraph line break formatting                     |
-| **OOP**       | SectionAnalyser    | IPP   | Bonus when OOP usage is meaningful and well described                  |
-| **EX**        | SectionAnalyser    | IPP   | Bonus for particularly clean exception usage                           |
-| **DP**        | SectionAnalyser    | IPP   | Bonus for good and well justified pattern usage                        |
-| **NVPDOC**    | SectionAnalyser    | IPP   | NVP extension doc missing                                              |
-| **SINGLETON** | TextAnalyser       | IPP   | Singleton explicitly disallowed for NVP                                |
+| **LLT**       | AssetAnalyser      | IFJ   | Missing/insufficient LL table (incomplete coverage, ...)               |
+| **LL**        | AssetAnalyser      | IFJ   | Errors in the LL table                                                 |
+| **PT**        | AssetAnalyser      | IFJ   | Errors in precedence table                                             |
+| **KA**        | AssetAnalyser      | IFJ   | Errors within FSM                                                      |
+| **CONTENT**   | ContentAnalyser    | IPP   | Sections off-topic (time, feelings, subjectivity)                      |
+| **SA**        | ContentAnalyser    | IFJ   | Insufficient syntax analysis description                               |
+| **SAV**       | ContentAnalyser    | IFJ   | Insufficient expression parsing description                            |
+| **SéA**       | ContentAnalyser    | IFJ   | Insufficient semantic analysis description                             |
+| **PSA**       | ContentAnalyser    | IFJ   | Insufficient precedence syntax analysis description                    |
+| **TS**        | ContentAnalyser    | IFJ   | Insufficient symbol table description                                  |
+| **GK**        | ContentAnalyser    | IFJ   | Insufficient code generation description                               |
+| **RP**        | ContentAnalyser    | IFJ   | Division of work section                                               |
+| **EXT**       | ContentAnalyser    | IPP   | Insufficient extensibility description                                 |
+| **IR**        | ContentAnalyser    | IPP   | Insufficient internal representation description                       |
+| **JAK**       | ContentAnalyser    | IPP   | Insufficient implementation description                                |
+| **OOP**       | ContentAnalyser    | IPP   | Bonus when OOP usage is meaningful and well described                  |
+| **EX**        | ContentAnalyser    | IPP   | Bonus for particularly clean exception usage                           |
+| **DP**        | ContentAnalyser    | IPP   | Bonus for good and well justified pattern usage                        |
+| **NVPDOC**    | ContentAnalyser    | IPP   | NVP extension doc missing                                              |
+| **STYLE**     | StyleAnalyser      | Both  | Unclear or poor writing style                                          |
+| **FILO**      | StyleAnalyser      | IPP   | Missing/insufficient design philosophy                                 |
+| **HOV**       | StyleAnalyser      | Both  | Informal, conversational, slang words                                  |
+| **NOOOP**     | DesignAnalyser     | IPP   | Code ignores OOP; functions merely wrapped in classes                  |
+| **NOSRP**     | DesignAnalyser     | IPP   | Violation of Single Responsibility Principle                           |
+| **BADDP**     | DesignAnalyser     | IPP   | Inappropriate use or bad implementation of a design pattern            |
+| **SINGLETON** | DesignAnalyser     | IPP   | Singleton explicitly disallowed for NVP                                |
 
 ## Analysers
 
-### 1. IntegrityAnalyser
+### 1. StructureAnalyser
 
-Authorship info presence and integrity checks around copied/uncited content, from spec only for now.
-
-**ACs**:
-
-- legacy: *COPY*
-
-Ideas
-
-- embed -> cosine similiarity?
-- shingles -> jaccard similiarity?
-
-### 2. SectionAnalyser
-
-Structure/section presence and section-level content adequacy. Section specific relevance to t.
+Document-level structural presence and completeness checks. Replaces the structural half of the old SectionAnalyser.
 
 **ACs**:
 
-- legacy: *STRUCT*, *strukt.*, *KAPTXT*, required section codes (*KA*, *SA*, *SAV*, *SéA*, *PSA*, *TS*, *GK*, *RP*, *EXT*, *IR*, *JAK*, *NVPDOC*), *CONTENT*, *SHORT*
+- legacy: *STRUCT*, *strukt.*, *SHORT*, *KAPTXT*, *1. strana*
 
 Ideas
 
-need: 1. structure check, 2. section content check
-
-- regex/similarity required headings
+- regex/similarity match against required headings list
 - consecutive headings without content check
-- analyse metrics for shortness
-- content:
-  - heuristic filter first? (čas, pocity, bavilo mě, já, etc.)
-  - then LLM check for content adequacy
+- analyse metrics for shortness (word count, char count, paragraph count)
+
+### 2. ContentAnalyser
+
+Section-level content adequacy and topical relevance. Handles all required-section codes and off-topic penalties. Replaces the content half of the old SectionAnalyser.
+
+**ACs**:
+
+- legacy: *CONTENT*, *SA*, *SAV*, *SéA*, *PSA*, *TS*, *GK*, *RP*, *EXT*, *IR*, *JAK*, *OOP*, *EX*, *DP*, *NVPDOC*
+
+Ideas
+
+need: 1. section presence check, 2. section content adequacy
+
+- heuristic filter first? (čas, pocity, bavilo mě, já, etc.)
+- then LLM check for content adequacy
 
 ### 3. TypographyAnalyser
 
-Presenetation geometry, canonical layout, pdf visual stylistic elements / markdown lint. Mechanical typography/layout checks (PDF + Markdown).
+Presentation geometry, canonical layout, PDF visual stylistic elements / markdown lint. Mechanical typography/layout checks (PDF + Markdown). Includes whitespace mechanics (MEZ) as a deterministic text-layer check.
 
 **ACs**:
 
@@ -110,13 +107,40 @@ Ideas
   - come up with heuristics for bbox gaps, fonts, md lint?
   - or offload to LLM...
 
-### 4. AssetAnalyser
+### 4. TextAnalyser
 
-Figure/table inventory + presence/readability/suitability checks.
+Mostly objective deterministic checks: language detection, grammar, and terminology. Writing mechanics only; style and tone live in StyleAnalyser.
 
 **ACs**:
 
-- legacy: *NOUML*, *BADUML*, *OWNDIF*, *BW*, *NOOOP*, *LLT*, *LL*, *PT*
+- legacy: *LANG*, *CH*, *gram.*, *ICH*, *TERM*, *term.*
+
+Ideas
+
+- *LANG* langdetect -> bert
+- regex for *ICH*
+- grammar check tools for *CH*, *gram.*
+
+### 5. IntegrityAnalyser
+
+Authorship info presence and integrity checks around copied/uncited content, from spec only for now.
+
+**ACs**:
+
+- legacy: *COPY*
+
+Ideas
+
+- embed -> cosine similiarity?
+- shingles -> jaccard similiarity?
+
+### 6. AssetAnalyser
+
+Figure/table inventory + presence/readability/suitability checks. Covers both UML diagrams (IPP) and formal automata/table assets (IFJ).
+
+**ACs**:
+
+- legacy: *NOUML*, *BADUML*, *OWNDIF*, *BW*, *LLT*, *LL*, *PT*, *KA*
 
 Ideas
 
@@ -125,33 +149,33 @@ need: 1. presence, quality, semantic correctness?
 - images, image type, captions extracted
 - vision llm for general quality
 
-### 5. TextAnalyser
+### 7. StyleAnalyser
 
-Mostly objective deterministic checks: Language mixing + writing mechanics + terminology.
+General writing style, clarity, and tone. LLM-backed; heuristic pre-filter to reduce inference cost.
 
 **ACs**:
 
-- legacy: *LANG*, *CH*, *gram.*, *ICH*, *TERM*, *term.*, *SINGLETON*
-
-Ideas
-
-- *LANG* langdetect -> bert
-- whitespace regex
-- regex
-- grammar check tools
-
-### 6. StyleAnalyser
-
-General writing style and clarity.
-**ACs**:
-
-- legacy: *STYLE*, *FILO*, *HOV*,
+- legacy: *STYLE*, *FILO*, *HOV*
 
 Ideas
 
 - heuristic filter, llm
 
-### 7. CustomAnalyser
+### 8. DesignAnalyser
+
+Object-oriented design quality and pattern usage. Evaluates architectural decisions described in the text, not source code directly.
+
+**ACs**:
+
+- legacy: *NOOOP*, *NOSRP*, *BADDP*, *SINGLETON*
+
+Ideas
+
+- heuristic keyword scan for explicit OOP/pattern mentions
+- LLM check for design quality and SRP adherence
+- *SINGLETON* deterministic regex: flag any mention of Singleton pattern
+
+### 9. CustomAnalyser
 
 Ad-hoc prompt-based checks isolated from deterministic scoring.
 
