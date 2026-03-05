@@ -4,13 +4,18 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from dotenv import load_dotenv
+
 # Analysers
 from .analysers.structure_analyser import StructureAnalyser
+from .analysers.text_analyser import TextAnalyser
+from .llm_client import LLMClient
 from .schemas.config import AppConfig, load_config
 from .utils import (
     compute_config_hash,
@@ -31,6 +36,7 @@ logger = logging.getLogger(__name__)
 
 ANALYSER_LIST: dict[str, type[BaseAnalyser]] = {
     StructureAnalyser.analyser_id: StructureAnalyser,
+    TextAnalyser.analyser_id: TextAnalyser,
 }
 
 
@@ -42,7 +48,9 @@ def _load_app_config(config_path: str | None) -> AppConfig:
     return load_config(Path(config_path) if config_path else _DEFAULT_CONFIG)
 
 
-def _run_analysers(ir: Document, config: AppConfig) -> list[Finding]:
+def _run_analysers(
+    ir: Document, config: AppConfig, llm_client: Any | None = None
+) -> list[Finding]:
     findings: list[Finding] = []
 
     for analyser_cfg in config.analysers:
@@ -58,7 +66,10 @@ def _run_analysers(ir: Document, config: AppConfig) -> list[Finding]:
 
         try:
             # Separate instance per document
-            analyser_instance = analyser_class()
+            if analyser_cfg.analyser_id == TextAnalyser.analyser_id:
+                analyser_instance = TextAnalyser(llm_client)
+            else:
+                analyser_instance = analyser_class()
             result = analyser_instance.analyse(ir, params=analyser_cfg.params)
             if result:
                 findings.extend(result)
@@ -81,6 +92,7 @@ def _config_for_hash(config: AppConfig) -> dict[str, Any]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    load_dotenv()
     arg_parser = argparse.ArgumentParser(prog="project")
     arg_parser.add_argument(
         "inputs", nargs="+", help="One or more paths to the input files (.md, .pdf)"
@@ -117,6 +129,19 @@ def main(argv: list[str] | None = None) -> int:
     except Exception as e:
         logger.error("Failed to load config: %s", e)
         return 2
+
+    llm_client = None
+    llm_needed = any(
+        a.analyser_id == TextAnalyser.analyser_id and a.enabled
+        for a in config.analysers
+    )
+    if llm_needed:
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            logger.error("text_analyser is enabled but OPENAI_API_KEY is not set.")
+            return 2
+        llm_client = LLMClient()
+        logger.info("LLMClient ready")
 
     run_id = _run_id_from_config(config)
     config_hash = compute_config_hash(_config_for_hash(config))
@@ -169,7 +194,7 @@ def main(argv: list[str] | None = None) -> int:
         write_json(file_outdir / "docling.json", ir_doc.docling_doc)
         write_json(file_outdir / "ir.json", ir_doc)
 
-        analyser_findings = _run_analysers(ir_doc, config)
+        analyser_findings = _run_analysers(ir_doc, config, llm_client)
         write_json(file_outdir / "findings.json", analyser_findings)
 
         csv_rows.extend(findings_to_csv_rows(path, analyser_findings))

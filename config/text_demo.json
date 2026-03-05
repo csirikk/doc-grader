@@ -1,0 +1,10 @@
+{
+    "version": "config/0.1",
+    "analysers": [
+        {
+            "analyser_id": "text_analyser",
+            "enabled": true,
+            "params": {}
+        }
+    ]
+}

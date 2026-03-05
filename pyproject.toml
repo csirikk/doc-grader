@@ -13,6 +13,9 @@ dependencies = [
     "seaborn",
     "scipy",
     "langdetect",
+    "openai",
+    "instructor",
+    "python-dotenv",
 ]
 
 [project.scripts]

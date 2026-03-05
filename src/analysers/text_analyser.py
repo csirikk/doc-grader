@@ -1,55 +1,74 @@
-"""Text analyser for deterministic text checks."""
+"""llm draft"""
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any, ClassVar
+
+from docling_core.types.doc.document import TextItem
+from docling_core.types.doc.labels import DocItemLabel
 
 from .base_analyser import BaseAnalyser
 
 if TYPE_CHECKING:
+    from ..llm_client import LLMClient
     from ..schemas.finding import Finding
     from ..schemas.ir import Document
 
+logger = logging.getLogger(__name__)
+
 
 class TextAnalyser(BaseAnalyser):
-    """
-    Deterministic checks for text mechanics.
-
-    Implemented AC codes:
-    - LANG:  Language mixing, Czech / Slovak text with English words (both variants).
-    - CH:    Spelling and grammar mistakes.
-    - ICH:   First-person singular usage in formal documentation.
-    - TERM:  Incorrect or imprecise technical terminology.
-    """
-
     analyser_id: ClassVar[str] = "text_analyser"
     name: ClassVar[str] = "Text Analyser"
 
-    def check_lang(self, doc: Document) -> list[Finding]:
-        """Detect unsanctioned language mixing (cs/sk/en)."""
-        return []
+    MASTER_SYSTEM_PROMPT: ClassVar[str] = """\
+You are a strict academic reviewer for university project documentation.
+Documents are written in Czech, Slovak or English by undergraduate students.
 
-    def check_ch(self, doc: Document) -> list[Finding]:
-        """Detect spelling and grammar mistakes"""
-        return []
+For each text passage you receive, identify any of the following issues:
+  
+1. CH: spelling or grammar mistakes
+2. HOV: informal, colloquial, conversational, or slang expressions
+3. ICH: first-person singular usage (e.g. "implementoval jsem", "popisuji", "mine")
+4. STYLE: unclear, repetitive, unacademic, or imprecise phrasing
+5. TERM: incorrect or imprecise technical terminology
 
-    def check_ich(self, doc: Document) -> list[Finding]:
-        """Detect first-person singular usage in formal documentation"""
-        return []
+Return only a JSON object with a single key "findings", 
+whose value is a list of objects. Each object must have:
+  "code" : one of CH / HOV / ICH / STYLE / TERM
+  "snippet" : the exact offending substring from the input
+  "reason" : one-sentence string explanation in English
+  "severity" : float on a scale of 0.0 (trivial) to 1.0 (critical)
 
-    def check_term(self, doc: Document) -> list[Finding]:
-        """Detect incorrect or imprecise technical terminology."""
-        return []
+If no issues exist, return {"findings": []}.
+"""
+
+    _PARAGRAPH_LABELS: ClassVar[frozenset[DocItemLabel]] = frozenset(
+        {DocItemLabel.TEXT, DocItemLabel.PARAGRAPH}
+    )
+
+    def __init__(self, llm: LLMClient) -> None:
+        self.llm = llm
 
     def analyse(
         self, doc: Document, params: dict[str, Any] | None = None
     ) -> list[Finding]:
-        findings: list[Finding] = []
+        for item, _ in doc.docling_doc.iterate_items():
+            if not isinstance(item, TextItem):
+                continue
+            if item.label not in self._PARAGRAPH_LABELS:
+                continue
+            if not item.text or not item.text.strip():
+                continue
 
-        findings.extend(self.check_lang(doc))
-        findings.extend(self.check_ch(doc))
-        findings.extend(self.check_gram(doc))
-        findings.extend(self.check_ich(doc))
-        findings.extend(self.check_term(doc))
+            try:
+                result = self.llm.run(self.MASTER_SYSTEM_PROMPT, item.text)
+            except Exception as exc:
+                logger.warning("LLM call failed: %s", exc)
+                continue
 
-        return findings
+            logger.debug("paragraph: %s", item.text)
+            logger.debug("llm response: %s", result)
+
+        return []
