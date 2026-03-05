@@ -2,7 +2,7 @@
     "version": "config/0.1",
     "analysers": [
         {
-            "analyser_id": "section_analyser",
+            "analyser_id": "structure_analyser",
             "enabled": true,
             "params": {
                 "min_words": 486,

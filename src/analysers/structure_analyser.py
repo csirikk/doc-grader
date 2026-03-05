@@ -1,4 +1,4 @@
-"""Section analyser for structure and content checks."""
+"""Structure analyser for deterministic document structure checks."""
 
 from __future__ import annotations
 
@@ -24,16 +24,17 @@ SHORT_MIN_CHARS: int = 3422  # Accounts for ~90% of recorded SHORT docs
 SHORT_MIN_STRUCT: int = 7  # Accounts for ~75% of recorded SHORT docs
 
 
-class SectionAnalyser(BaseAnalyser):
+class StructureAnalyser(BaseAnalyser):
     """
-    Analyses document structure and completeness.
+    Deterministic checks for document structure and completeness.
 
-    Currently implemented AC codes:
-    - KAPTXT: Consecutive headings without content.
+    Implemented AC codes:
+    - SHORT: Document is too short based on word/char/paragraph counts.
+    - KAPTXT: Consecutive headings without intervening content.
     """
 
-    analyser_id: ClassVar[str] = "section_analyser"
-    name: ClassVar[str] = "Section Analyser"
+    analyser_id: ClassVar[str] = "structure_analyser"
+    name: ClassVar[str] = "Structure Analyser"
 
     @staticmethod
     def _page_confidence(item: SectionHeaderItem) -> float:
@@ -191,12 +192,23 @@ class SectionAnalyser(BaseAnalyser):
 
         return [finding]
 
+    def check_struct(self, doc: Document) -> list[Finding]:
+        """Detect missing required section headings (STRUCT / strukt.)."""
+        return []
+
+    def check_first_page(self, doc: Document) -> list[Finding]:
+        """Detect missing mandatory information on the cover page (1. strana)."""
+        return []
+
     def analyse(
         self, doc: Document, params: dict[str, Any] | None = None
     ) -> list[Finding]:
-        """Run all section checks."""
+        """Run all structure checks."""
         findings: list[Finding] = []
+
         findings.extend(self.check_kaptxt(doc))
+        findings.extend(self.check_struct(doc))
+        findings.extend(self.check_first_page(doc))
 
         p = params or {}
         findings.extend(

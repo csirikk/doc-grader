@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 # Analysers
-from .analysers.section_analyser import SectionAnalyser
+from .analysers.structure_analyser import StructureAnalyser
 from .schemas.config import AppConfig, load_config
 from .utils import (
     compute_config_hash,
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 ANALYSER_LIST: dict[str, type[BaseAnalyser]] = {
-    SectionAnalyser.analyser_id: SectionAnalyser,
+    StructureAnalyser.analyser_id: StructureAnalyser,
 }
 
 
