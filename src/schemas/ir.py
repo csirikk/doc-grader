@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
+from docling_core.types.doc.document import (
+    DoclingDocument,  # noqa: TC002
+    DocumentOrigin,  # noqa: TC002
+)
 from pydantic import Field
 
 from .base import StrictModel
-
-if TYPE_CHECKING:
-    from docling_core.types.doc.document import (
-        DoclingDocument,
-        DocumentOrigin,
-    )
 
 
 class DocumentRef(StrictModel):
