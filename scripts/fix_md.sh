@@ -9,8 +9,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-DOCS_DIR="$ROOT_DIR/data/raw/ipp_13_to_24/ipp_docs"
-ASSE_DIR="$ROOT_DIR/data/raw/ipp_13_to_24/ipp_assessments"
+DOCS_DIR="$ROOT_DIR/data/ipp_13_to_24/ipp_docs"
+ASSE_DIR="$ROOT_DIR/data/ipp_13_to_24/ipp_assessments"
 PYTHON="$ROOT_DIR/.venv/bin/python3"
 
 DRY_RUN=true
