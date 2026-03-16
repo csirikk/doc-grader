@@ -9,6 +9,16 @@
                 "min_chars": 3422,
                 "min_struct": 7
             }
+        },
+        {
+            "analyser_id": "text_analyser",
+            "enabled": true,
+            "params": {}
+        },
+        {
+            "analyser_id": "style_analyser",
+            "enabled": true,
+            "params": {}
         }
     ]
 }
