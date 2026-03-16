@@ -5,6 +5,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from docling_core.types.doc.document import TextItem
+from docling_core.types.doc.labels import DocItemLabel
 from pydantic import Field
 
 from ..schemas.base import StrictModel
@@ -182,7 +184,36 @@ class DocumentParser:
             parse_meta.parsed_ok = True
             parse_meta.error = None
 
-            ir = Document.from_docling(doc=doc, doc_ref=doc_ref)
+            words, chars, paras, headings = 0, 0, 0, 0
+            text_items = {}
+            paragraph_labels = {DocItemLabel.TEXT, DocItemLabel.PARAGRAPH}
+
+            for item, _ in doc.iterate_items():
+                if not isinstance(item, TextItem):
+                    continue
+
+                if item.label == DocItemLabel.SECTION_HEADER:
+                    headings += 1
+
+                if item.label in paragraph_labels:
+                    paras += 1
+
+                if item.text:
+                    words += len(item.text.split())
+                    chars += len(item.text)
+
+                    if item.text.strip():
+                        text_items[item.get_ref().cref] = item
+
+            ir = Document(
+                doc_ref=doc_ref,
+                docling_doc=doc,
+                total_words=words,
+                total_chars=chars,
+                total_paragraphs=paras,
+                total_headings=headings,
+                text_items=text_items,
+            )
             return ParseOutput(
                 doc_ref=doc_ref,
                 ir=ir,

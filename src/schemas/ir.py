@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
-from docling_core.types.doc.document import (
-    DoclingDocument,
-    DocumentOrigin,
-    TextItem,
-)
-from docling_core.types.doc.labels import DocItemLabel
+from typing import TYPE_CHECKING, Any
+
 from pydantic import Field
 
 from .base import StrictModel
+
+if TYPE_CHECKING:
+    from docling_core.types.doc.document import (
+        DoclingDocument,
+        DocumentOrigin,
+    )
 
 
 class DocumentRef(StrictModel):
@@ -37,30 +39,8 @@ class Document(StrictModel):
     total_chars: int = Field(default=0, description="Total detected characters")
     total_paragraphs: int = Field(default=0, description="Total detected paragraphs")
     total_headings: int = Field(default=0, description="Total detected headings")
-
-    @classmethod
-    def from_docling(cls, doc: DoclingDocument, doc_ref: DocumentRef) -> Document:
-        """Calculates custom stats instantly after creation."""
-
-        words, chars, paras, headings = 0, 0, 0, 0
-        paragraph_labels = {DocItemLabel.TEXT, DocItemLabel.PARAGRAPH}
-
-        for item, _ in doc.iterate_items():
-            if item.label == DocItemLabel.SECTION_HEADER:
-                headings += 1
-
-            if item.label in paragraph_labels:
-                paras += 1
-
-            if isinstance(item, TextItem) and item.text:
-                words += len(item.text.split())
-                chars += len(item.text)
-
-        return cls(
-            doc_ref=doc_ref,
-            docling_doc=doc,
-            total_words=words,
-            total_chars=chars,
-            total_paragraphs=paras,
-            total_headings=headings,
-        )
+    text_items: dict[str, Any] = Field(
+        default_factory=dict,
+        exclude=True,
+        description="Map of cref to Docling TextItem",
+    )
