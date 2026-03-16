@@ -14,6 +14,7 @@ class LLMEvaluation(StrictModel):
     item_cref: str = Field(
         ..., description="The Docling canonical reference (cref) of the relevant item"
     )
-    snippet: str
+    snippet: str | None = None
     reason: str
     severity: float
+    confidence: float = 1.0

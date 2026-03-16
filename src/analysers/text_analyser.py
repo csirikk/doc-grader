@@ -1,74 +1,76 @@
-"""llm draft"""
+"""LLM-based text analyser."""
 
 from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from docling_core.types.doc.document import TextItem
-from docling_core.types.doc.labels import DocItemLabel
-
-from .base_analyser import BaseAnalyser
+from ..schemas.llm import LLMRule
+from .base_analyser import BaseLLMAnalyser
 
 if TYPE_CHECKING:
-    from ..llm_client import LLMClient
     from ..schemas.finding import Finding
     from ..schemas.ir import Document
+    from ..schemas.llm import LLMEvaluation
 
 logger = logging.getLogger(__name__)
 
 
-class TextAnalyser(BaseAnalyser):
+class TextAnalyser(BaseLLMAnalyser):
     analyser_id: ClassVar[str] = "text_analyser"
     name: ClassVar[str] = "Text Analyser"
 
-    MASTER_SYSTEM_PROMPT: ClassVar[str] = """\
-You are a strict academic reviewer for university project documentation.
-Documents are written in Czech, Slovak or English by undergraduate students.
+    def get_rules(self) -> list[LLMRule]:
+        return [
+            LLMRule(
+                ac_code="CH",
+                prompt_instruction="spelling or grammar mistakes",
+                analyser_id=self.analyser_id,
+            ),
+            LLMRule(
+                ac_code="gram.",
+                prompt_instruction="grammar mistakes in IFJ project",
+                analyser_id=self.analyser_id,
+            ),
+            LLMRule(
+                ac_code="ICH",
+                prompt_instruction="first-person singular usage (e.g. 'implementoval jsem', 'popisuji', 'mine')",
+                analyser_id=self.analyser_id,
+            ),
+            LLMRule(
+                ac_code="TERM",
+                prompt_instruction="incorrect or imprecise technical terminology",
+                analyser_id=self.analyser_id,
+            ),
+            LLMRule(
+                ac_code="LANG",
+                prompt_instruction="language mixing (mixing Czech, Slovak, or English in the same sentence or paragraph)",
+                analyser_id=self.analyser_id,
+            ),
+        ]
 
-For each text passage you receive, identify any of the following issues:
-  
-1. CH: spelling or grammar mistakes
-2. HOV: informal, colloquial, conversational, or slang expressions
-3. ICH: first-person singular usage (e.g. "implementoval jsem", "popisuji", "mine")
-4. STYLE: unclear, repetitive, unacademic, or imprecise phrasing
-5. TERM: incorrect or imprecise technical terminology
-
-Return only a JSON object with a single key "findings", 
-whose value is a list of objects. Each object must have:
-  "code" : one of CH / HOV / ICH / STYLE / TERM
-  "snippet" : the exact offending substring from the input
-  "reason" : one-sentence string explanation in English
-  "severity" : float on a scale of 0.0 (trivial) to 1.0 (critical)
-
-If no issues exist, return {"findings": []}.
-"""
-
-    _PARAGRAPH_LABELS: ClassVar[frozenset[DocItemLabel]] = frozenset(
-        {DocItemLabel.TEXT, DocItemLabel.PARAGRAPH}
-    )
-
-    def __init__(self, llm: LLMClient) -> None:
-        self.llm = llm
-
-    def analyse(
-        self, doc: Document, params: dict[str, Any] | None = None
+    def process_evaluations(
+        self,
+        doc: Document,
+        evals: list[LLMEvaluation],
+        params: dict[str, Any] | None = None,
     ) -> list[Finding]:
-        for item, _ in doc.docling_doc.iterate_items():
-            if not isinstance(item, TextItem):
-                continue
-            if item.label not in self._PARAGRAPH_LABELS:
-                continue
-            if not item.text or not item.text.strip():
-                continue
+        findings: list[Finding] = []
 
-            try:
-                result = self.llm.run(self.MASTER_SYSTEM_PROMPT, item.text)
-            except Exception as exc:
-                logger.warning("LLM call failed: %s", exc)
-                continue
+        for ev in evals:
+            item = doc.text_items.get(ev.item_cref)
 
-            logger.debug("paragraph: %s", item.text)
-            logger.debug("llm response: %s", result)
+            findings.append(
+                self._make_finding(
+                    doc=doc,
+                    ac_code=ev.ac_code,
+                    title=f"Text issue: {ev.ac_code}",
+                    summary=ev.reason,
+                    evidence_item=item,
+                    snippet_override=ev.snippet,
+                    severity=ev.severity,
+                    confidence=ev.confidence,
+                )
+            )
 
-        return []
+        return findings

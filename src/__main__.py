@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 
 # Analysers
 from .analysers.structure_analyser import StructureAnalyser
+from .analysers.style_analyser import StyleAnalyser
 from .analysers.text_analyser import TextAnalyser
 from .llm_client import LLMClient
 from .schemas.config import AppConfig, load_config
@@ -36,6 +37,7 @@ logger = logging.getLogger(__name__)
 
 ANALYSER_LIST: dict[str, type[BaseAnalyser]] = {
     StructureAnalyser.analyser_id: StructureAnalyser,
+    StyleAnalyser.analyser_id: StyleAnalyser,
     TextAnalyser.analyser_id: TextAnalyser,
 }
 
@@ -51,7 +53,13 @@ def _load_app_config(config_path: str | None) -> AppConfig:
 def _run_analysers(
     ir: Document, config: AppConfig, llm_client: Any | None = None
 ) -> list[Finding]:
+    from .analysers.base_analyser import BaseLLMAnalyser
+
     findings: list[Finding] = []
+
+    llm_analysers: dict[str, BaseLLMAnalyser] = {}
+    all_llm_rules = []
+    llm_params = {}
 
     for analyser_cfg in config.analysers:
         if not analyser_cfg.enabled:
@@ -65,16 +73,38 @@ def _run_analysers(
             continue
 
         try:
-            # Separate instance per document
-            if analyser_cfg.analyser_id == TextAnalyser.analyser_id:
-                analyser_instance = TextAnalyser(llm_client)
+            analyser_instance = analyser_class()
+
+            if isinstance(analyser_instance, BaseLLMAnalyser):
+                llm_analysers[analyser_cfg.analyser_id] = analyser_instance
+                llm_params[analyser_cfg.analyser_id] = analyser_cfg.params
+                all_llm_rules.extend(analyser_instance.get_rules())
             else:
-                analyser_instance = analyser_class()
-            result = analyser_instance.analyse(ir, params=analyser_cfg.params)
-            if result:
-                findings.extend(result)
+                result = analyser_instance.analyse(ir, params=analyser_cfg.params)
+                if result:
+                    findings.extend(result)
         except Exception:
             logger.exception("Error running analyser %s", analyser_cfg.analyser_id)
+
+    if llm_analysers and all_llm_rules and llm_client:
+        try:
+            evals = llm_client.evaluate_document(ir, all_llm_rules)
+            ac_to_analyser = {r.ac_code: r.analyser_id for r in all_llm_rules}
+
+            for analyser_id, instance in llm_analysers.items():
+                params = llm_params.get(analyser_id)
+
+                # Filter evaluations for this analyser only
+                analyser_evals = [
+                    e for e in evals if ac_to_analyser.get(e.ac_code) == analyser_id
+                ]
+
+                result = instance.process_evaluations(ir, analyser_evals, params)
+                if result:
+                    findings.extend(result)
+
+        except Exception:
+            logger.exception("Error running batched LLM evaluation")
 
     return findings
 
@@ -132,13 +162,14 @@ def main(argv: list[str] | None = None) -> int:
 
     llm_client = None
     llm_needed = any(
-        a.analyser_id == TextAnalyser.analyser_id and a.enabled
+        a.analyser_id in {TextAnalyser.analyser_id, StyleAnalyser.analyser_id}
+        and a.enabled
         for a in config.analysers
     )
     if llm_needed:
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
-            logger.error("text_analyser is enabled but OPENAI_API_KEY is not set.")
+            logger.error("An LLM Analyser is enabled but OPENAI_API_KEY is not set.")
             return 2
         llm_client = LLMClient()
         logger.info("LLMClient ready")
