@@ -75,9 +75,14 @@ class StructureAnalyser(BaseAnalyser):
         last_heading_level = 0
 
         for item, _iter_level in doc.docling_doc.iterate_items():
+            if not isinstance(item, TextItem):
+                continue
+
             label = item.label
 
-            if label == DocItemLabel.SECTION_HEADER:
+            if label == DocItemLabel.SECTION_HEADER and isinstance(
+                item, SectionHeaderItem
+            ):
                 header_level = item.level
 
                 if last_was_heading and last_heading_item is not None:
