@@ -1,4 +1,18 @@
-"""Style analyser for checks related to writing style."""
+"""LLM-based writing style analyser. Nuanced, subjective aim, editorial.
+
+Responsible for AC:
+- 'STYLE': Unclear or poor writing style.
+- 'HOV': Informal, conversational, or slang language.
+
+Future AC codes to consider:
+- 'REPET': repetitive or redundant phrasing
+  - "The algorithm is efficient. It runs in O(n) time, which is efficient."
+- 'TUTORIAL': tutorial-like tone, excessive hand-holding, or over-explaining
+  - "First, we will initialize the variables. Then, ..."
+  - "Now, let's look at how we can implement the parser..."
+- 'FLUFF': unnecessary filler that does not add meaning
+- 'VUL': vulgar language
+"""
 
 from __future__ import annotations
 
@@ -14,15 +28,6 @@ if TYPE_CHECKING:
 
 
 class StyleAnalyser(BaseLLMAnalyser):
-    """
-    LLM checks for writing style and tone, with heuristic pre-filters.
-
-    Implemented AC codes:
-    - STYLE: Unclear or poor writing style.
-    - FILO: Missing or insufficient design philosophy description (IPP only).
-    - HOV: Informal, conversational, or slang language.
-    """
-
     analyser_id: ClassVar[str] = "style_analyser"
     name: ClassVar[str] = "Style Analyser"
 
@@ -31,11 +36,6 @@ class StyleAnalyser(BaseLLMAnalyser):
             LLMRule(
                 ac_code="STYLE",
                 prompt_instruction="unclear or poor writing style, repetitive, or unacademic phrasing",
-                analyser_id=self.analyser_id,
-            ),
-            LLMRule(
-                ac_code="FILO",
-                prompt_instruction="missing or insufficient explanation of design philosophy or architectural decisions",
                 analyser_id=self.analyser_id,
             ),
             LLMRule(

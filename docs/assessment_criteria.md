@@ -44,20 +44,20 @@ This document maps Analyser findings to assessment criteria used in IFJ/IPP proj
 | **TS**        | ContentAnalyser    | IFJ   | Insufficient symbol table description                                  |
 | **GK**        | ContentAnalyser    | IFJ   | Insufficient code generation description                               |
 | **RP**        | ContentAnalyser    | IFJ   | Division of work section                                               |
-| **EXT**       | ContentAnalyser    | IPP   | Insufficient extensibility description                                 |
 | **IR**        | ContentAnalyser    | IPP   | Insufficient internal representation description                       |
 | **JAK**       | ContentAnalyser    | IPP   | Insufficient implementation description                                |
-| **OOP**       | ContentAnalyser    | IPP   | Bonus when OOP usage is meaningful and well described                  |
-| **EX**        | ContentAnalyser    | IPP   | Bonus for particularly clean exception usage                           |
-| **DP**        | ContentAnalyser    | IPP   | Bonus for good and well justified pattern usage                        |
 | **NVPDOC**    | ContentAnalyser    | IPP   | NVP extension doc missing                                              |
 | **STYLE**     | StyleAnalyser      | Both  | Unclear or poor writing style                                          |
-| **FILO**      | StyleAnalyser      | IPP   | Missing/insufficient design philosophy                                 |
 | **HOV**       | StyleAnalyser      | Both  | Informal, conversational, slang words                                  |
 | **NOOOP**     | DesignAnalyser     | IPP   | Code ignores OOP; functions merely wrapped in classes                  |
+| **OOP**       | DesignAnalyser     | IPP   | Bonus when OOP usage is meaningful and well described                  |
 | **NOSRP**     | DesignAnalyser     | IPP   | Violation of Single Responsibility Principle                           |
+| **DP**        | DesignAnalyser     | IPP   | Bonus for good and well justified pattern usage                        |
 | **BADDP**     | DesignAnalyser     | IPP   | Inappropriate use or bad implementation of a design pattern            |
 | **SINGLETON** | DesignAnalyser     | IPP   | Singleton explicitly disallowed for NVP                                |
+| **EXT**       | DesignAnalyser     | IPP   | Insufficient extensibility description                                 |
+| **EX**        | DesignAnalyser     | IPP   | Bonus for particularly clean exception usage                           |
+| **FILO**      | DesignAnalyser     | IPP   | Missing/insufficient design philosophy                                 |
 
 ## Analysers
 
@@ -77,11 +77,11 @@ Ideas
 
 ### 2. ContentAnalyser
 
-Section-level content adequacy and topical relevance. Handles all required-section codes and off-topic penalties. Replaces the content half of the old SectionAnalyser.
+LLM-based content analyser. Technical adequacy and topical relevance of sections. Required domain topics presence and their content. Handles all required-section codes and off-topic penalties.
 
 **ACs**:
 
-- legacy: *CONTENT*, *SA*, *SAV*, *SéA*, *PSA*, *TS*, *GK*, *RP*, *EXT*, *IR*, *JAK*, *OOP*, *EX*, *DP*, *NVPDOC*
+- legacy: *CONTENT*, *SA*, *SAV*, *SéA*, *PSA*, *TS*, *GK*, *RP*, *IR*, *JAK*, *NVPDOC*
 
 Ideas
 
@@ -109,7 +109,7 @@ Ideas
 
 ### 4. TextAnalyser
 
-Mostly objective deterministic checks: language detection, grammar, and terminology. Writing mechanics only; style and tone live in StyleAnalyser.
+LLM-based text analyser. Deterministic, objective aim, proofreading. Mostly objective deterministic checks: language detection, grammar, and terminology. Writing mechanics only; style and tone live in StyleAnalyser.
 
 **ACs**:
 
@@ -151,11 +151,11 @@ need: 1. presence, quality, semantic correctness?
 
 ### 7. StyleAnalyser
 
-General writing style, clarity, and tone. LLM-backed; heuristic pre-filter to reduce inference cost.
+LLM-based writing style analyser. Nuanced, subjective aim, editorial. General writing style, clarity, and tone. LLM-backed; heuristic pre-filter to reduce inference cost.
 
 **ACs**:
 
-- legacy: *STYLE*, *FILO*, *HOV*
+- legacy: *STYLE*, *HOV*
 
 Ideas
 
@@ -163,11 +163,11 @@ Ideas
 
 ### 8. DesignAnalyser
 
-Object-oriented design quality and pattern usage. Evaluates architectural decisions described in the text, not source code directly.
+LLM-based design analyser. Architecture, OOP principles. Quality of what is written from a design perspective. Object-oriented design quality and pattern usage. Evaluates architectural decisions described in the text, not source code directly.
 
 **ACs**:
 
-- legacy: *NOOOP*, *NOSRP*, *BADDP*, *SINGLETON*
+- legacy: *OOP*, *NOOOP*, *NOSRP*, *DP*, *BADDP*, *SINGLETON*, *EXT*, *EX*, *FILO*
 
 Ideas
 
