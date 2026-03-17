@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from docling_core.types.doc.document import DocItem
 
     from ..schemas.ir import Document
-    from ..schemas.llm import LLMEvaluation, LLMRule
+    from ..schemas.llm import LLMFinding, LLMRule, Rulebook
 
 logger = logging.getLogger(__name__)
 
@@ -101,18 +101,20 @@ class BaseLLMAnalyser(BaseAnalyser):
     """Base class for analysers that delegate logic to an LLM."""
 
     @abstractmethod
-    def get_rules(self) -> list[LLMRule]:
-        """Return the rules this analyser wants the LLM to check."""
+    def get_rules(
+        self, rulebook: Rulebook, params: dict[str, Any] | None = None
+    ) -> list[LLMRule]:
+        """Return the rules this analyser wants the LLM to check, filtered by rulebook."""
         ...
 
     @abstractmethod
-    def process_evaluations(
+    def process_llm_findings(
         self,
         doc: Document,
-        evals: list[LLMEvaluation],
+        llm_findings: list[LLMFinding],
         params: dict[str, Any] | None = None,
     ) -> list[Finding]:
-        """Convert LLM evaluations back into standard Findings."""
+        """Convert LLM findings back into standard Findings."""
         ...
 
     def analyse(self, doc: Document, params: dict | None = None) -> list[Finding]:

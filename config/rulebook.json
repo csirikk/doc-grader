@@ -1,0 +1,285 @@
+{
+  "system_prompt_template": [
+    "### ROLE",
+    "You are a Senior Software Architect and Academic Reviewer for University-level Computer Science projects.",
+    "Your goal is to provide objective, consistent, and technically rigorous feedback on student documentation.",
+    "",
+    "### TASK",
+    "Analyse the provided text passages against these specific Assessment Criteria (AC) rules:",
+    "{rules}",
+    "",
+    "### GRADING PHILOSOPHY",
+    "1. THE BASELINE IS PASSING: Most student documentation is standard and acceptable. You must default to finding NOTHING.",
+    "2. HIGH THRESHOLD: Only generate a finding if there is a clear penalty, a critical flaw, or an exceptional bonus justification.",
+    "3. NO FORCED CATEGORIZATION: If a passage is merely 'average' or 'sufficient,' DO NOT output a finding. A perfect score results in an empty list.",
+    "4. OBJECTIVITY: Ignore personal writing style unless evaluating a specific 'STYLE' rule. Focus on technical accuracy and required domain content.",
+    "",
+    "### INPUT FORMAT",
+    "Input passages are prefixed with a canonical reference tag, e.g., [Ref: #/texts/1]. Use this tag for the 'item_cref' field.",
+    "",
+    "### OUTPUT SPECIFICATION",
+    "You MUST return ONLY a JSON object with a single key 'findings'.",
+    "Each object in the 'findings' list MUST contain:",
+    "- 'ac_code': The exact code from the rules above (e.g., 'OOP', 'STYLE', 'IR').",
+    "- 'item_cref': The reference string of the relevant paragraph (e.g., '#/texts/1').",
+    "- 'snippet': The exact substring from the text that triggered the rule.",
+    "- 'reason': A brief, professional one-sentence explanation in English for the student.",
+    "- 'severity': A float between 0.0 (trivial) and 1.0 (critical).",
+    "",
+    "If no rules are triggered, return: {\"findings\": []}"
+  ],
+  "rules": [
+    {
+      "ac_codes": [
+        "LANG"
+      ],
+      "analyser_id": "text_analyser",
+      "course": null,
+      "prompt_instruction": "Language mixing (cs/sk/en)",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "CH"
+      ],
+      "analyser_id": "text_analyser",
+      "course": "ipp",
+      "prompt_instruction": "Spelling/grammar mistakes",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "gram."
+      ],
+      "analyser_id": "text_analyser",
+      "course": "ifj",
+      "prompt_instruction": "Grammar mistakes",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "ICH"
+      ],
+      "analyser_id": "text_analyser",
+      "course": "ipp",
+      "prompt_instruction": "First-person singular usage",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "TERM"
+      ],
+      "analyser_id": "text_analyser",
+      "course": "ipp",
+      "prompt_instruction": "Incorrect technical terms",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "term."
+      ],
+      "analyser_id": "text_analyser",
+      "course": "ifj",
+      "prompt_instruction": "Incorrect technical terms",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "STYLE"
+      ],
+      "analyser_id": "style_analyser",
+      "course": null,
+      "prompt_instruction": "Unclear or poor writing style",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "HOV"
+      ],
+      "analyser_id": "style_analyser",
+      "course": null,
+      "prompt_instruction": "Informal, conversational, slang words",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "NOOOP"
+      ],
+      "analyser_id": "design_analyser",
+      "course": "ipp",
+      "prompt_instruction": "Code ignores OOP; functions merely wrapped in classes",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "OOP"
+      ],
+      "analyser_id": "design_analyser",
+      "course": "ipp",
+      "prompt_instruction": "Bonus when OOP usage is meaningful and well described",
+      "is_bonus": true
+    },
+    {
+      "ac_codes": [
+        "NOSRP"
+      ],
+      "analyser_id": "design_analyser",
+      "course": "ipp",
+      "prompt_instruction": "Violation of Single Responsibility Principle",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "BADDP"
+      ],
+      "analyser_id": "design_analyser",
+      "course": "ipp",
+      "prompt_instruction": "Inappropriate use or bad implementation of a design pattern",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "DP"
+      ],
+      "analyser_id": "design_analyser",
+      "course": "ipp",
+      "prompt_instruction": "Bonus for good and well justified pattern usage",
+      "is_bonus": true
+    },
+    {
+      "ac_codes": [
+        "SINGLETON"
+      ],
+      "analyser_id": "design_analyser",
+      "course": "ipp",
+      "prompt_instruction": "Singleton explicitly disallowed for NVP",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "EXT"
+      ],
+      "analyser_id": "design_analyser",
+      "course": "ipp",
+      "prompt_instruction": "Insufficient extensibility description",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "EX"
+      ],
+      "analyser_id": "design_analyser",
+      "course": "ipp",
+      "prompt_instruction": "Bonus for particularly clean exception usage",
+      "is_bonus": true
+    },
+    {
+      "ac_codes": [
+        "FILO"
+      ],
+      "analyser_id": "design_analyser",
+      "course": "ipp",
+      "prompt_instruction": "Missing/insufficient design philosophy",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "CONTENT"
+      ],
+      "analyser_id": "content_analyser",
+      "course": "ipp",
+      "prompt_instruction": "Sections off-topic (time, feelings, subjectivity)",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "SA"
+      ],
+      "analyser_id": "content_analyser",
+      "course": "ifj",
+      "prompt_instruction": "Insufficient syntax analysis description",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "SAV"
+      ],
+      "analyser_id": "content_analyser",
+      "course": "ifj",
+      "prompt_instruction": "Insufficient expression parsing description",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "SéA"
+      ],
+      "analyser_id": "content_analyser",
+      "course": "ifj",
+      "prompt_instruction": "Insufficient semantic analysis description",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "PSA"
+      ],
+      "analyser_id": "content_analyser",
+      "course": "ifj",
+      "prompt_instruction": "Insufficient precedence syntax analysis description",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "TS"
+      ],
+      "analyser_id": "content_analyser",
+      "course": "ifj",
+      "prompt_instruction": "Insufficient symbol table description",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "GK"
+      ],
+      "analyser_id": "content_analyser",
+      "course": "ifj",
+      "prompt_instruction": "Insufficient code generation description",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "RP"
+      ],
+      "analyser_id": "content_analyser",
+      "course": "ifj",
+      "prompt_instruction": "Division of work section",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "IR"
+      ],
+      "analyser_id": "content_analyser",
+      "course": "ipp",
+      "prompt_instruction": "Insufficient internal representation description",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "JAK"
+      ],
+      "analyser_id": "content_analyser",
+      "course": "ipp",
+      "prompt_instruction": "Insufficient implementation description",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "NVPDOC"
+      ],
+      "analyser_id": "content_analyser",
+      "course": "ipp",
+      "prompt_instruction": "NVP extension doc missing",
+      "is_bonus": false
+    }
+  ]
+}

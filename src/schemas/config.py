@@ -7,6 +7,7 @@ from typing import Any
 from pydantic import Field
 
 from .base import StrictModel
+from .llm import Rulebook
 
 
 class AnalyserConfig(StrictModel):
@@ -40,3 +41,9 @@ def load_config(path: Path) -> AppConfig:
     """Load and validate configuration from JSON file."""
     data = json.loads(path.read_text(encoding="utf-8"))
     return AppConfig.model_validate(data)
+
+
+def load_rulebook(path: Path) -> Rulebook:
+    """Load and validate the LLM rulebook from JSON file."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return Rulebook.model_validate(data)

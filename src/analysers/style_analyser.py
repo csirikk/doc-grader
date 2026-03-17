@@ -24,48 +24,45 @@ from .base_analyser import BaseLLMAnalyser
 if TYPE_CHECKING:
     from ..schemas.finding import Finding
     from ..schemas.ir import Document
-    from ..schemas.llm import LLMEvaluation
+    from ..schemas.llm import LLMFinding, Rulebook
 
 
 class StyleAnalyser(BaseLLMAnalyser):
     analyser_id: ClassVar[str] = "style_analyser"
     name: ClassVar[str] = "Style Analyser"
 
-    def get_rules(self) -> list[LLMRule]:
+    def get_rules(
+        self, rulebook: Rulebook, params: dict[str, Any] | None = None
+    ) -> list[LLMRule]:
+        course = params.get("course") if params else None
         return [
-            LLMRule(
-                ac_code="STYLE",
-                prompt_instruction="unclear or poor writing style, repetitive, or unacademic phrasing",
-                analyser_id=self.analyser_id,
-            ),
-            LLMRule(
-                ac_code="HOV",
-                prompt_instruction="informal, conversational, or slang language",
-                analyser_id=self.analyser_id,
-            ),
+            r
+            for r in rulebook.rules
+            if r.analyser_id == self.analyser_id
+            and (r.course is None or r.course == course)
         ]
 
-    def process_evaluations(
+    def process_llm_findings(
         self,
         doc: Document,
-        evals: list[LLMEvaluation],
+        llm_findings: list[LLMFinding],
         params: dict[str, Any] | None = None,
     ) -> list[Finding]:
         findings: list[Finding] = []
 
-        for ev in evals:
-            item = doc.text_items.get(ev.item_cref)
+        for f in llm_findings:
+            item = doc.text_items.get(f.item_cref)
 
             findings.append(
                 self._make_finding(
                     doc=doc,
-                    ac_code=ev.ac_code,
-                    title=f"Style issue: {ev.ac_code}",
-                    summary=ev.reason,
+                    ac_code=f.ac_code,
+                    title=f"Style issue: {f.ac_code}",
+                    summary=f.reason,
                     evidence_item=item,
-                    snippet_override=ev.snippet,
-                    severity=ev.severity,
-                    confidence=ev.confidence,
+                    snippet_override=f.snippet,
+                    severity=f.severity,
+                    confidence=f.confidence,
                 )
             )
 

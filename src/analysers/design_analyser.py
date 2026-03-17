@@ -13,7 +13,7 @@ Responsible for AC:
 - 'FILO': Missing or insufficient design philosophy description.
 
 Future AC codes to consider:
-- 'GODCLASS': Document describes a single class handling entirely unrelated responsibilities.
+- 'GODCLASS': Single class handling entirely unrelated responsibilities.
 - 'OVERENG': Over-engineering or using complex patterns for trivial problems.
 - 'DRY': WET architecture implying heavy code duplication.
 """
@@ -23,39 +23,58 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from ..schemas.llm import LLMRule
 from .base_analyser import BaseLLMAnalyser
 
 if TYPE_CHECKING:
     from ..schemas.finding import Finding
     from ..schemas.ir import Document
-    from ..schemas.llm import LLMEvaluation
+    from ..schemas.llm import LLMFinding, LLMRule, Rulebook
 
 logger = logging.getLogger(__name__)
 
 
 class DesignAnalyser(BaseLLMAnalyser):
     """
-    Evaluates object-oriented design quality based on the student's text.
+    Analyses object-oriented design quality based on the student's text.
     Checks for inappropriate use of design patterns.
     """
 
     analyser_id: ClassVar[str] = "design_analyser"
     name: ClassVar[str] = "Design Analyser"
 
-    def get_rules(self) -> list[LLMRule]:
+    def get_rules(
+        self, rulebook: Rulebook, params: dict[str, Any] | None = None
+    ) -> list[LLMRule]:
+        course = params.get("course") if params else None
         return [
-            LLMRule(
-                ac_code="FILO",
-                prompt_instruction="missing or insufficient explanation of design philosophy or architectural decisions",
-                analyser_id=self.analyser_id,
-            ),
+            r
+            for r in rulebook.rules
+            if r.analyser_id == self.analyser_id
+            and (r.course is None or r.course == course)
         ]
 
-    def process_evaluations(
+    def process_llm_findings(
         self,
         doc: Document,
-        evals: list[LLMEvaluation],
+        llm_findings: list[LLMFinding],
         params: dict[str, Any] | None = None,
     ) -> list[Finding]:
-        return []
+        findings: list[Finding] = []
+
+        for f in llm_findings:
+            item = doc.text_items.get(f.item_cref)
+
+            findings.append(
+                self._make_finding(
+                    doc=doc,
+                    ac_code=f.ac_code,
+                    title=f"Design issue: {f.ac_code}",
+                    summary=f.reason,
+                    evidence_item=item,
+                    snippet_override=f.snippet,
+                    severity=f.severity,
+                    confidence=f.confidence,
+                )
+            )
+
+        return findings

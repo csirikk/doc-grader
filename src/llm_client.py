@@ -9,7 +9,7 @@ from openai import OpenAI
 
 if TYPE_CHECKING:
     from .schemas.ir import Document
-    from .schemas.llm import LLMEvaluation, LLMRule
+    from .schemas.llm import LLMFinding, LLMRule, Rulebook
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class LLMClient:
     def __init__(
         self,
-        model: str = "gpt-4o-mini",
+        model: str = "gpt-4.1-nano",
         temperature: float = 0.0,
         max_tokens: int = 2048,
         api_key_env: str = "OPENAI_API_KEY",
@@ -29,6 +29,10 @@ class LLMClient:
 
     def run_raw(self, system_prompt: str, text: str) -> dict[str, Any]:
         """Simple prompt and response, returns parsed JSON dict from the LLM."""
+        logger.debug(f"Sending request to {self.model}")
+        logger.debug("SYSTEM PROMPT:")
+        logger.debug(system_prompt)
+
         response = self._client.chat.completions.create(
             model=self.model,
             temperature=self.temperature,
@@ -40,61 +44,56 @@ class LLMClient:
             ],
         )
         content = response.choices[0].message.content
+        logger.debug("RESPONSE:")
+        logger.debug(content)
+
         if content is None:
             logger.error("LLM response content is empty.")
             return {}
         return json.loads(content)
 
-    def _build_system_prompt(self, rules: list[LLMRule]) -> str:
-        prompt = (
-            "You are a strict academic reviewer for university project documentation.\n"
-            "Analyze the provided text passages against these specific rules:\n\n"
-        )
-
+    def _build_system_prompt(self, rules: list[LLMRule], rulebook: Rulebook) -> str:
+        rules_text = ""
         for r in rules:
-            prompt += f"- [{r.ac_code}]: {r.prompt_instruction}\n"
+            codes_str = ", ".join(r.ac_codes)
+            rules_text += f"- [{codes_str}]: {r.prompt_instruction}\n"
 
-        prompt += (
-            "\nThe text passages are prefixed with a canonical reference tag, e.g., [Ref: #/texts/1].\n"
-            "You MUST return ONLY a JSON object with a single key 'findings', "
-            "which is a list of objects. Each object MUST have:\n"
-            "'ac_code': the code of the violated rule (e.g., 'HOV')\n"
-            "'item_cref': the exact reference string of the offending paragraph (e.g., '#/texts/1')\n"
-            "'snippet': the exact offending substring from the input text\n"
-            "'reason': a brief one-sentence explanation for the student in English\n"
-            "'severity': a float between 0.0 (trivial) and 1.0 (critical)\n\n"
-            "If no issues exist, return {'findings': []}."
-        )
-        return prompt
+        joined_prompt = "\n".join(rulebook.system_prompt_template)
+        return joined_prompt.replace("{rules}", rules_text)
 
-    def evaluate_document(
-        self, doc: Document, rules: list[LLMRule]
-    ) -> list[LLMEvaluation]:
+    def analyse_document(
+        self, doc: Document, rules: list[LLMRule], rulebook: Rulebook
+    ) -> list[LLMFinding]:
         """
         Extracts text from the document, adds cref tags, calls the LLM,
-        and returns evaluations.
+        and returns findings.
         """
-        from .schemas.llm import LLMEvaluation
+        from .schemas.llm import LLMFinding
+
+        logger.debug("analyse_document start")
 
         text_chunk = ""
         for cref, item in doc.text_items.items():
             text_chunk += f"[Ref: {cref}] {item.text}\n\n"
         if not text_chunk.strip() or not rules:
-            logger.debug("No text to evaluate or no rules provided.")
+            logger.debug("No text to analyse or no rules provided. Skipping LLM call.")
             return []
-
-        system_prompt = self._build_system_prompt(rules)
+        system_prompt = self._build_system_prompt(rules, rulebook)
         try:
             raw_json = self.run_raw(system_prompt, text_chunk)
         except Exception as e:
             logger.error(f"LLM API call failed: {e}")
             return []
 
-        evals: list[LLMEvaluation] = []
-        for f_dict in raw_json.get("findings", []):
+        llm_findings: list[LLMFinding] = []
+        raw_findings = raw_json.get("findings", [])
+        logger.debug(f"LLM returned {len(raw_findings)} raw findings.")
+
+        for f_dict in raw_findings:
             try:
-                evals.append(LLMEvaluation(**f_dict))
+                llm_findings.append(LLMFinding(**f_dict))
             except Exception as e:
                 logger.warning(f"Failed to parse LLM finding payload {f_dict}: {e}")
 
-        return evals
+        logger.info(f"Successfully parsed {len(llm_findings)} findings from LLM.")
+        return llm_findings

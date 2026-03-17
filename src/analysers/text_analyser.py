@@ -29,7 +29,7 @@ from .base_analyser import BaseLLMAnalyser
 if TYPE_CHECKING:
     from ..schemas.finding import Finding
     from ..schemas.ir import Document
-    from ..schemas.llm import LLMEvaluation
+    from ..schemas.llm import LLMFinding, Rulebook
 
 logger = logging.getLogger(__name__)
 
@@ -38,51 +38,38 @@ class TextAnalyser(BaseLLMAnalyser):
     analyser_id: ClassVar[str] = "text_analyser"
     name: ClassVar[str] = "Text Analyser"
 
-    def get_rules(self) -> list[LLMRule]:
+    def get_rules(
+        self, rulebook: Rulebook, params: dict[str, Any] | None = None
+    ) -> list[LLMRule]:
+        course = params.get("course") if params else None
         return [
-            LLMRule(
-                ac_code="CH",  # grouped with 'gram.'
-                prompt_instruction="spelling or grammar mistakes",
-                analyser_id=self.analyser_id,
-            ),
-            LLMRule(
-                ac_code="ICH",
-                prompt_instruction="first-person singular usage (e.g. 'implementoval jsem', 'popisuji', 'mine')",
-                analyser_id=self.analyser_id,
-            ),
-            LLMRule(
-                ac_code="TERM",  # grouped with 'term.'
-                prompt_instruction="incorrect or imprecise technical terminology",
-                analyser_id=self.analyser_id,
-            ),
-            LLMRule(
-                ac_code="LANG",
-                prompt_instruction="language mixing (mixing Czech, Slovak, or English in the same sentence or paragraph)",
-                analyser_id=self.analyser_id,
-            ),
+            r
+            for r in rulebook.rules
+            if r.analyser_id == self.analyser_id
+            and (r.course is None or r.course == course)
         ]
 
-    def process_evaluations(
+    def process_llm_findings(
         self,
         doc: Document,
-        evals: list[LLMEvaluation],
+        llm_findings: list[LLMFinding],
         params: dict[str, Any] | None = None,
     ) -> list[Finding]:
         findings: list[Finding] = []
 
-        for ev in evals:
-            item = doc.text_items.get(ev.item_cref)
+        for f in llm_findings:
+            item = doc.text_items.get(f.item_cref)
 
             findings.append(
                 self._make_finding(
                     doc=doc,
-                    ac_code=ev.ac_code,
-                    title=f"Text issue: {ev.ac_code}",
-                    summary=ev.reason,
+                    ac_code=f.ac_code,
+                    title=f"Text issue: {f.ac_code}",
+                    summary=f.reason,
                     evidence_item=item,
-                    snippet_override=ev.snippet,
-                    severity=ev.severity,
-                    confidence=ev.confidence,
+                    snippet_override=f.snippet,
+                    severity=f.severity,
+                    confidence=f.confidence,
                 )
             )
 

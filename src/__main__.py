@@ -13,11 +13,13 @@ from typing import TYPE_CHECKING, Any
 from dotenv import load_dotenv
 
 # Analysers
+from .analysers.content_analyser import ContentAnalyser
+from .analysers.design_analyser import DesignAnalyser
 from .analysers.structure_analyser import StructureAnalyser
 from .analysers.style_analyser import StyleAnalyser
 from .analysers.text_analyser import TextAnalyser
 from .llm_client import LLMClient
-from .schemas.config import AppConfig, load_config
+from .schemas.config import AppConfig, load_config, load_rulebook
 from .utils import (
     compute_config_hash,
     configure_logging,
@@ -29,6 +31,8 @@ from .utils import (
 )
 
 if TYPE_CHECKING:
+    from schemas.llm import Rulebook
+
     from .analysers.base_analyser import BaseAnalyser
     from .schemas.finding import Finding
     from .schemas.ir import Document
@@ -39,6 +43,8 @@ ANALYSER_LIST: dict[str, type[BaseAnalyser]] = {
     StructureAnalyser.analyser_id: StructureAnalyser,
     StyleAnalyser.analyser_id: StyleAnalyser,
     TextAnalyser.analyser_id: TextAnalyser,
+    ContentAnalyser.analyser_id: ContentAnalyser,
+    DesignAnalyser.analyser_id: DesignAnalyser,
 }
 
 
@@ -51,7 +57,7 @@ def _load_app_config(config_path: str | None) -> AppConfig:
 
 
 def _run_analysers(
-    ir: Document, config: AppConfig, llm_client: Any | None = None
+    ir: Document, config: AppConfig, rulebook: Rulebook, llm_client: Any | None = None
 ) -> list[Finding]:
     from .analysers.base_analyser import BaseLLMAnalyser
 
@@ -72,15 +78,21 @@ def _run_analysers(
             )
             continue
 
+        analyser_params = analyser_cfg.params.copy()
+        if "course" not in analyser_params:
+            analyser_params["course"] = config.course
+
         try:
             analyser_instance = analyser_class()
 
             if isinstance(analyser_instance, BaseLLMAnalyser):
                 llm_analysers[analyser_cfg.analyser_id] = analyser_instance
-                llm_params[analyser_cfg.analyser_id] = analyser_cfg.params
-                all_llm_rules.extend(analyser_instance.get_rules())
+                llm_params[analyser_cfg.analyser_id] = analyser_params
+                all_llm_rules.extend(
+                    analyser_instance.get_rules(rulebook, params=analyser_params)
+                )
             else:
-                result = analyser_instance.analyse(ir, params=analyser_cfg.params)
+                result = analyser_instance.analyse(ir, params=analyser_params)
                 if result:
                     findings.extend(result)
         except Exception:
@@ -88,23 +100,29 @@ def _run_analysers(
 
     if llm_analysers and all_llm_rules and llm_client:
         try:
-            evals = llm_client.evaluate_document(ir, all_llm_rules)
-            ac_to_analyser = {r.ac_code: r.analyser_id for r in all_llm_rules}
+            llm_findings = llm_client.analyse_document(ir, all_llm_rules, rulebook)
+            ac_to_analyser = {
+                c: r.analyser_id for r in all_llm_rules for c in r.ac_codes
+            }
 
             for analyser_id, instance in llm_analysers.items():
                 params = llm_params.get(analyser_id)
 
-                # Filter evaluations for this analyser only
-                analyser_evals = [
-                    e for e in evals if ac_to_analyser.get(e.ac_code) == analyser_id
+                # Filter findings for this analyser only
+                analyser_llm_findings = [
+                    f
+                    for f in llm_findings
+                    if ac_to_analyser.get(f.ac_code) == analyser_id
                 ]
 
-                result = instance.process_evaluations(ir, analyser_evals, params)
+                result = instance.process_llm_findings(
+                    ir, analyser_llm_findings, params
+                )
                 if result:
                     findings.extend(result)
 
         except Exception:
-            logger.exception("Error running batched LLM evaluation")
+            logger.exception("Error running batched LLM analysis")
 
     return findings
 
@@ -156,8 +174,14 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         config = _load_app_config(args.config)
+        rulebook_path = Path("config/rulebook.json")
+        if not rulebook_path.exists():
+            logger.error("Rulebook file not found at %s", rulebook_path)
+            return 2
+        rulebook = load_rulebook(rulebook_path)
+
     except Exception as e:
-        logger.error("Failed to load config: %s", e)
+        logger.error("Failed to load config or rulebook: %s", e)
         return 2
 
     llm_client = None
@@ -225,7 +249,7 @@ def main(argv: list[str] | None = None) -> int:
         write_json(file_outdir / "docling.json", ir_doc.docling_doc)
         write_json(file_outdir / "ir.json", ir_doc)
 
-        analyser_findings = _run_analysers(ir_doc, config, llm_client)
+        analyser_findings = _run_analysers(ir_doc, config, rulebook, llm_client)
         write_json(file_outdir / "findings.json", analyser_findings)
 
         csv_rows.extend(findings_to_csv_rows(path, analyser_findings))

@@ -32,27 +32,53 @@ from .base_analyser import BaseLLMAnalyser
 if TYPE_CHECKING:
     from ..schemas.finding import Finding
     from ..schemas.ir import Document
-    from ..schemas.llm import LLMEvaluation
+    from ..schemas.llm import LLMFinding, Rulebook
 
 logger = logging.getLogger(__name__)
 
 
 class ContentAnalyser(BaseLLMAnalyser):
     """
-    Evaluates section-level content adequacy and topical relevance.
+    Analyses section-level content adequacy and topical relevance.
     Verifies if specific concepts are described accurately and efficiently.
     """
 
     analyser_id: ClassVar[str] = "content_analyser"
     name: ClassVar[str] = "Content Analyser"
 
-    def get_rules(self) -> list[LLMRule]:
-        return []
+    def get_rules(
+        self, rulebook: Rulebook, params: dict[str, Any] | None = None
+    ) -> list[LLMRule]:
+        course = params.get("course") if params else None
+        return [
+            r
+            for r in rulebook.rules
+            if r.analyser_id == self.analyser_id
+            and (r.course is None or r.course == course)
+        ]
 
-    def process_evaluations(
+    def process_llm_findings(
         self,
         doc: Document,
-        evals: list[LLMEvaluation],
+        llm_findings: list[LLMFinding],
         params: dict[str, Any] | None = None,
     ) -> list[Finding]:
-        return []
+        findings: list[Finding] = []
+
+        for f in llm_findings:
+            item = doc.text_items.get(f.item_cref)
+
+            findings.append(
+                self._make_finding(
+                    doc=doc,
+                    ac_code=f.ac_code,
+                    title=f"Content issue: {f.ac_code}",
+                    summary=f.reason,
+                    evidence_item=item,
+                    snippet_override=f.snippet,
+                    severity=f.severity,
+                    confidence=f.confidence,
+                )
+            )
+
+        return findings

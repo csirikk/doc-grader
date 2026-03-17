@@ -5,15 +5,13 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from docling_core.types.doc.document import TextItem
+from docling_core.types.doc.document import SectionHeaderItem, TextItem
 from docling_core.types.doc.labels import DocItemLabel
 
 from ..schemas.finding import Stat
 from .base_analyser import BaseAnalyser
 
 if TYPE_CHECKING:
-    from docling_core.types.doc.document import SectionHeaderItem
-
     from ..schemas.finding import Finding
     from ..schemas.ir import Document
 
