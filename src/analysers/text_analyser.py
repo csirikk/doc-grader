@@ -23,13 +23,8 @@ class TextAnalyser(BaseLLMAnalyser):
     def get_rules(self) -> list[LLMRule]:
         return [
             LLMRule(
-                ac_code="CH",
+                ac_code="CH",  # grouped with 'gram.'
                 prompt_instruction="spelling or grammar mistakes",
-                analyser_id=self.analyser_id,
-            ),
-            LLMRule(
-                ac_code="gram.",
-                prompt_instruction="grammar mistakes in IFJ project",
                 analyser_id=self.analyser_id,
             ),
             LLMRule(
@@ -38,7 +33,7 @@ class TextAnalyser(BaseLLMAnalyser):
                 analyser_id=self.analyser_id,
             ),
             LLMRule(
-                ac_code="TERM",
+                ac_code="TERM",  # grouped with 'term.'
                 prompt_instruction="incorrect or imprecise technical terminology",
                 analyser_id=self.analyser_id,
             ),
