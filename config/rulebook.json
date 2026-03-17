@@ -35,7 +35,7 @@
       ],
       "analyser_id": "text_analyser",
       "course": null,
-      "prompt_instruction": "Language mixing (cs/sk/en)",
+      "prompt_instruction": "Unnatural mixing of languages (Czech, Slovak, English). English terms in Czech/Slovak text are penalised unless they are standard technical terminology or exact identifiers from the source code.",
       "is_bonus": false
     },
     {
@@ -43,17 +43,8 @@
         "CH"
       ],
       "analyser_id": "text_analyser",
-      "course": "ipp",
-      "prompt_instruction": "Spelling/grammar mistakes",
-      "is_bonus": false
-    },
-    {
-      "ac_codes": [
-        "gram."
-      ],
-      "analyser_id": "text_analyser",
-      "course": "ifj",
-      "prompt_instruction": "Grammar mistakes",
+      "course": null,
+      "prompt_instruction": "Spelling and grammar mistakes, including punctuation errors. Flag minor, isolated typos as low severity for information.",
       "is_bonus": false
     },
     {
@@ -62,7 +53,7 @@
       ],
       "analyser_id": "text_analyser",
       "course": "ipp",
-      "prompt_instruction": "First-person singular usage",
+      "prompt_instruction": "Explicit use of first-person singular pronouns or verb forms (e.g., 'já', 'implementoval jsem', 'I'). Program documentation should be passive or first-person plural.",
       "is_bonus": false
     },
     {
@@ -70,17 +61,8 @@
         "TERM"
       ],
       "analyser_id": "text_analyser",
-      "course": "ipp",
-      "prompt_instruction": "Incorrect technical terms",
-      "is_bonus": false
-    },
-    {
-      "ac_codes": [
-        "term."
-      ],
-      "analyser_id": "text_analyser",
-      "course": "ifj",
-      "prompt_instruction": "Incorrect technical terms",
+      "course": null,
+      "prompt_instruction": "Problematic, inaccurate, or incorrect technical terminology.",
       "is_bonus": false
     },
     {
@@ -89,7 +71,7 @@
       ],
       "analyser_id": "style_analyser",
       "course": null,
-      "prompt_instruction": "Unclear or poor writing style",
+      "prompt_instruction": "Unreadable, confusing, or poorly stylised text, particularly overly long or incomprehensible complex sentences.",
       "is_bonus": false
     },
     {
@@ -98,26 +80,8 @@
       ],
       "analyser_id": "style_analyser",
       "course": null,
-      "prompt_instruction": "Informal, conversational, slang words",
+      "prompt_instruction": "Informal, conversational, or slang language, including unnecessary English terms with Czech suffixes (e.g., 'pushnout', 'symtable', 'list', 'array').",
       "is_bonus": false
-    },
-    {
-      "ac_codes": [
-        "NOOOP"
-      ],
-      "analyser_id": "design_analyser",
-      "course": "ipp",
-      "prompt_instruction": "Code ignores OOP; functions merely wrapped in classes",
-      "is_bonus": false
-    },
-    {
-      "ac_codes": [
-        "OOP"
-      ],
-      "analyser_id": "design_analyser",
-      "course": "ipp",
-      "prompt_instruction": "Bonus when OOP usage is meaningful and well described",
-      "is_bonus": true
     },
     {
       "ac_codes": [
@@ -125,26 +89,28 @@
       ],
       "analyser_id": "design_analyser",
       "course": "ipp",
-      "prompt_instruction": "Violation of Single Responsibility Principle",
+      "prompt_instruction": "Ignoring or poorly applying the Single Responsibility Principle, specifically describing a single class or method that handles multiple completely unrelated responsibilities.",
       "is_bonus": false
     },
     {
       "ac_codes": [
+        "OOP",
+        "NOOOP"
+      ],
+      "analyser_id": "design_analyser",
+      "course": "ipp",
+      "prompt_instruction": "OOP design evaluation. NOOOP: The text indicates a failure to use the object-oriented paradigm properly, such as merely wrapping procedural functions into one or two classes. OOP: The OOP usage is highly meaningful, well-justified, and terminologically accurately described.",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "DP",
         "BADDP"
       ],
       "analyser_id": "design_analyser",
       "course": "ipp",
-      "prompt_instruction": "Inappropriate use or bad implementation of a design pattern",
+      "prompt_instruction": "Design pattern evaluation. BADDP: Completely inappropriate use, or entirely wrong/missing implementation of a documented design pattern. DP: Exceptionally nice and well-justified use of a design pattern.",
       "is_bonus": false
-    },
-    {
-      "ac_codes": [
-        "DP"
-      ],
-      "analyser_id": "design_analyser",
-      "course": "ipp",
-      "prompt_instruction": "Bonus for good and well justified pattern usage",
-      "is_bonus": true
     },
     {
       "ac_codes": [
@@ -152,7 +118,7 @@
       ],
       "analyser_id": "design_analyser",
       "course": "ipp",
-      "prompt_instruction": "Singleton explicitly disallowed for NVP",
+      "prompt_instruction": "Explicit mention of the use of the Singleton design pattern in the context of the voluntary NVP extension.",
       "is_bonus": false
     },
     {
@@ -161,7 +127,7 @@
       ],
       "analyser_id": "design_analyser",
       "course": "ipp",
-      "prompt_instruction": "Insufficient extensibility description",
+      "prompt_instruction": "Missing, clumsy, or nonsensical description of the design's extensibility.",
       "is_bonus": false
     },
     {
@@ -170,7 +136,7 @@
       ],
       "analyser_id": "design_analyser",
       "course": "ipp",
-      "prompt_instruction": "Bonus for particularly clean exception usage",
+      "prompt_instruction": "Innovative and advanced use of exceptions for error management (e.g., defining custom exceptions to replace ugly if-else cascades, going beyond basic subclassing by error codes).",
       "is_bonus": true
     },
     {
@@ -178,8 +144,8 @@
         "FILO"
       ],
       "analyser_id": "design_analyser",
-      "course": "ipp",
-      "prompt_instruction": "Missing/insufficient design philosophy",
+      "course": null,
+      "prompt_instruction": "Missing or insufficient design philosophy, specifically failing to provide an abstract description of the program's overall structure and execution flow (what follows what).",
       "is_bonus": false
     },
     {
@@ -187,8 +153,8 @@
         "CONTENT"
       ],
       "analyser_id": "content_analyser",
-      "course": "ipp",
-      "prompt_instruction": "Sections off-topic (time, feelings, subjectivity)",
+      "course": null,
+      "prompt_instruction": "Inappropriate content, specifically descriptions of the chronological process of solving the project, expressing personal feelings, irrelevant thoughts, or unsupported opinions.",
       "is_bonus": false
     },
     {
@@ -197,7 +163,7 @@
       ],
       "analyser_id": "content_analyser",
       "course": "ifj",
-      "prompt_instruction": "Insufficient syntax analysis description",
+      "prompt_instruction": "Missing, insufficient, or inaccurate description of syntax analysis (e.g., falsely claiming that recursive descent is implemented by having a function for every single grammar rule).",
       "is_bonus": false
     },
     {
@@ -206,7 +172,7 @@
       ],
       "analyser_id": "content_analyser",
       "course": "ifj",
-      "prompt_instruction": "Insufficient expression parsing description",
+      "prompt_instruction": "Missing or insufficient description regarding the syntax analysis of expressions.",
       "is_bonus": false
     },
     {
@@ -215,7 +181,7 @@
       ],
       "analyser_id": "content_analyser",
       "course": "ifj",
-      "prompt_instruction": "Insufficient semantic analysis description",
+      "prompt_instruction": "Missing or insufficiently specific description of semantic analysis, typically failing to clearly describe exactly what semantic properties and rules are being checked.",
       "is_bonus": false
     },
     {
@@ -224,7 +190,7 @@
       ],
       "analyser_id": "content_analyser",
       "course": "ifj",
-      "prompt_instruction": "Insufficient precedence syntax analysis description",
+      "prompt_instruction": "Missing or insufficient description of precedence syntax analysis.",
       "is_bonus": false
     },
     {
@@ -233,7 +199,7 @@
       ],
       "analyser_id": "content_analyser",
       "course": "ifj",
-      "prompt_instruction": "Insufficient symbol table description",
+      "prompt_instruction": "Missing or insufficient description of the symbol table implementation, specifically lacking details about its internal structure (e.g., whether there is one global table or multiple local tables).",
       "is_bonus": false
     },
     {
@@ -242,7 +208,7 @@
       ],
       "analyser_id": "content_analyser",
       "course": "ifj",
-      "prompt_instruction": "Insufficient code generation description",
+      "prompt_instruction": "Missing or insufficient description of code generation.",
       "is_bonus": false
     },
     {
@@ -251,7 +217,7 @@
       ],
       "analyser_id": "content_analyser",
       "course": "ifj",
-      "prompt_instruction": "Division of work section",
+      "prompt_instruction": "Missing description of the division of work among team members.",
       "is_bonus": false
     },
     {
@@ -260,7 +226,7 @@
       ],
       "analyser_id": "content_analyser",
       "course": "ipp",
-      "prompt_instruction": "Insufficient internal representation description",
+      "prompt_instruction": "Missing or insufficient internal representation description (e.g., trivially stating that 'instructions are stored in an array' or 'assignments are stored in an AST' without deeper architectural explanation).",
       "is_bonus": false
     },
     {
@@ -269,7 +235,7 @@
       ],
       "analyser_id": "content_analyser",
       "course": "ipp",
-      "prompt_instruction": "Insufficient implementation description",
+      "prompt_instruction": "Technically insufficient description of the implementation (e.g., failing to mention if regular expressions, state machines,, parser-generators or other techniques were used).",
       "is_bonus": false
     },
     {
@@ -278,7 +244,7 @@
       ],
       "analyser_id": "content_analyser",
       "course": "ipp",
-      "prompt_instruction": "NVP extension doc missing",
+      "prompt_instruction": "Claims to have implemented the NVP extension, yet the documentation is missing or insufficient.",
       "is_bonus": false
     }
   ]
