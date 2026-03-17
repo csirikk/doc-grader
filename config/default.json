@@ -19,6 +19,16 @@
             "analyser_id": "style_analyser",
             "enabled": true,
             "params": {}
+        },
+        {
+            "analyser_id": "content_analyser",
+            "enabled": true,
+            "params": {}
+        },
+        {
+            "analyser_id": "design_analyser",
+            "enabled": true,
+            "params": {}
         }
     ]
 }
