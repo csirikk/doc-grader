@@ -16,25 +16,11 @@ Future AC codes to consider:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import ClassVar
 
 from .base_analyser import BaseLLMAnalyser
-
-if TYPE_CHECKING:
-    from ..schemas.llm import LLMRule, Rulebook
 
 
 class StyleAnalyser(BaseLLMAnalyser):
     analyser_id: ClassVar[str] = "style_analyser"
     name: ClassVar[str] = "Style Analyser"
-
-    def get_rules(
-        self, rulebook: Rulebook, params: dict[str, Any] | None = None
-    ) -> list[LLMRule]:
-        course = params.get("course") if params else None
-        return [
-            r
-            for r in rulebook.rules
-            if r.analyser_id == self.analyser_id
-            and (r.course is None or r.course == course)
-        ]

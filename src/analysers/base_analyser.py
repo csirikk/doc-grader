@@ -6,10 +6,9 @@ import logging
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from docling_core.types.doc.document import DocItem, TextItem
+from docling_core.types.doc.document import TextItem
 
 from ..schemas.finding import AnalyserInfo, Anchor, Finding, FineRef
-from ..schemas.ir import Document
 from ..utils import next_id
 
 if TYPE_CHECKING:
@@ -103,12 +102,20 @@ class BaseAnalyser(ABC):
 class BaseLLMAnalyser(BaseAnalyser):
     """Base class for analysers that delegate logic to an LLM."""
 
-    @abstractmethod
     def get_rules(
         self, rulebook: Rulebook, params: dict[str, Any] | None = None
     ) -> list[LLMRule]:
-        """Return the rules this analyser wants the LLM to check."""
-        ...
+        """Return the rules this analyser owns, filtered by course.
+
+        Subclasses may override for custom rule selection logic.
+        """
+        course = params.get("course") if params else None
+        return [
+            r
+            for r in rulebook.rules
+            if r.analyser_id == self.analyser_id
+            and (r.course is None or r.course == course)
+        ]
 
     def process_llm_findings(
         self,
