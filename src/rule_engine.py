@@ -1,27 +1,12 @@
-"""Rule engine for post-processing analyser findings.
-
-1. Aggregate findings from multiple analysers.
-2. Apply normalization / filtering rules:
-    - Drop findings with status == 'dismissed' (Judge vetoed them).
-    - For 'approved' findings, keep unconditionally (Judge already validated).
-    - For 'proposed' findings (never reached the Judge), threshold by confidence score.
-    - De-duplicate by finding_id.
-
-Future extensions?
-    - Severity normalization
-    - Tag-based grouping and merging
-    - Impact score computation & grade suggestion
-    - Configurable rule sets loaded from JSON / YAML
-"""
-
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
-
     from .schemas.finding import Finding
+
+logger = logging.getLogger(__name__)
 
 HIGH_CONFIDENCE_THRESHOLD: float = 0.80
 
@@ -34,36 +19,46 @@ class RuleEngine:
             else HIGH_CONFIDENCE_THRESHOLD
         )
 
-    def process(self, batches: Iterable[list[Finding]]) -> tuple[list[Finding], dict]:
+    def process(self, findings: list[Finding]) -> tuple[list[Finding], dict]:
+        """Filter and normalise findings. Returns (final_findings, summary_dict).
+
+        - dismissed: dropped (judge vetoed).
+        - approved: kept unconditionally (judge validated).
+        - proposed: kept only if confidence >= high_confidence_threshold.
+        - duplicates: de-duplicated by finding_id.
         """
-        Aggregate and normalize findings. Returns (filtered_findings, summary_dict).
-        """
-        aggregated: list[Finding] = []
+        final: list[Finding] = []
         seen_ids: set[str] = set()
-        dropped_dismissed: int = 0
-        dropped_low_conf: int = 0
-        dropped_dupe: int = 0
+        dropped_dismissed = 0
+        dropped_low_conf = 0
+        dropped_dupe = 0
 
-        for seq in batches:
-            for f in seq:
-                if f.status == "dismissed":
-                    dropped_dismissed += 1
-                    continue
+        for f in findings:
+            if f.status == "dismissed":
+                dropped_dismissed += 1
+                logger.debug("RuleEngine: dropped dismissed finding '%s'", f.finding_id)
+                continue
 
-                if (
-                    f.status == "proposed"
-                    and f.confidence is not None
-                    and f.confidence < self.high_confidence_threshold
-                ):
-                    dropped_low_conf += 1
-                    continue
+            if (
+                f.status == "proposed"
+                and f.confidence is not None
+                and f.confidence < self.high_confidence_threshold
+            ):
+                dropped_low_conf += 1
+                logger.debug(
+                    "Dropped low-confidence proposed finding '%s' (%.2f)",
+                    f.finding_id,
+                    f.confidence,
+                )
+                continue
 
-                # De-duplication by finding_id
-                if f.finding_id in seen_ids:
-                    dropped_dupe += 1
-                    continue
-                seen_ids.add(f.finding_id)
-                aggregated.append(f)
+            if f.finding_id in seen_ids:
+                dropped_dupe += 1
+                logger.debug("Dropped duplicate finding '%s'", f.finding_id)
+                continue
+
+            seen_ids.add(f.finding_id)
+            final.append(f)
 
         summary = {
             "rule_engine": {
@@ -73,8 +68,17 @@ class RuleEngine:
                     "low_confidence_proposed": dropped_low_conf,
                     "duplicates": dropped_dupe,
                 },
-                "final_count": len(aggregated),
+                "final_count": len(final),
             }
         }
 
-        return aggregated, summary
+        logger.info(
+            "RuleEngine: %d findings in %d final (dismissed=%d, low-conf=%d, dupes=%d)",
+            len(findings),
+            len(final),
+            dropped_dismissed,
+            dropped_low_conf,
+            dropped_dupe,
+        )
+
+        return final, summary
