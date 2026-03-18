@@ -5,7 +5,10 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from docling_core.types.doc.document import TextItem
+from docling_core.types.doc.document import (
+    SectionHeaderItem,
+    TextItem,
+)
 from docling_core.types.doc.labels import DocItemLabel
 from pydantic import Field
 
@@ -185,15 +188,29 @@ class DocumentParser:
             parse_meta.error = None
 
             words, chars, paras, headings = 0, 0, 0, 0
-            text_items = {}
+            text_items: dict = {}
+            section_paths: dict[str, str] = {}
             paragraph_labels = {DocItemLabel.TEXT, DocItemLabel.PARAGRAPH}
+
+            # heading_stack[i] has the heading text at depth i+1
+            heading_stack: list[str] = []
 
             for item, _ in doc.iterate_items():
                 if not isinstance(item, TextItem):
                     continue
 
-                if item.label == DocItemLabel.SECTION_HEADER:
+                if isinstance(item, SectionHeaderItem):
+                    level = item.level  # 1-based
+                    heading_stack = heading_stack[: level - 1]
+                    heading_stack.append(item.text or "")
                     headings += 1
+                    if item.text and item.text.strip():
+                        cref = item.get_ref().cref
+                        words += len(item.text.split())
+                        chars += len(item.text)
+                        section_paths[cref] = " > ".join(heading_stack)
+                        text_items[cref] = item
+                    continue
 
                 if item.label in paragraph_labels:
                     paras += 1
@@ -203,7 +220,9 @@ class DocumentParser:
                     chars += len(item.text)
 
                     if item.text.strip():
-                        text_items[item.get_ref().cref] = item
+                        cref = item.get_ref().cref
+                        section_paths[cref] = " > ".join(heading_stack)
+                        text_items[cref] = item
 
             ir = Document(
                 doc_ref=doc_ref,
@@ -213,6 +232,7 @@ class DocumentParser:
                 total_paragraphs=paras,
                 total_headings=headings,
                 text_items=text_items,
+                section_paths=section_paths,
             )
             return ParseOutput(
                 doc_ref=doc_ref,

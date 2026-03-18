@@ -42,3 +42,8 @@ class Document(StrictModel):
         exclude=True,
         description="Map of cref to Docling TextItem",
     )
+    section_paths: dict[str, str] = Field(
+        default_factory=dict,
+        exclude=True,
+        description=("Map of cref to section heading path string for each text item"),
+    )
