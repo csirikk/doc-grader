@@ -37,3 +37,16 @@ class LLMFinding(StrictModel):
     reason: str
     severity: float
     confidence: float = 1.0
+
+
+class LLMResponse(StrictModel):
+    """The complete, raw response expected from the Base LLM."""
+
+    reasoning_chain: str = Field(
+        ...,
+        description="The model's internal reasoning analysing the text before scoring.",
+    )
+    findings: list[LLMFinding] = Field(
+        default_factory=list,
+        description="The list of flagged assessment criteria violations.",
+    )
