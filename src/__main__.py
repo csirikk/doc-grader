@@ -19,6 +19,7 @@ from .analysers.structure_analyser import StructureAnalyser
 from .analysers.style_analyser import StyleAnalyser
 from .analysers.text_analyser import TextAnalyser
 from .llm_client import LLMClient
+from .rule_engine import RuleEngine
 from .schemas.config import AppConfig, load_config, load_rulebook
 from .utils import (
     compute_config_hash,
@@ -268,6 +269,8 @@ def main(argv: list[str] | None = None) -> int:
         write_json(file_outdir / "ir.json", ir_doc)
 
         analyser_findings = _run_analysers(ir_doc, config, rulebook, llm_client)
+        write_json(file_outdir / "raw_findings.json", analyser_findings)
+        logger.debug("Wrote raw_findings.json (%d findings)", len(analyser_findings))
 
         if llm_client:
             logger.info("Running judge model on %d findings...", len(analyser_findings))
@@ -277,16 +280,22 @@ def main(argv: list[str] | None = None) -> int:
             logger.info(
                 "Judge complete: %d approved, %d dismissed", approved, dismissed
             )
+        write_json(file_outdir / "judged_findings.json", analyser_findings)
+        logger.debug("Wrote judged_findings.json")
 
-        write_json(file_outdir / "findings.json", analyser_findings)
+        rule_engine = RuleEngine()
+        final_findings, re_summary = rule_engine.process(analyser_findings)
+        write_json(file_outdir / "findings.json", final_findings)
+        logger.debug("Wrote findings.json (%d final findings)", len(final_findings))
 
-        csv_rows.extend(findings_to_csv_rows(path, analyser_findings))
+        csv_rows.extend(findings_to_csv_rows(path, final_findings))
 
-        info["counts"]["n_findings"] = len(analyser_findings)
+        info["counts"]["n_findings"] = len(final_findings)
+        info.update(re_summary)
         write_json(file_outdir / "info.json", info)
 
         log_json(logger, "IR Document", ir_doc)
-        for finding in analyser_findings:
+        for finding in final_findings:
             log_json(logger, f"Finding: {finding.title}", finding)
             logger.info("\n%s\n", format_finding_short(finding))
 
