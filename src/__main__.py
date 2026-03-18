@@ -152,7 +152,10 @@ def main(argv: list[str] | None = None) -> int:
         "-o", "--out", default="out/default/", help="Output directory for findings"
     )
     arg_parser.add_argument(
-        "-c", "--config", default=None, help="Path to JSON config file for analysers"
+        "-c",
+        "--config",
+        default="config/default.json",
+        help="Path to JSON config file for analysers",
     )
     arg_parser.add_argument(
         "--csv-out",
