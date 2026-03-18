@@ -128,6 +128,31 @@ def _run_analysers(
     return findings
 
 
+def _run_judge(
+    findings: list[Finding],
+    ir: Document,
+    rulebook: Rulebook,
+    llm_client: Any,
+) -> None:
+    """Run the judge model on proposed LLM findings, modifying them in-place."""
+
+    llm_finding_ids = {f.finding_id for f in findings if f.confidence is not None}
+    llm_findings = [f for f in findings if f.finding_id in llm_finding_ids]
+
+    for f in findings:
+        if f.finding_id not in llm_finding_ids:
+            f.status = "approved"
+
+    if not llm_findings:
+        logger.info("No LLM findings to judge.")
+        return
+
+    try:
+        llm_client.judge_findings(llm_findings, ir, rulebook)
+    except Exception:
+        logger.exception("Judge pass failed, LLM findings left as 'proposed'")
+
+
 def _run_id_from_config(config: AppConfig) -> str:
     if config.run_id:
         return config.run_id
@@ -254,6 +279,16 @@ def main(argv: list[str] | None = None) -> int:
         write_json(file_outdir / "ir.json", ir_doc)
 
         analyser_findings = _run_analysers(ir_doc, config, rulebook, llm_client)
+
+        if llm_client:
+            logger.info("Running judge model on %d findings...", len(analyser_findings))
+            _run_judge(analyser_findings, ir_doc, rulebook, llm_client)
+            approved = sum(1 for f in analyser_findings if f.status == "approved")
+            dismissed = sum(1 for f in analyser_findings if f.status == "dismissed")
+            logger.info(
+                "Judge complete: %d approved, %d dismissed", approved, dismissed
+            )
+
         write_json(file_outdir / "findings.json", analyser_findings)
 
         csv_rows.extend(findings_to_csv_rows(path, analyser_findings))
