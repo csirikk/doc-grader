@@ -3,6 +3,7 @@ __pycache__/
 .env
 .vscode/
 .copilotignore
+.github/
 src/doc_grader.egg-info
 
 # Messing around in here
