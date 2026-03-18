@@ -26,9 +26,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 from .base_analyser import BaseLLMAnalyser
 
 if TYPE_CHECKING:
-    from ..schemas.finding import Finding
-    from ..schemas.ir import Document
-    from ..schemas.llm import LLMFinding, LLMRule, Rulebook
+    from ..schemas.llm import LLMRule, Rulebook
 
 logger = logging.getLogger(__name__)
 
@@ -47,11 +45,3 @@ class TextAnalyser(BaseLLMAnalyser):
             if r.analyser_id == self.analyser_id
             and (r.course is None or r.course == course)
         ]
-
-    def process_llm_findings(
-        self,
-        doc: Document,
-        llm_findings: list[LLMFinding],
-        params: dict[str, Any] | None = None,
-    ) -> list[Finding]:
-        return [self._convert_llm_finding_to_finding(doc, f) for f in llm_findings]

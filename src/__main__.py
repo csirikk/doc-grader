@@ -99,31 +99,19 @@ def _run_analysers(
         except Exception:
             logger.exception("Error running analyser %s", analyser_cfg.analyser_id)
 
-    if llm_analysers and all_llm_rules and llm_client:
-        try:
-            llm_findings = llm_client.analyse_document(ir, all_llm_rules, rulebook)
-            ac_to_analyser = {
-                c: r.analyser_id for r in all_llm_rules for c in r.ac_codes
-            }
-
-            for analyser_id, instance in llm_analysers.items():
-                params = llm_params.get(analyser_id)
-
-                # Filter findings for this analyser only
-                analyser_llm_findings = [
-                    f
-                    for f in llm_findings
-                    if ac_to_analyser.get(f.ac_code) == analyser_id
-                ]
-
-                result = instance.process_llm_findings(
-                    ir, analyser_llm_findings, params
-                )
+    if llm_analysers and llm_client:
+        for analyser_id, instance in llm_analysers.items():
+            params = llm_params.get(analyser_id)
+            rules = instance.get_rules(rulebook, params=params)
+            if not rules:
+                continue
+            try:
+                llm_findings = llm_client.analyse_document(ir, rules, rulebook)
+                result = instance.process_llm_findings(ir, llm_findings, params)
                 if result:
                     findings.extend(result)
-
-        except Exception:
-            logger.exception("Error running batched LLM analysis")
+            except Exception:
+                logger.exception("Error running LLM analysis for %s", analyser_id)
 
     return findings
 
@@ -136,11 +124,10 @@ def _run_judge(
 ) -> None:
     """Run the judge model on proposed LLM findings, modifying them in-place."""
 
-    llm_finding_ids = {f.finding_id for f in findings if f.confidence is not None}
-    llm_findings = [f for f in findings if f.finding_id in llm_finding_ids]
+    llm_findings = [f for f in findings if f.confidence is not None]
 
     for f in findings:
-        if f.finding_id not in llm_finding_ids:
+        if f.confidence is None:
             f.status = "approved"
 
     if not llm_findings:
@@ -214,10 +201,12 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     llm_client = None
+    from .analysers.base_analyser import BaseLLMAnalyser
+
     llm_needed = any(
-        a.analyser_id in {TextAnalyser.analyser_id, StyleAnalyser.analyser_id}
-        and a.enabled
+        a.enabled and issubclass(ANALYSER_LIST[a.analyser_id], BaseLLMAnalyser)
         for a in config.analysers
+        if a.analyser_id in ANALYSER_LIST
     )
     if llm_needed:
         api_key = os.environ.get("OPENAI_API_KEY")

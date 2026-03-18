@@ -110,18 +110,20 @@ class BaseLLMAnalyser(BaseAnalyser):
         """Return the rules this analyser wants the LLM to check."""
         ...
 
-    @abstractmethod
     def process_llm_findings(
         self,
         doc: Document,
         llm_findings: list[LLMFinding],
         params: dict[str, Any] | None = None,
     ) -> list[Finding]:
-        """Convert LLM findings back into standard Findings."""
-        ...
+        """Convert grader model findings into standard Findings.
+
+        Subclasses may override for custom post-processing logic.
+        """
+        return [self._convert_llm_finding_to_finding(doc, f) for f in llm_findings]
 
     def analyse(self, doc: Document, params: dict | None = None) -> list[Finding]:
-        raise NotImplementedError("LLM Analysers must be run via LLMClient.")
+        raise NotImplementedError("LLM analysers are orchestrated via _run_analysers.")
 
     def _convert_llm_finding_to_finding(
         self,
