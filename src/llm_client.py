@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import json
 import logging
 import os
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
+import instructor
 from openai import OpenAI
-from pydantic import ValidationError
 
 if TYPE_CHECKING:
     from .schemas.ir import Document
@@ -26,38 +25,9 @@ class LLMClient:
         self.model = model
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self._client = OpenAI(api_key=os.environ.get(api_key_env))
-
-    def run_raw(self, system_prompt: str, text: str) -> dict[str, Any]:
-        """Simple prompt and response, returns parsed JSON dict from the LLM."""
-        logger.debug(f"Sending request to {self.model}")
-        logger.debug("SYSTEM PROMPT:")
-        logger.debug(system_prompt)
-
-        response = self._client.chat.completions.create(
-            model=self.model,
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
-            response_format={"type": "json_object"},
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": text},
-            ],
+        self._client = instructor.from_openai(
+            OpenAI(api_key=os.environ.get(api_key_env))
         )
-        content = response.choices[0].message.content
-        logger.debug("RESPONSE:")
-        logger.debug(content)
-
-        if content is None:
-            logger.error("LLM response content is empty.")
-            return {}
-
-        try:
-            return json.loads(content)
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to decode JSON from LLM: {e}")
-            logger.debug(f"Raw content: {content}")
-            return {}
 
     def _build_system_prompt(self, rules: list[LLMRule], rulebook: Rulebook) -> str:
         rules_text = ""
@@ -86,21 +56,25 @@ class LLMClient:
             logger.debug("No text to analyse or no rules provided. Skipping LLM call.")
             return []
         system_prompt = self._build_system_prompt(rules, rulebook)
+        logger.debug(f"Sending request to {self.model}")
+        logger.debug("SYSTEM PROMPT:")
+        logger.debug(system_prompt)
+
         try:
-            raw_json = self.run_raw(system_prompt, text_chunk)
-            if not raw_json:
-                return []
-
-            validated_response = LLMResponse.model_validate(raw_json)
-            logger.info(f"LLM Reasoning Chain: {validated_response.reasoning_chain}")
-            llm_findings = validated_response.findings
-
-        except ValidationError as e:
-            logger.error(f"Pydantic validation failed for LLM response: {e}")
-            return []
+            response: LLMResponse = self._client.chat.completions.create(
+                model=self.model,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                response_model=LLMResponse,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": text_chunk},
+                ],
+            )
         except Exception as e:
             logger.error(f"LLM API call or processing failed: {e}")
             return []
 
-        logger.info(f"Successfully parsed {len(llm_findings)} findings from LLM.")
-        return llm_findings
+        logger.info(f"LLM Reasoning Chain: {response.reasoning_chain}")
+        logger.info(f"Successfully parsed {len(response.findings)} findings from LLM.")
+        return response.findings
