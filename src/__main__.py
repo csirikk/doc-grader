@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 from dotenv import load_dotenv
 
 # Analysers
+from .analysers.base_analyser import BaseLLMAnalyser
 from .analysers.content_analyser import ContentAnalyser
 from .analysers.design_analyser import DesignAnalyser
 from .analysers.structure_analyser import StructureAnalyser
@@ -61,12 +62,9 @@ def _load_app_config(config_path: str | None) -> AppConfig:
 def _run_analysers(
     ir: Document, config: AppConfig, rulebook: Rulebook, llm_client: Any | None = None
 ) -> list[Finding]:
-    from .analysers.base_analyser import BaseLLMAnalyser
-
     findings: list[Finding] = []
 
     llm_analysers: dict[str, BaseLLMAnalyser] = {}
-    all_llm_rules = []
     llm_params = {}
 
     for analyser_cfg in config.analysers:
@@ -90,9 +88,6 @@ def _run_analysers(
             if isinstance(analyser_instance, BaseLLMAnalyser):
                 llm_analysers[analyser_cfg.analyser_id] = analyser_instance
                 llm_params[analyser_cfg.analyser_id] = analyser_params
-                all_llm_rules.extend(
-                    analyser_instance.get_rules(rulebook, params=analyser_params)
-                )
             else:
                 result = analyser_instance.analyse(ir, params=analyser_params)
                 if result:
@@ -202,8 +197,6 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     llm_client = None
-    from .analysers.base_analyser import BaseLLMAnalyser
-
     llm_needed = any(
         a.enabled and issubclass(ANALYSER_LIST[a.analyser_id], BaseLLMAnalyser)
         for a in config.analysers
