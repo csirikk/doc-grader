@@ -1,11 +1,11 @@
 """Rule engine for post-processing analyser findings.
 
 1. Aggregate findings from multiple analysers.
-2. Apply simple normalization / filtering rules.
-    - Keep only findings with confidence >= HIGH_CONFIDENCE_THRESHOLD
-        when a confidence value is present.
-    - If a finding has no confidence specified, keep it for now
-3. De-duplicate identical finding_ids
+2. Apply normalization / filtering rules:
+    - Drop findings with status == 'dismissed' (Judge vetoed them).
+    - For 'approved' findings, keep unconditionally (Judge already validated).
+    - For 'proposed' findings (never reached the Judge), threshold by confidence score.
+    - De-duplicate by finding_id.
 
 Future extensions?
     - Severity normalization
@@ -40,18 +40,24 @@ class RuleEngine:
         """
         aggregated: list[Finding] = []
         seen_ids: set[str] = set()
+        dropped_dismissed: int = 0
         dropped_low_conf: int = 0
         dropped_dupe: int = 0
 
         for seq in batches:
             for f in seq:
-                # Confidence filter
+                if f.status == "dismissed":
+                    dropped_dismissed += 1
+                    continue
+
                 if (
-                    f.confidence is not None
+                    f.status == "proposed"
+                    and f.confidence is not None
                     and f.confidence < self.high_confidence_threshold
                 ):
                     dropped_low_conf += 1
                     continue
+
                 # De-duplication by finding_id
                 if f.finding_id in seen_ids:
                     dropped_dupe += 1
@@ -63,7 +69,8 @@ class RuleEngine:
             "rule_engine": {
                 "high_conf_threshold": self.high_confidence_threshold,
                 "dropped": {
-                    "low_confidence": dropped_low_conf,
+                    "dismissed_by_judge": dropped_dismissed,
+                    "low_confidence_proposed": dropped_low_conf,
                     "duplicates": dropped_dupe,
                 },
                 "final_count": len(aggregated),
