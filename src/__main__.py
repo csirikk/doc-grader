@@ -24,6 +24,7 @@ from .utils import (
     compute_config_hash,
     configure_logging,
     findings_to_csv_rows,
+    format_finding_short,
     log_json,
     reset_id_counters,
     write_csv,
@@ -263,6 +264,7 @@ def main(argv: list[str] | None = None) -> int:
         log_json(logger, "IR Document", ir_doc)
         for finding in analyser_findings:
             log_json(logger, f"Finding: {finding.title}", finding)
+            logger.info("\n%s\n", format_finding_short(finding))
 
     if args.csv_out:
         csv_path = Path(args.csv_out)

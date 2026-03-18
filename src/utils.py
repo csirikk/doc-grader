@@ -100,6 +100,44 @@ def compute_doc_hash(path: str | Path) -> str:
     return "sha256:" + hasher.hexdigest()
 
 
+def format_finding_short(finding: Finding) -> str:
+    """Return a summary of a Finding."""
+    lines = [
+        f"[{finding.finding_id}]:",
+        f"{finding.summary}",
+    ]
+
+    metrics = []
+    if finding.severity is not None:
+        metrics.append(f"severity={finding.severity:.2f}")
+    if finding.confidence is not None:
+        metrics.append(f"confidence={finding.confidence:.2f}")
+    if metrics:
+        lines.append(f"{', '.join(metrics)}")
+
+    if finding.stats:
+        stats_str = ", ".join(
+            f"{s.name}={s.value}{' ' + s.unit if s.unit else ''}" for s in finding.stats
+        )
+        lines.append(f"  Stats: {stats_str}")
+
+    if finding.anchors:
+        for i, anchor in enumerate(finding.anchors, 1):
+            if anchor.snippet:
+                snippet = anchor.snippet.replace("\n", " ")
+                max_len = 500
+                if len(snippet) > max_len:
+                    snippet = snippet[:max_len] + "..."
+                lines.append(f'  Evidence [{i}]: "{snippet}"')
+            else:
+                lines.append(f"  Evidence [{i}]: (No snippet provided)")
+
+    if finding.notes:
+        lines.append(f"  Notes: {', '.join(finding.notes)}")
+
+    return "\n".join(lines)
+
+
 def compute_config_hash(config: dict) -> str:
     canonical = json.dumps(config, sort_keys=True, separators=(",", ":"))
     return "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
