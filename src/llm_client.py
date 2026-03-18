@@ -52,10 +52,7 @@ class LLMClient:
     def analyse_document(
         self, doc: Document, rules: list[LLMRule], rulebook: Rulebook
     ) -> list[LLMFinding]:
-        """
-        Extracts text from the document, adds cref tags and section context,
-        includes table and code items, calls the LLM, and returns findings.
-        """
+        """Extract document text, call the grader model, and return findings."""
         from .schemas.llm import GraderModelResponse
 
         logger.debug("analyse_document start")
@@ -70,9 +67,9 @@ class LLMClient:
             logger.debug("No text to analyse or no rules provided. Skipping LLM call.")
             return []
         system_prompt = self._build_grader_model_prompt(rules, rulebook)
-        logger.debug(f"Sending request to {self.model}")
-        logger.debug("SYSTEM PROMPT:")
-        logger.debug(system_prompt)
+        logger.debug(
+            f"Sending request to {self.model}. SYSTEM PROMPT:\n{system_prompt}"
+        )
 
         try:
             response: GraderModelResponse = self._client.chat.completions.create(
@@ -137,7 +134,7 @@ class LLMClient:
         try:
             response: JudgeModelResponse = self._client.chat.completions.create(
                 model=self.model,
-                temperature=0.0,
+                temperature=self.temperature,
                 max_tokens=self.max_tokens,
                 response_model=JudgeModelResponse,
                 messages=[
@@ -162,13 +159,10 @@ class LLMClient:
         ac_to_rule: dict[str, LLMRule],
     ) -> str:
         """Construct the user message for the Judge from a list of findings."""
-        lines: list[str] = []
+        parts: list[str] = []
         for f in findings:
             # Retrieve passage text and section path from document
             cref = f.anchors[0].target.cref if f.anchors else ""
-            passage = ""
-            section_path = ""
-
             text_item = doc.text_items.get(cref)
             passage = getattr(text_item, "text", "") or "" if text_item else ""
             section_path = doc.section_paths.get(cref, "") if text_item else ""
@@ -181,18 +175,18 @@ class LLMClient:
             snippet = f.anchors[0].snippet if f.anchors else None
             snippet_str = f'Snippet: "{snippet}"' if snippet else "Snippet: (none)"
 
-            lines.append(
+            parts.append(
                 f"### Finding ID: {f.finding_id}\n"
                 f"AC Rule [{f.ac_code}]: {rule_def}\n"
                 f"Section: {section_path or '(unknown)'}\n"
                 f"Passage: {passage or '(unavailable)'}\n"
                 f"{snippet_str}\n"
-                f"Analyser Reason: {f.summary}\n"
-                f"Severity: {f.severity}"
+                f"Detector Reason: {f.summary}\n"
+                f"Severity: {f.severity}\n"
                 f"Confidence: {f.confidence}"
             )
 
-        return "\n\n".join(lines)
+        return "\n\n".join(parts)
 
     def _apply_verdicts(
         self,
@@ -208,7 +202,8 @@ class LLMClient:
             verdict = verdict_map.get(f.finding_id)
             if verdict is None:
                 logger.warning(
-                    f"Judge returned no verdict for finding '{f.finding_id}', leaving as 'proposed'"
+                    f"Judge returned no verdict for '{f.finding_id}', "
+                    f"leaving as 'proposed'"
                 )
                 continue
 
