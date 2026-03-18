@@ -1,6 +1,5 @@
 """Configuration schema for analysers and pipeline."""
 
-import json
 from pathlib import Path  # noqa: TC003
 from typing import Any
 
@@ -39,11 +38,9 @@ class AppConfig(StrictModel):
 
 def load_config(path: Path) -> AppConfig:
     """Load and validate configuration from JSON file."""
-    data = json.loads(path.read_text(encoding="utf-8"))
-    return AppConfig.model_validate(data)
+    return AppConfig.model_validate_json(path.read_text(encoding="utf-8"))
 
 
 def load_rulebook(path: Path) -> Rulebook:
     """Load and validate the LLM rulebook from JSON file."""
-    data = json.loads(path.read_text(encoding="utf-8"))
-    return Rulebook.model_validate(data)
+    return Rulebook.model_validate_json(path.read_text(encoding="utf-8"))
