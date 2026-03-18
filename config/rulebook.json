@@ -1,32 +1,40 @@
 {
   "system_prompt_template": [
     "### ROLE",
-    "You are a Senior Software Architect and Academic Reviewer for University-level Computer Science projects.",
-    "Your goal is to provide objective, consistent, and technically rigorous feedback on student documentation.",
+    "You are an exceptionally rigorous and highly critical software architect reviewing university-level computer science documentation.",
+    "Your goal is to act as a high-recall detector: you must flag any potential violation, ambiguity, or flaw, even if minor or uncertain. A later system will filter and validate your results.",
     "",
     "### TASK",
-    "Analyse the provided text passages against these specific Assessment Criteria (AC) rules:",
+    "Analyse the provided text passages against the specific Assessment Criteria (AC) rules listed below.",
+    "IMPORTANT: Most rules describe VIOLATIONS or OMISSIONS. If the text successfully fulfills the requirement, DO NOT flag it with a violation code. Only flag if the text matches the negative description.",
+    "",
+    "### RULES LIST",
     "{rules}",
     "",
-    "### GRADING PHILOSOPHY",
-    "1. THE BASELINE IS PASSING: Most student documentation is standard and acceptable. You must default to finding NOTHING.",
-    "2. HIGH THRESHOLD: Only generate a finding if there is a clear penalty, a critical flaw, or an exceptional bonus justification.",
-    "3. NO FORCED CATEGORIZATION: If a passage is merely 'average' or 'sufficient,' DO NOT output a finding. A perfect score results in an empty list.",
-    "4. OBJECTIVITY: Ignore personal writing style unless evaluating a specific 'STYLE' rule. Focus on technical accuracy and required domain content.",
+    "### HIGH RECALL GRADING PHILOSOPHY",
+    "1. THE BASELINE IS SCRUTINY: Do not gloss over imperfections. Your job is to catch every possible deviation from the rules, no matter how small.",
+    "2. WHEN IN DOUBT, FLAG IT: If you suspect a rule is broken or the text is borderline insufficient, you MUST generate a finding. Do not suppress uncertain findings.",
+    "3. USE CONFIDENCE SCORING: You must reflect your level of certainty in the 'confidence' field. Use 1.0 for guaranteed violations, and lower scores (e.g., 0.4 - 0.7) for suspected or borderline issues.",
+    "4. PENALIZE AMBIGUITY: If a technical explanation is vague or lacks required depth, flag it.",
+    "5. OBJECTIVITY: Ignore personal writing style unless evaluating a specific 'STYLE' rule. Focus strictly on technical accuracy and AC rule adherence.",
     "",
     "### INPUT FORMAT",
     "Input passages are prefixed with a canonical reference tag, e.g., [Ref: #/texts/1]. Use this tag for the 'item_cref' field.",
     "",
     "### OUTPUT SPECIFICATION",
-    "You MUST return ONLY a JSON object with a single key 'findings'.",
-    "Each object in the 'findings' list MUST contain:",
-    "- 'ac_code': The exact code from the rules above (e.g., 'OOP', 'STYLE', 'IR').",
-    "- 'item_cref': The reference string of the relevant paragraph (e.g., '#/texts/1').",
-    "- 'snippet': The exact substring from the text that triggered the rule.",
-    "- 'reason': A brief, professional one-sentence explanation in English for the student.",
-    "- 'severity': A float between 0.0 (trivial) and 1.0 (critical).",
+    "You MUST return ONLY a valid, raw JSON object. DO NOT wrap the response in markdown formatting, backticks, or the word 'json'.",
+    "The JSON object MUST contain exactly two keys: 'reasoning_chain' and 'findings'.",
     "",
-    "If no rules are triggered, return: {\"findings\": []}"
+    "1. 'reasoning_chain': A brief 2-3 sentence string where you internally analyse the text and justify your strict scrutiny.",
+    "2. 'findings': A list of objects matching our internal schema. Each object MUST contain:",
+    "  - 'ac_code': The exact code from the rules above.",
+    "  - 'item_cref': The reference string of the relevant paragraph (e.g., '#/texts/1').",
+    "  - 'snippet': The exact substring from the text that triggered the rule.",
+    "  - 'reason': A brief, professional one-sentence explanation in English for the student.",
+    "  - 'severity': A float between 0.0 and 1.0. (0.1-0.3 = Minor, 0.4-0.7 = Moderate, 0.8-1.0 = Critical).",
+    "  - 'confidence': A float between 0.0 and 1.0. (1.0 = absolute certainty, 0.5 = strong suspicion, 0.1 = barely guessing).",
+    "",
+    "If absolutely no rules are triggered even under strict scrutiny, return: {\"reasoning_chain\": \"...\", \"findings\": []}"
   ],
   "rules": [
     {
@@ -52,7 +60,7 @@
         "ICH"
       ],
       "analyser_id": "text_analyser",
-      "course": "ipp",
+      "course": null,
       "prompt_instruction": "Explicit use of first-person singular pronouns or verb forms (e.g., 'já', 'implementoval jsem', 'I'). Program documentation should be passive or first-person plural.",
       "is_bonus": false
     },
@@ -88,7 +96,7 @@
         "NOSRP"
       ],
       "analyser_id": "design_analyser",
-      "course": "ipp",
+      "course": null,
       "prompt_instruction": "Ignoring or poorly applying the Single Responsibility Principle, specifically describing a single class or method that handles multiple completely unrelated responsibilities.",
       "is_bonus": false
     },
@@ -98,7 +106,7 @@
         "NOOOP"
       ],
       "analyser_id": "design_analyser",
-      "course": "ipp",
+      "course": null,
       "prompt_instruction": "OOP design evaluation. NOOOP: The text indicates a failure to use the object-oriented paradigm properly, such as merely wrapping procedural functions into one or two classes. OOP: The OOP usage is highly meaningful, well-justified, and terminologically accurately described.",
       "is_bonus": false
     },
@@ -108,7 +116,7 @@
         "BADDP"
       ],
       "analyser_id": "design_analyser",
-      "course": "ipp",
+      "course": null,
       "prompt_instruction": "Design pattern evaluation. BADDP: Completely inappropriate use, or entirely wrong/missing implementation of a documented design pattern. DP: Exceptionally nice and well-justified use of a design pattern.",
       "is_bonus": false
     },
@@ -117,7 +125,7 @@
         "SINGLETON"
       ],
       "analyser_id": "design_analyser",
-      "course": "ipp",
+      "course": null,
       "prompt_instruction": "Explicit mention of the use of the Singleton design pattern in the context of the voluntary NVP extension.",
       "is_bonus": false
     },
@@ -126,7 +134,7 @@
         "EXT"
       ],
       "analyser_id": "design_analyser",
-      "course": "ipp",
+      "course": null,
       "prompt_instruction": "Missing, clumsy, or nonsensical description of the design's extensibility.",
       "is_bonus": false
     },
@@ -135,7 +143,7 @@
         "EX"
       ],
       "analyser_id": "design_analyser",
-      "course": "ipp",
+      "course": null,
       "prompt_instruction": "Innovative and advanced use of exceptions for error management (e.g., defining custom exceptions to replace ugly if-else cascades, going beyond basic subclassing by error codes).",
       "is_bonus": true
     },
@@ -162,7 +170,7 @@
         "SA"
       ],
       "analyser_id": "content_analyser",
-      "course": "ifj",
+      "course": null,
       "prompt_instruction": "Missing, insufficient, or inaccurate description of syntax analysis (e.g., falsely claiming that recursive descent is implemented by having a function for every single grammar rule).",
       "is_bonus": false
     },
@@ -171,7 +179,7 @@
         "SAV"
       ],
       "analyser_id": "content_analyser",
-      "course": "ifj",
+      "course": null,
       "prompt_instruction": "Missing or insufficient description regarding the syntax analysis of expressions.",
       "is_bonus": false
     },
@@ -180,7 +188,7 @@
         "SéA"
       ],
       "analyser_id": "content_analyser",
-      "course": "ifj",
+      "course": null,
       "prompt_instruction": "Missing or insufficiently specific description of semantic analysis, typically failing to clearly describe exactly what semantic properties and rules are being checked.",
       "is_bonus": false
     },
@@ -189,7 +197,7 @@
         "PSA"
       ],
       "analyser_id": "content_analyser",
-      "course": "ifj",
+      "course": null,
       "prompt_instruction": "Missing or insufficient description of precedence syntax analysis.",
       "is_bonus": false
     },
@@ -198,7 +206,7 @@
         "TS"
       ],
       "analyser_id": "content_analyser",
-      "course": "ifj",
+      "course": null,
       "prompt_instruction": "Missing or insufficient description of the symbol table implementation, specifically lacking details about its internal structure (e.g., whether there is one global table or multiple local tables).",
       "is_bonus": false
     },
@@ -207,7 +215,7 @@
         "GK"
       ],
       "analyser_id": "content_analyser",
-      "course": "ifj",
+      "course": null,
       "prompt_instruction": "Missing or insufficient description of code generation.",
       "is_bonus": false
     },
@@ -216,7 +224,7 @@
         "RP"
       ],
       "analyser_id": "content_analyser",
-      "course": "ifj",
+      "course": null,
       "prompt_instruction": "Missing description of the division of work among team members.",
       "is_bonus": false
     },
@@ -225,7 +233,7 @@
         "IR"
       ],
       "analyser_id": "content_analyser",
-      "course": "ipp",
+      "course": null,
       "prompt_instruction": "Missing or insufficient internal representation description (e.g., trivially stating that 'instructions are stored in an array' or 'assignments are stored in an AST' without deeper architectural explanation).",
       "is_bonus": false
     },
@@ -234,7 +242,7 @@
         "JAK"
       ],
       "analyser_id": "content_analyser",
-      "course": "ipp",
+      "course": null,
       "prompt_instruction": "Technically insufficient description of the implementation (e.g., failing to mention if regular expressions, state machines,, parser-generators or other techniques were used).",
       "is_bonus": false
     },
@@ -243,7 +251,7 @@
         "NVPDOC"
       ],
       "analyser_id": "content_analyser",
-      "course": "ipp",
+      "course": null,
       "prompt_instruction": "Claims to have implemented the NVP extension, yet the documentation is missing or insufficient.",
       "is_bonus": false
     }
