@@ -59,22 +59,4 @@ class DesignAnalyser(BaseLLMAnalyser):
         llm_findings: list[LLMFinding],
         params: dict[str, Any] | None = None,
     ) -> list[Finding]:
-        findings: list[Finding] = []
-
-        for f in llm_findings:
-            item = doc.text_items.get(f.item_cref)
-
-            findings.append(
-                self._make_finding(
-                    doc=doc,
-                    ac_code=f.ac_code,
-                    title=f"Design issue: {f.ac_code}",
-                    summary=f.reason,
-                    evidence_item=item,
-                    snippet_override=f.snippet,
-                    severity=f.severity,
-                    confidence=f.confidence,
-                )
-            )
-
-        return findings
+        return [self._convert_llm_finding_to_finding(doc, f) for f in llm_findings]

@@ -63,6 +63,9 @@ class BaseAnalyser(ABC):
                 )
             )
 
+        prefix = f"{self.analyser_id.upper()}:{ac_code}"
+        finding_id = next_id(prefix)
+
         return Finding(
             analyser=AnalyserInfo(
                 analyser_id=self.analyser_id,
@@ -71,7 +74,7 @@ class BaseAnalyser(ABC):
                 config_hash=config_hash,
             ),
             document=doc.doc_ref,
-            finding_id=next_id(f"{self.analyser_id.upper()}:{ac_code}"),
+            finding_id=finding_id,
             ac_code=ac_code,
             title=title,
             summary=summary,
@@ -104,7 +107,7 @@ class BaseLLMAnalyser(BaseAnalyser):
     def get_rules(
         self, rulebook: Rulebook, params: dict[str, Any] | None = None
     ) -> list[LLMRule]:
-        """Return the rules this analyser wants the LLM to check, filtered by rulebook."""
+        """Return the rules this analyser wants the LLM to check."""
         ...
 
     @abstractmethod
@@ -119,3 +122,20 @@ class BaseLLMAnalyser(BaseAnalyser):
 
     def analyse(self, doc: Document, params: dict | None = None) -> list[Finding]:
         raise NotImplementedError("LLM Analysers must be run via LLMClient.")
+
+    def _convert_llm_finding_to_finding(
+        self,
+        doc: Document,
+        f: LLMFinding,
+    ) -> Finding:
+        """Convert an LLMFinding to a Finding."""
+        return self._make_finding(
+            doc=doc,
+            ac_code=f.ac_code,
+            title=f.ac_code,
+            summary=f.reason,
+            evidence_item=doc.text_items.get(f.item_cref),
+            snippet_override=f.snippet,
+            severity=f.severity,
+            confidence=f.confidence,
+        )

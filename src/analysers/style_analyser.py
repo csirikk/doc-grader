@@ -18,13 +18,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from ..schemas.llm import LLMRule
 from .base_analyser import BaseLLMAnalyser
 
 if TYPE_CHECKING:
     from ..schemas.finding import Finding
     from ..schemas.ir import Document
-    from ..schemas.llm import LLMFinding, Rulebook
+    from ..schemas.llm import LLMFinding, LLMRule, Rulebook
 
 
 class StyleAnalyser(BaseLLMAnalyser):
@@ -48,22 +47,4 @@ class StyleAnalyser(BaseLLMAnalyser):
         llm_findings: list[LLMFinding],
         params: dict[str, Any] | None = None,
     ) -> list[Finding]:
-        findings: list[Finding] = []
-
-        for f in llm_findings:
-            item = doc.text_items.get(f.item_cref)
-
-            findings.append(
-                self._make_finding(
-                    doc=doc,
-                    ac_code=f.ac_code,
-                    title=f"Style issue: {f.ac_code}",
-                    summary=f.reason,
-                    evidence_item=item,
-                    snippet_override=f.snippet,
-                    severity=f.severity,
-                    confidence=f.confidence,
-                )
-            )
-
-        return findings
+        return [self._convert_llm_finding_to_finding(doc, f) for f in llm_findings]
