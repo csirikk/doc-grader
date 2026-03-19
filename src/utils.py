@@ -198,10 +198,15 @@ def findings_to_csv_rows(path: Path, findings: list[Finding]) -> list[dict[str, 
     return rows
 
 
-def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
-    """Write a list of row dicts to a CSV file using the canonical column order."""
+def write_csv(
+    path: Path,
+    rows: list[dict[str, Any]],
+    fieldnames: list[str] | None = None,
+) -> None:
+    """Write row dicts to a CSV file. Uses CSV_COLUMNS if fieldnames is None."""
     path.parent.mkdir(parents=True, exist_ok=True)
+    csv_columns = fieldnames or CSV_COLUMNS
     with path.open("w", newline="", encoding="utf-8") as fh:
-        writer = csv.DictWriter(fh, fieldnames=CSV_COLUMNS, extrasaction="ignore")
+        writer = csv.DictWriter(fh, fieldnames=csv_columns, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
