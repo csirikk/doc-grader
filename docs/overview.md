@@ -1,122 +1,207 @@
 # Tool overview
 
-Helper for grading IFJ/IPP project documentation.
+Grading assistant for IFJ/IPP student project documentation.
 
 ## 1. Motivation
 
-Manual grading is slow and inconsistent.
-The tool flags parts of the file which it thinks should affect the score negatively, explains why and suggests a point deduction. Optionally provides natural language feedback to the grader and/or student.
+Manual grading of student documentation is slow and inconsistent across years and graders. This tool analyses submitted PDFs or Markdown files against a set of assessment criteria (AC codes) and produces machine-readable findings with evidence anchors that graders can review, confirm, or dismiss.
 
-## 2. Typical flow
+## 2. Inputs and Outputs
 
-- Convert PDF to Markdown to paragraphs and extract assets (images, tables)
-- Statically parse source code to extract entities (classes, functions, etc.)
-- Run detectors, get list of findings `{code, evidence, confidence, location, ...}`
-- Rule engine transforms findings into error codes
-- Aggregate deductions and suggest score
-- Generate reports
+Inputs:
 
-## 3. Inputs
+| Item            | Format                 | Notes                                              |
+| --------------- | ---------------------- | -------------------------------------------------- |
+| Student doc     | `.pdf` or `.md`        | One or more files per invocation.                  |
+| App config      | `config/default.json`  | Enabled analysers, model overrides, course.        |
+| Rulebook        | `config/rulebook.json` | LLM prompt templates and per-AC rule instructions. |
+| Course tag      | `"ipp"` or `"ifj"`     | Filters which AC rules and thresholds apply.       |
 
-| Item                  | Format                              | Notes              |
-| --------------------- | ----------------------------------- | ------------------ |
-| Student documentation | .pdf or .md                         | required           |
-| Student source code   | .php, .py, etc.                     | optional, for diagram analysis |
-| Project assignment    | .pdf or .md                         | optional, for copied spec text detection |
-| Error-codes           | Based on assessment criteria, in list   | -                  |
-| Course configuration  | IFJ vs IPP detector sets            | different penalties and requirements |
-| Custom grading rules  | natural language/custom error codes | optional overrides |
+Outputs:
 
-## 4. Outputs
+Per document, written to `out/<stem>/`
 
-| For grader                                               | For student                                           |
-| -------------------------------------------------------- | ----------------------------------------------------- |
-| List of deductions                                       | Plain-text list of approved deductions and reasonings |
-| Suggested total score and individual deduction weights   | Summary feedback                                      |
-| Highlighted sections in UI (optional)                    | -                                                     |
-| Batch error summaries, trends across projects (optional) | -                                                     |
+| File                   | Contents                                                           |
+| ---------------------- | ------------------------------------------------------------------ |
+| `ir.json`              | IR document (stats, metadata, `doc_ref`)                           |
+| `docling.json`         | Raw Docling `DoclingDocument`                                      |
+| `parser_findings.json` | Findings from parsing (missing file, unsupported format, ...)      |
+| `raw_findings.json`    | All analyser findings before judge pass                            |
+| `judged_findings.json` | Findings after judge approval/dismissal                            |
+| `findings.json`        | Final findings after `RuleEngine` filtering                        |
+| `info.json`            | Run metadata and `RuleEngine` summary statistics                   |
+| CSV (optional)         | Findings in the same schema as ground-truth assessment datasets    |
 
-## 5. Design overview
+## 3. Pipeline
 
-### Key components
+```txt
+Input (.pdf / .md)
+       |
+       v
+DocumentParser [Docling]
+       |  ParseOutput { ir: Document, parser_findings }
+       v
+Analysers
+  - StructureAnalyser, ...                                 [heuristics]
+  - LLM Analysers ----------> LLMClient.analyse_document() [grader model]
+       |  (AssetAnalyser) --> LLMClient.analyse_assets()   [vision model]
+       |
+       v  raw findings (status = "proposed" | "approved")
+LLMClient.judge_findings()                              [judge model]
+       |  updates status: "approved" | "dismissed"
+       v
+RuleEngine.process()
+       |  drops dismissed, low confidence, deduplicates
+       v
+Final findings -> JSON + optional CSV
+```
 
-1. **PDF/Markdown parser**
-   - Converts input documents into a unified IR format of typed blocks (headings, paragraphs, lists, code blocks, quotes, tables, figures).
-   - Markdown: uses markdown-it-py for tokenization, preserves line/byte offsets.
-   - PDF: uses PyMuPDF for text/image extraction, preserves page numbers and bounding boxes.
-2. **Source code parser**
-   - Statically analyzes student source code to extract key entities (class names, function signatures, relationships).
-   - This data provides ground truth for diagram and implementation-related detectors.
-   - Status: Planned
-3. **Local dataset** of past docs/code/assignments
-   - For training/validation of models, few-shot examples for LLMs.
-4. **Detectors**  
-   - A suite of specialized modules that identify specific issues.
-   - Each returns `{code, evidence, confidence, location, ...}`.
-   - Current: LENGTH analyzer (too-short, too-long)
-5. **Rule engine**  
-   - Maps detector output to a code table.
-   - Applies filtering (confidence threshold, deduplication).
-   - Status: Basic
-6. **Scoring + export** (JSON / plain text).
-7. **CLI** prototype (GUI later).
+## 4. Modules
 
-### Detectors (WIP)
+### 4.1 Parser (`src/parsers/parser.py`)
 
-Automatically identify specific issues in student documentation. Each detector outputs `{code, evidence, confidence, location, ...}`.
+`DocumentParser` wraps Docling's `DocumentConverter`. It accepts `.pdf` and `.md` and returns a `ParseOutput`:
 
-**Implemented:**
+- `ir: Document` - the converted document plus stats.
+- `parser_findings` - problems found during parsing (missing file, unsupported type, empty content).
 
-| Detector                          | Code   | Approach                                                     | Status       |
-|-----------------------------------|--------|--------------------------------------------------------------|--------------|
-| Length/completeness               | LENGTH | Heuristics on word/paragraph counts and ratios               | Implemented  |
+PDF pipeline options: OCR (`ces`/`eng`/`slk`), table structure extraction with cell matching, picture image generation, and full page image generation. Page images are sent alongside diagrams to the vision model for layout context.
 
-**Planned:**
+The parser builds two index maps over all text items:
 
-| Detector                          | Code        | Approach                                                     | Status   |
-|-----------------------------------|-------------|--------------------------------------------------------------|----------|
-| Document structure                | STRUCT      | TBD                                                          | Planned  |
-| Copied content                    | COPY        | SBERT embeddings vs specs? (TBD)                             | Planned  |
-| Diagram Presence                  | NODIAGRAM   | Heuristic image and vector graphics extraction.              | Planned  |
-| Table Presence                    | NOTABLE     | Parse Markdown tables and use PDF table extraction tools.    | Planned  |
-| Diagram Quality                   | BADDIAGRAM  | Vision API to classify type and compare against source code. | Planned  |
-| Table Quality                     | BADTABLE    | Vision API to classify type and compare against source code? | Planned  |
-| Writing style                     | STYLE       | Multilingual LLM                                             | Planned  |
-| Content appropriateness           | CONTENT     | Multilingual LLM                                             | Planned  |
-| Generic Promptable                | CUSTOM      | single powerful LLM, custom prompt                           | Planned  |
-| Language mixing                   | LANG        | cz/sk/en detection                                           | Planned  |
-| Terminology                       | TERM        | Domain-specific, OOP focus for IPP                           | Planned  |
-| Format compliance                 | FORMAT      | PDF/markdown requirements                                    | Planned  |
+- `text_items: dict[cref, TextItem]` - used to anchor findings to exact document nodes.
+- `section_paths: dict[cref, str]` - heading-path string for every text item (e.g. `"Introduction > Lexical Analysis"`), injected into the LLM prompt as `[Section: ...]` prefixes.
 
-## Rule engine
+### 4.2 Intermediate Representation (`src/schemas/ir.py`)
 
-Convert raw detector findings into actionable grading deductions. Inputs are `{code, evidence, confidence, location, ...}` + error code definitions -> output = `{deduction, weight, reason, ...}`. The system is unified, with a single rule engine that applies different configurations (enabled detectors, penalty weights) for both IPP and IFJ.
+`Document` is a Pydantic `StrictModel` wrapping a `DoclingDocument` with additional metadata:
 
-**Current implementation:** Basic filtering by confidence threshold (default 0.80) and deduplication by finding_id. Returns aggregated findings with summary statistics.
+```txt
+Document
++ doc_ref: DocumentRef (source path, binary_hash, Docling origin)
++ docling_doc: DoclingDocument
++ total_words / total_chars / total_paragraphs / total_headings
++ text_items: dict[cref -> TextItem]
++ section_paths: dict[cref -> str]
+```
 
-**Planned features:**
+`DoclingDocument` preserves the full typed-block structure (`SectionHeaderItem`, `TextItem`, `TableItem`, `PictureItem`) with provenance (page number, bounding box) on every node.
 
-| Feature             | Possible approach                 | Notes                                 |
-| ------------------- | --------------------------------- | ------------------------------------- |
-| Mapping method      | Static YAML/JSON config           | Learned mapping out of scope for now? |
-| Deduction weights   | Fixed vs. adaptive per doc?       | Allow per-project/ overrides.         |
-| Thresholds          | Confidence cut-off per detector   | Manual tuning or learned thresholds?  |
-| Conflict resolution | Deduplication logic               | One deduction per issue type?         |
-| Grader overrides    | CLI flag / config file            | File-based override format?           |
-| Batch scoring       | -                                 | Out of scope for now.                 |
-| Explainability      | -                                 | Include evidence snippets in reports. |
+### 4.3 Analysers (`src/analysers/`)
 
-- Possible feedback loop for tuning rule accuracy over time?
+All analysers implement `BaseAnalyser.analyse(doc, params) -> list[Finding]`.
 
-### Design diag
+#### Deterministic
 
-![Design v0.2](img/design_v0_2.png)
+| Analyser            | AC codes          | Method                                                             |
+| ------------------- | ----------------- | ------------------------------------------------------------------ |
+| `StructureAnalyser` | `SHORT`, `KAPTXT` | Heuristic thresholds calibrated on historical data; heading scan   |
 
-## 6. Design questions
+- `SHORT`: flagged when word count < 486, char count < 3422, or heading count < 7 (covers ~90% of historically short submissions).
+- `KAPTXT`: iterates all `SectionHeaderItem` nodes, severity depends on the relationship between adjacent heading levels (sibling, parent->child, child->parent).
 
-- Local models vs. OpenAI API for detectors
-- How to handle image/diagram/table checks
-- Evaluation strategy. how to measure the accuracy and effectiveness of the detectors, and the final grading (precision/recall against manual grading)
-- Security/privacy
-- Handling different languages (cz/sk/en)
-- Possibility of constraining the documentation specification to help the automated evaluation process.
+Deterministic findings have `confidence = None` and are unconditionally approved, bypassing the judge.
+
+#### LLM-based
+
+These analysers declare which rules they own via `get_rules(rulebook, params)` and post-process findings returned by `LLMClient`. Orchestration is in `_run_analysers()` in `__main__.py`.
+
+| Analyser          | AC codes (representative)                                                     | Notes                    |
+|-------------------|-------------------------------------------------------------------------------|--------------------------|
+| `TextAnalyser`    | `CH`, `ICH`, `TERM`, `LANG`                                                   | Proofreading, objective  |
+| `StyleAnalyser`   | `STYLE`, `HOV`                                                                | Editorial, subjective    |
+| `ContentAnalyser` | `CONTENT`, `SA`, `SAV`, `SeA`, `PSA`, `TS`, `GK`, `IR`, `JAK`, `NVPDOC`, `RP` | Section-level quality    |
+| `DesignAnalyser`  | `OOP`, `NOOOP`, `NOSRP`, `DP`, `BADDP`, `SINGLETON`, `EXT`, `EX`, `FILO`      | OOP/architecture quality |
+| `AssetAnalyser`   | `BADUML`, `OWNDIF`, `BW`                                                      | Vision model             |
+
+`AssetAnalyser` uses a separate vision path, every `PictureItem` and its surrounding page image are base64-encoded and sent to `LLMClient.analyse_assets()`. Vision findings bypass the judge and are immediately `"approved"`.
+
+### 4.4 LLM Client (`src/llm_client.py`)
+
+`LLMClient` wraps OpenAI via `instructor`, which enforces structured Pydantic-validated responses. Three model calls are made per document:
+
+#### Grader model (`analyse_document`)
+
+Document text is serialised as a flat string with `[Ref: cref]` and `[Section: path]` prefixes per text item. The system prompt comes from `rulebook.grader_model_prompt_template` with active rules injected at the `{rules}` placeholder. Returns `GraderModelResponse { reasoning_chain, findings: list[LLMFinding] }`.
+
+`LLMFinding` fields: `ac_code`, `item_cref` (pointer into the IR), `snippet`, `reason`, `severity`, `confidence`.
+
+#### Vision model (`analyse_assets`)
+
+Each picture and its page context are sent as multipart image messages. Prompt comes from `rulebook.vision_model_prompt_template`. Returns `VisionModelResponse { reasoning_chain, findings: list[VisionFinding] }`.
+
+#### Judge model (`judge_findings`)
+
+Receives all `"proposed"` text findings. Re-evaluates each against the source document and returns `JudgeVerdict` objects (`"approved"` or `"dismissed"` with explanation). Findings with judge confidence below 0.10 are auto-dismissed. Vision findings are excluded from the judge pass.
+
+### 4.5 Rule Engine (`src/rule_engine.py`)
+
+`RuleEngine.process(findings)` applies filters in order:
+
+1. **Dismissed** - drop (judge vetoed).
+2. **Low-confidence proposed** - drop if `confidence < N`.
+3. **Deduplication** - drop if `finding_id` already seen in this run.
+
+Returns `(final_findings, summary_dict)`. The summary (counts per drop reason, final count) is written to `info.json`.
+
+### 4.6 Finding Schema (`src/schemas/finding.py`)
+
+Every analyser produces `Finding` objects with the same schema:
+
+```txt
+Finding
++-- finding_id: str           # e.g. "STRUCTURE_ANALYSER:KAPTXT-1"
++-- ac_code: str              # assessment criterion code (e.g. "KAPTXT")
++-- title / summary: str
++-- severity: float [0-1]     # how serious the issue is
++-- confidence: float | None  # model certainty; None = deterministic
++-- status: "proposed" | "approved" | "dismissed"
++-- analyser: AnalyserInfo    # analyser_id, name, run_id, config_hash
++-- document: DocumentRef     # source file identity
++-- anchors: list[Anchor]     # cref + snippet + page/bbox provenance
++-- stats: list[Stat]         # numeric evidence (word counts, etc.)
++-- model_evals: list[ModelEval]
+```
+
+`Anchor.target` is a Docling `FineRef` (`$ref` cref string), pointing back into the `DoclingDocument`.
+
+### 4.7 Config and Rulebook
+
+**`AppConfig`** (`config/default.json`):
+
+```json
+{
+  "course": "ipp",
+  "analysers": [
+    { "analyser_id": "structure_analyser", "enabled": true, "params": { "min_words": 486 } },
+    { "analyser_id": "asset_analyser",     "enabled": true, "model": "gpt-4o" }
+  ]
+}
+```
+
+Each analyser entry can override the OpenAI model and pass arbitrary `params`. The `"course"` field filters rulebook rules: each `LLMRule` declares its `course` scope (`null` = both courses).
+
+#### Rulebook (`config/rulebook.json`)
+
+- `grader_model_prompt_template` - system prompt with a `{rules}` placeholder.
+- `vision_model_prompt_template` - system prompt for the vision model.
+- `judge_model_prompt` - judge system prompt.
+- `rules: list[LLMRule]` - one entry per AC code group, each with `ac_codes`, `prompt_instruction`, `analyser_id`, `course`, and `is_bonus`.
+
+## 5. CLI
+
+```txt
+python -m src [options] <input> [<input> ...]
+
+Options:
+  -d, --debug         Enable debug logging
+  -o, --out PATH      Output directory  (default: out/default/)
+  -c, --config PATH   JSON config file  (default: config/default.json)
+  --csv-out PATH      Write findings as CSV, compatible with ground-truth datasets
+```
+
+Multiple input files can be passed in one invocation. Each is processed independently with a shared parser and LLM client. Finding ID counters reset per document.
+
+## 6. Dataset
+
+Historical graded documentation for IPP and IFJ courses (2013-2024) is stored under `data/`. Assessment CSVs record per-document AC code deductions and serve as ground truth. The `--csv-out` flag produces findings in the same schema for direct comparison with human deductions.
