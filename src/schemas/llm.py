@@ -27,6 +27,12 @@ class Rulebook(StrictModel):
             "Grader model system prompt template containing a '{rules}' placeholder"
         ),
     )
+    vision_model_prompt_template: list[str] = Field(
+        ...,
+        description=(
+            "Vision model system prompt template with a '{rules}' placeholder"
+        ),
+    )
     judge_model_prompt: list[str] = Field(
         ...,
         description="Judge model system prompt",
@@ -57,6 +63,32 @@ class GraderModelResponse(StrictModel):
     findings: list[LLMFinding] = Field(
         default_factory=list,
         description="The list of flagged assessment criteria violations.",
+    )
+
+
+class VisionFinding(StrictModel):
+    """A single finding from the vision model."""
+
+    ac_code: str
+    item_cref: str = Field(
+        ...,
+        description="Docling picture cref (e.g. '#/pictures/0')",
+    )
+    reason: str
+    severity: float = Field(..., ge=0.0, le=1.0)
+    confidence: float = Field(default=1.0, ge=0.0, le=1.0)
+
+
+class VisionModelResponse(StrictModel):
+    """Complete response expected from the vision grader model."""
+
+    reasoning_chain: str = Field(
+        ...,
+        description="The model's internal reasoning before scoring.",
+    )
+    findings: list[VisionFinding] = Field(
+        default_factory=list,
+        description="Flagged assessment criteria violations for the diagram(s).",
     )
 
 

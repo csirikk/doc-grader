@@ -67,6 +67,8 @@ class DocumentParser:
         pdf_options = PdfPipelineOptions()
         pdf_options.do_ocr = self.do_ocr
         pdf_options.do_table_structure = self.do_table_structure
+        pdf_options.generate_picture_images = True
+        pdf_options.generate_page_images = True
         pdf_options.ocr_options.lang = ["ces", "eng", "slk"]
         pdf_options.table_structure_options = TableStructureOptions(
             do_cell_matching=True

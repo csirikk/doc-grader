@@ -117,6 +117,30 @@ class BaseLLMAnalyser(BaseAnalyser):
             and (r.course is None or r.course == course)
         ]
 
+    def process_vision_findings(
+        self,
+        doc: Document,
+        vision_findings: list,
+        params: dict[str, Any] | None = None,
+    ) -> list[Finding]:
+        """Convert vision model findings into standard Findings. Bypasses the judge."""
+        picture_map = {item.get_ref().cref: item for item in doc.docling_doc.pictures}
+        findings: list[Finding] = []
+        for f in vision_findings:
+            finding = self._make_finding(
+                doc=doc,
+                ac_code=f.ac_code,
+                title=f.ac_code,
+                summary=f.reason,
+                evidence_item=picture_map.get(f.item_cref),
+                snippet_override=None,
+                severity=f.severity,
+                confidence=f.confidence,
+            )
+            finding.status = "approved"
+            findings.append(finding)
+        return findings
+
     def process_llm_findings(
         self,
         doc: Document,

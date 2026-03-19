@@ -17,6 +17,10 @@ class AnalyserConfig(StrictModel):
         description="Analyser implementation identifier used by analyser list",
     )
     enabled: bool = Field(default=True, description="Whether analyser is enabled")
+    model: str | None = Field(
+        default=None,
+        description="Override the LLM model for this analyser.",
+    )
     params: dict[str, Any] = Field(
         default_factory=dict, description="Analyser-specific parameters"
     )

@@ -1,0 +1,11 @@
+{
+    "version": "config/0.1",
+    "analysers": [
+        {
+            "analyser_id": "asset_analyser",
+            "enabled": true,
+            "model": "gpt-4o",
+            "params": {}
+        }
+    ]
+}

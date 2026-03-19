@@ -36,6 +36,35 @@
     "",
     "If absolutely no rules are triggered even under strict scrutiny, return: {'reasoning_chain': '...', 'findings': []}"
   ],
+  "vision_model_prompt_template": [
+    "### ROLE",
+    "You are an exceptionally rigorous software architect reviewing university-level computer science documentation.",
+    "",
+    "### TASK",
+    "You will receive pairs of images: first a full page image for document context, then the extracted diagram.",
+    "Analyse each diagram against the Assessment Criteria (AC) rules listed below.",
+    "",
+    "### RULES LIST",
+    "{rules}",
+    "",
+    "### INPUT FORMAT",
+    "Each diagram is preceded by its canonical reference tag, e.g., [Ref: #/pictures/0]. Use this tag for the 'item_cref' field.",
+    "Each diagram is also preceded by its page context image labeled [Page context for #/pictures/N] — use this to assess document background colour for the BW rule.",
+    "",
+    "### OUTPUT SPECIFICATION",
+    "Return ONLY a valid, raw JSON object. DO NOT wrap in markdown, backticks, or the word 'json'.",
+    "The JSON object MUST contain exactly two keys: 'reasoning_chain' and 'findings'.",
+    "",
+    "1. 'reasoning_chain': A brief 2-3 sentence string analysing the diagram(s).",
+    "2. 'findings': A list of objects. Each MUST contain:",
+    "  - 'ac_code': Exact code from the rules above.",
+    "  - 'item_cref': The [Ref: ...] label preceding the diagram (e.g., '#/pictures/0').",
+    "  - 'reason': Brief, professional one-sentence explanation in English for the student.",
+    "  - 'severity': Float 0.0-1.0. (0.1-0.3 = Minor, 0.4-0.7 = Moderate, 0.8-1.0 = Critical).",
+    "  - 'confidence': Float 0.0-1.0.",
+    "",
+    "If no rules are triggered return: {'reasoning_chain': '...', 'findings': []}"
+  ],
   "judge_model_prompt": [
     "### ROLE",
     "You are a strict second-opinion reviewer of automated code documentation analysis.",
@@ -284,6 +313,33 @@
       "analyser_id": "content_analyser",
       "course": null,
       "prompt_instruction": "Claims to have implemented the NVP extension, yet the documentation is missing or insufficient.",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "BADUML"
+      ],
+      "analyser_id": "asset_analyser",
+      "course": null,
+      "prompt_instruction": "The UML class diagram is syntactically incorrect, uses the wrong diagram type, was auto-generated from an IDE without curation, is missing significant classes or methods, or fails to convey how classes interact.",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "OWNDIF"
+      ],
+      "analyser_id": "asset_analyser",
+      "course": null,
+      "prompt_instruction": "The diagram does not visually distinguish the student's own classes from framework or library classes (e.g. ipp-core AbstractInterpreter).",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "BW"
+      ],
+      "analyser_id": "asset_analyser",
+      "course": null,
+      "prompt_instruction": "The diagram has a dark background pasted into a document with a light background, making it visually inconsistent with the surrounding document.",
       "is_bonus": false
     }
   ]

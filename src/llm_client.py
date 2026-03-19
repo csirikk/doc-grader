@@ -16,6 +16,7 @@ if TYPE_CHECKING:
         LLMFinding,
         LLMRule,
         Rulebook,
+        VisionModelResponse,
     )
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,11 @@ class LLMClient:
         return template.replace("{rules}", rules_text)
 
     def analyse_document(
-        self, doc: Document, rules: list[LLMRule], rulebook: Rulebook
+        self,
+        doc: Document,
+        rules: list[LLMRule],
+        rulebook: Rulebook,
+        model: str | None = None,
     ) -> list[LLMFinding]:
         """Extract document text, call the grader model, and return findings."""
         from .schemas.llm import GraderModelResponse
@@ -73,7 +78,7 @@ class LLMClient:
 
         try:
             response: GraderModelResponse = self._client.chat.completions.create(
-                model=self.model,
+                model=model or self.model,
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
                 response_model=GraderModelResponse,
@@ -88,6 +93,107 @@ class LLMClient:
 
         logger.info(f"LLM Reasoning Chain: {response.reasoning_chain}")
         logger.info(f"Successfully parsed {len(response.findings)} findings from LLM.")
+        return response.findings
+
+    def _build_vision_grader_prompt(
+        self, rules: list[LLMRule], rulebook: Rulebook
+    ) -> str:
+        rules_text = ""
+        for r in rules:
+            codes_str = "/".join(r.ac_codes)
+            rules_text += f"- [{codes_str}]: {r.prompt_instruction}\n"
+
+        template = "\n".join(rulebook.vision_model_prompt_template)
+        return template.replace("{rules}", rules_text)
+
+    def analyse_assets(
+        self,
+        doc: Document,
+        rules: list[LLMRule],
+        rulebook: Rulebook,
+        model: str | None = None,
+    ) -> list:
+        """Encode all PictureItems (with page context) and call the vision model."""
+        import base64
+        import io
+
+        from .schemas.llm import VisionModelResponse
+
+        if not rules:
+            logger.debug("No asset rules provided. Skipping vision LLM call.")
+            return []
+
+        def _encode_pil(pil_image) -> str:
+            buf = io.BytesIO()
+            pil_image.save(buf, format="PNG")
+            return base64.b64encode(buf.getvalue()).decode("ascii")
+
+        user_content: list[dict] = []
+        n_images = 0
+        for item in doc.docling_doc.pictures:
+            cref = item.get_ref().cref
+
+            # Send the surrounding page image first so the model can judge
+            # contrast against the document background (BW).
+            if item.prov:
+                page_no = item.prov[0].page_no
+                page = doc.docling_doc.pages.get(page_no)
+                if page and page.image and page.image.pil_image:
+                    b64 = _encode_pil(page.image.pil_image)
+                    user_content.append(
+                        {"type": "text", "text": f"[Page context for {cref}]"}
+                    )
+                    user_content.append(
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/png;base64,{b64}"},
+                        }
+                    )
+
+            user_content.append({"type": "text", "text": f"[Ref: {cref}]"})
+            if item.image is not None and item.image.pil_image is not None:
+                b64 = _encode_pil(item.image.pil_image)
+                user_content.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/png;base64,{b64}"},
+                    }
+                )
+                n_images += 1
+
+        if n_images == 0:
+            logger.debug("No picture images available. Skipping vision LLM call.")
+            return []
+
+        user_content.append(
+            {
+                "type": "text",
+                "text": "Analyse the diagram(s) above for violations.",
+            }
+        )
+
+        system_prompt = self._build_vision_grader_prompt(rules, rulebook)
+        logger.debug(f"Sending {n_images} picture(s) to vision model.")
+
+        messages: list = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content},
+        ]
+
+        try:
+            response: VisionModelResponse = self._client.chat.completions.create(
+                model=model or self.model,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                response_model=VisionModelResponse,
+                messages=messages,
+            )
+        except Exception as e:
+            logger.error(f"Vision LLM API call failed: {e}")
+            return []
+
+        logger.info(f"Vision LLM Reasoning Chain: {response.reasoning_chain}")
+        logger.info(f"Successfully parsed {len(response.findings)} vision findings.")
         return response.findings
 
     def judge_findings(

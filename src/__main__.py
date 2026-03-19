@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 from dotenv import load_dotenv
 
 # Analysers
+from .analysers.asset_analyser import AssetAnalyser
 from .analysers.base_analyser import BaseLLMAnalyser
 from .analysers.content_analyser import ContentAnalyser
 from .analysers.design_analyser import DesignAnalyser
@@ -48,6 +49,7 @@ ANALYSER_LIST: dict[str, type[BaseAnalyser]] = {
     TextAnalyser.analyser_id: TextAnalyser,
     ContentAnalyser.analyser_id: ContentAnalyser,
     DesignAnalyser.analyser_id: DesignAnalyser,
+    AssetAnalyser.analyser_id: AssetAnalyser,
 }
 
 
@@ -65,7 +67,8 @@ def _run_analysers(
     findings: list[Finding] = []
 
     llm_analysers: dict[str, BaseLLMAnalyser] = {}
-    llm_params = {}
+    llm_params: dict[str, Any] = {}
+    llm_models: dict[str, str | None] = {}
 
     for analyser_cfg in config.analysers:
         if not analyser_cfg.enabled:
@@ -88,6 +91,7 @@ def _run_analysers(
             if isinstance(analyser_instance, BaseLLMAnalyser):
                 llm_analysers[analyser_cfg.analyser_id] = analyser_instance
                 llm_params[analyser_cfg.analyser_id] = analyser_params
+                llm_models[analyser_cfg.analyser_id] = analyser_cfg.model
             else:
                 result = analyser_instance.analyse(ir, params=analyser_params)
                 if result:
@@ -98,12 +102,23 @@ def _run_analysers(
     if llm_analysers and llm_client:
         for analyser_id, instance in llm_analysers.items():
             params = llm_params.get(analyser_id)
+            model = llm_models.get(analyser_id)
             rules = instance.get_rules(rulebook, params=params)
             if not rules:
                 continue
             try:
-                llm_findings = llm_client.analyse_document(ir, rules, rulebook)
-                result = instance.process_llm_findings(ir, llm_findings, params)
+                if isinstance(instance, AssetAnalyser):
+                    vision_findings = llm_client.analyse_assets(
+                        ir, rules, rulebook, model=model
+                    )
+                    result = instance.process_vision_findings(
+                        ir, vision_findings, params
+                    )
+                else:
+                    llm_findings = llm_client.analyse_document(
+                        ir, rules, rulebook, model=model
+                    )
+                    result = instance.process_llm_findings(ir, llm_findings, params)
                 if result:
                     findings.extend(result)
             except Exception:
@@ -120,7 +135,10 @@ def _run_judge(
 ) -> None:
     """Run the judge model on proposed LLM findings, modifying them in-place."""
 
-    llm_findings = [f for f in findings if f.confidence is not None]
+    # Exclude pre-approved vision findings, the judge model evaluates text only
+    llm_findings = [
+        f for f in findings if f.confidence is not None and f.status != "approved"
+    ]
 
     for f in findings:
         if f.confidence is None:
