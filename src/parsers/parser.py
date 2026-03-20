@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import logging
+import re
+import unicodedata
 from typing import TYPE_CHECKING
 
 from docling_core.types.doc.document import (
     SectionHeaderItem,
+    TableCell,
+    TableItem,
     TextItem,
 )
 from docling_core.types.doc.labels import DocItemLabel
@@ -45,6 +49,69 @@ class ParseOutput(StrictModel):
     parse_meta: ParseMeta = Field(default_factory=ParseMeta)
 
 
+def clean_pdf_text(text: str) -> str:
+    """Normalise broken PDF-extracted Czech/Slovak diacritics.
+
+    This function only applies deterministic repairs for Czech and Slovak
+    letters when a spacing diacritic was extracted separately from its base
+    letter, e.g. "ˇc" -> "č" or "´a" -> "á". It intentionally limits reordering
+    to valid Czech/Slovak letter+diacritic combinations to avoid corrupting
+    unrelated text in non-Czech/Slovak documents.
+
+    What this fixes:
+    - caron-based letters: č ď ě ň ř š ť ž
+    - acute-based letters: á é í ý ó ú ĺ ŕ
+    - ring-based letters: ů
+    - diaeresis-based letters: ä
+    - circumflex-based letters: ô
+    - dotless ı extracted instead of i
+
+    What is intentionally NOT fixed:
+    - ľ/Ľ, including any apostrophe-like marks near other 'tall' letters
+    - any ambiguous cases where multiple interpretations are possible
+
+    In particular, ľ is often extracted as an apostrophe-like mark near "l"
+    rather than as a true caron. Repairing that safely requires contextual
+    heuristics and may introduce false positives in English or other text,
+    so this function does not attempt it.
+    """  # noqa: RUF002
+    if not text:
+        return text
+
+    # Replace latin dotless ı with standard i  # noqa: RUF003
+    text = text.replace("\u0131", "i")
+
+    # Convert spacing diacritics commonly emitted by PDF extraction into
+    # Unicode combining marks.
+    text = text.replace("\u02c7", "\u030c")  # ˇ -> combining caron
+    text = text.replace("\u00b4", "\u0301")  # ´ -> combining acute  # noqa: RUF003
+    text = text.replace("\u02da", "\u030a")  # ˚ -> combining ring above
+    text = text.replace("\u00a8", "\u0308")  # ¨ -> combining diaeresis
+    text = text.replace("\u02c6", "\u0302")  # ˆ -> combining circumflex  # noqa: RUF003
+
+    # Remove spaces immediately after combining marks.
+    text = re.sub(r"([\u030C\u0301\u030A\u0308\u0302])\s+", r"\1", text)
+
+    # Reorder only valid Czech/Slovak diacritic+letter combinations.
+
+    # Caron: č ď ě ň ř š ť ž
+    text = re.sub(r"(\u030C)([cCdDeEnNrRsStTzZ])", r"\2\1", text)
+
+    # Acute: á é í ý ó ú ĺ ŕ
+    text = re.sub(r"(\u0301)([aAeEiIyYoOuUlLrR])", r"\2\1", text)
+
+    # Ring above: ů
+    text = re.sub(r"(\u030A)([uU])", r"\2\1", text)
+
+    # Diaeresis: ä
+    text = re.sub(r"(\u0308)([aA])", r"\2\1", text)
+
+    # Circumflex: ô
+    text = re.sub(r"(\u0302)([oO])", r"\2\1", text)
+
+    return unicodedata.normalize("NFC", text)
+
+
 class DocumentParser:
     """Handles Docling conversion, hashing, and IR generation."""
 
@@ -61,7 +128,7 @@ class DocumentParser:
             PdfFormatOption,
         )
 
-        self.do_ocr = True
+        self.do_ocr = False
         self.do_table_structure = True
 
         pdf_options = PdfPipelineOptions()
@@ -190,41 +257,60 @@ class DocumentParser:
             parse_meta.error = None
 
             words, chars, paras, headings = 0, 0, 0, 0
-            text_items: dict = {}
+            text_items: dict[str, TextItem] = {}
             section_paths: dict[str, str] = {}
             paragraph_labels = {DocItemLabel.TEXT, DocItemLabel.PARAGRAPH}
 
             # heading_stack[i] has the heading text at depth i+1
             heading_stack: list[str] = []
 
+            is_pdf = path.suffix.lower() == ".pdf"
             for item, _ in doc.iterate_items():
-                if not isinstance(item, TextItem):
+                if is_pdf:
+                    if isinstance(item, TextItem) and item.text:
+                        item.text = clean_pdf_text(item.text)
+
+                    elif (
+                        isinstance(item, TableItem)
+                        and item.data
+                        and item.data.table_cells
+                    ):
+                        for cell in item.data.table_cells:
+                            if isinstance(cell, TableCell) and cell.text:
+                                cell.text = clean_pdf_text(cell.text)
+
+                if not isinstance(item, TextItem):  # does not add tables to text
                     continue
 
                 if isinstance(item, SectionHeaderItem):
-                    level = item.level  # 1-based
-                    heading_stack = heading_stack[: level - 1]
-                    heading_stack.append(item.text or "")
-                    headings += 1
-                    if item.text and item.text.strip():
-                        cref = item.get_ref().cref
-                        words += len(item.text.split())
-                        chars += len(item.text)
-                        section_paths[cref] = " > ".join(heading_stack)
-                        text_items[cref] = item
-                    continue
-
-                if item.label in paragraph_labels:
+                    level = item.level
+                    heading_text = (item.text or "").strip()
+                    if heading_text:
+                        heading_stack = heading_stack[: level - 1]
+                        heading_stack.append(heading_text)
+                        headings += 1
+                elif item.label in paragraph_labels:
                     paras += 1
 
-                if item.text:
+                if item.text and item.text.strip():
                     words += len(item.text.split())
                     chars += len(item.text)
 
-                    if item.text.strip():
-                        cref = item.get_ref().cref
-                        section_paths[cref] = " > ".join(heading_stack)
-                        text_items[cref] = item
+                    cref = item.get_ref().cref
+                    section_paths[cref] = " > ".join(heading_stack)
+                    text_items[cref] = item
+
+            if words == 0:
+                return self._create_error_output(
+                    doc_ref,
+                    parse_meta,
+                    "EMPTY",
+                    "Document contains no readable words",
+                    "The document was parsed but has 0 words.",
+                    "No text extracted",
+                    run_id,
+                    config_hash,
+                )
 
             ir = Document(
                 doc_ref=doc_ref,
