@@ -47,7 +47,13 @@ Analysers
        |  (AssetAnalyser) --> LLMClient.analyse_assets()   [vision model]
        |
        v  raw findings (status = "proposed" | "approved")
+RuleEngine.prepare_judge_batch()
+       |
+       v  judgeable findings
 LLMClient.judge_findings()                              [judge model]
+       |
+       v
+RuleEngine.apply_judge_response()
        |  updates status: "approved" | "dismissed"
        v
 RuleEngine.process()
@@ -132,15 +138,20 @@ Each picture and its page context are sent as multipart image messages. Prompt c
 
 #### Judge model (`judge_findings`)
 
-Receives all `"proposed"` text findings. Re-evaluates each against the source document and returns `JudgeVerdict` objects (`"approved"` or `"dismissed"` with explanation). Findings with judge confidence below 0.10 are auto-dismissed. Vision findings are excluded from the judge pass.
+Receives the judgeable batch selected by `RuleEngine.prepare_judge_batch()`. Re-evaluates each finding against the source document and returns a structured judge response. The API client only handles the OpenAI call and response parsing; `RuleEngine` applies validation and verdicts.
 
 ### 4.5 Rule Engine (`src/rule_engine.py`)
 
-`RuleEngine.process(findings)` applies filters in order:
+`RuleEngine` handles finding validation and filtering:
 
-1. **Dismissed** - drop (judge vetoed).
-2. **Low-confidence proposed** - drop if `confidence < N`.
-3. **Deduplication** - drop if `finding_id` already seen in this run.
+1. `normalise_findings()` promotes deterministic findings with no confidence to `approved`.
+2. `prepare_judge_batch()` auto-dismisses findings without anchors or below the judge threshold.
+3. `apply_judge_response()` mutates findings in-place using judge verdicts.
+4. `process(findings)` applies final filters in order:
+
+- **Dismissed** - drop (judge vetoed).
+- **Low-confidence proposed** - drop if `confidence < N`.
+- **Deduplication** - drop if `finding_id` already seen in this run.
 
 Returns `(final_findings, summary_dict)`. The summary (counts per drop reason, final count) is written to `info.json`.
 
