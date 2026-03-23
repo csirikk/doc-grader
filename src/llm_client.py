@@ -12,7 +12,6 @@ if TYPE_CHECKING:
     from .schemas.ir import Document
     from .schemas.llm import (
         JudgeModelResponse,
-        JudgeVerdict,
         LLMFinding,
         LLMRule,
         Rulebook,
@@ -20,8 +19,6 @@ if TYPE_CHECKING:
     )
 
 logger = logging.getLogger(__name__)
-
-JUDGE_MIN_CONFIDENCE: float = 0.1
 
 
 class LLMClient:
@@ -201,8 +198,8 @@ class LLMClient:
         findings: list[Finding],
         doc: Document,
         rulebook: Rulebook,
-    ) -> None:
-        """Run the judge model on proposed findings, modifying them in-place."""
+    ) -> JudgeModelResponse | None:
+        """Run the judge model and return its response."""
         from .schemas.llm import JudgeModelResponse
 
         # Build a lookup of ac_code to LLMRule for prompt_instruction retrieval
@@ -211,31 +208,12 @@ class LLMClient:
             for code in rule.ac_codes:
                 ac_to_rule[code] = rule
 
-        # Pre-filter: auto-dismiss findings that are not worth judging.
-        to_judge: list[Finding] = []
-        for f in findings:
-            if not f.anchors:
-                logger.warning(
-                    f"Auto-dismissing finding '{f.finding_id}' "
-                    f"({f.ac_code}): no anchors"
-                )
-                f.status = "dismissed"
-                continue
-            if f.confidence is not None and f.confidence < JUDGE_MIN_CONFIDENCE:
-                logger.debug(
-                    f"Auto-dismissing finding '{f.finding_id}' "
-                    f"({f.ac_code}): confidence {f.confidence:.2f} below threshold"
-                )
-                f.status = "dismissed"
-                continue
-            to_judge.append(f)
+        if not findings:
+            logger.info("No findings passed to judge model.")
+            return None
 
-        if not to_judge:
-            logger.info("No findings passed pre-filter; judge model skipped.")
-            return
-
-        logger.info(f"Sending {len(to_judge)} findings to judge model.")
-        user_message = self._build_judge_user_message(to_judge, doc, ac_to_rule)
+        logger.info(f"Sending {len(findings)} findings to judge model.")
+        user_message = self._build_judge_user_message(findings, doc, ac_to_rule)
 
         try:
             response: JudgeModelResponse = self._client.chat.completions.create(
@@ -253,10 +231,10 @@ class LLMClient:
             )
         except Exception:
             logger.exception("Judge model LLM call failed.")
-            return
+            return None
 
         logger.debug(f"Judge reasoning: {response.reasoning_chain}")
-        self._apply_verdicts(to_judge, response)
+        return response
 
     def _build_judge_user_message(
         self,
@@ -293,38 +271,3 @@ class LLMClient:
             )
 
         return "\n\n".join(parts)
-
-    def _apply_verdicts(
-        self,
-        findings: list[Finding],
-        response: JudgeModelResponse,
-    ) -> None:
-        """Apply judge model verdicts to findings in-place."""
-        verdict_map: dict[str, JudgeVerdict] = {
-            v.finding_id: v for v in response.verdicts
-        }
-
-        for f in findings:
-            verdict = verdict_map.get(f.finding_id)
-            if verdict is None:
-                logger.warning(
-                    f"Judge returned no verdict for '{f.finding_id}', "
-                    f"leaving as 'proposed'"
-                )
-                continue
-
-            if verdict.decision == "dismissed":
-                f.status = "dismissed"
-            elif verdict.decision == "approved":
-                f.status = "approved"
-            elif verdict.decision == "adjusted":
-                f.status = "approved"
-                if verdict.adjusted_severity is not None:
-                    f.severity = verdict.adjusted_severity
-                if verdict.adjusted_confidence is not None:
-                    f.confidence = verdict.adjusted_confidence
-
-            logger.debug(
-                f"Judge verdict for '{f.finding_id}': "
-                f"{verdict.decision} — {verdict.rationale}"
-            )

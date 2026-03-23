@@ -17,6 +17,7 @@ from .analysers.asset_analyser import AssetAnalyser
 from .analysers.base_analyser import BaseLLMAnalyser
 from .analysers.content_analyser import ContentAnalyser
 from .analysers.design_analyser import DesignAnalyser
+from .analysers.integrity_analyser import IntegrityAnalyser
 from .analysers.structure_analyser import StructureAnalyser
 from .analysers.style_analyser import StyleAnalyser
 from .analysers.text_analyser import TextAnalyser
@@ -50,6 +51,7 @@ ANALYSER_LIST: dict[str, type[BaseAnalyser]] = {
     ContentAnalyser.analyser_id: ContentAnalyser,
     DesignAnalyser.analyser_id: DesignAnalyser,
     AssetAnalyser.analyser_id: AssetAnalyser,
+    IntegrityAnalyser.analyser_id: IntegrityAnalyser,
 }
 
 
@@ -125,33 +127,6 @@ def _run_analysers(
                 logger.exception("Error running LLM analysis for %s", analyser_id)
 
     return findings
-
-
-def _run_judge(
-    findings: list[Finding],
-    ir: Document,
-    rulebook: Rulebook,
-    llm_client: Any,
-) -> None:
-    """Run the judge model on proposed LLM findings, modifying them in-place."""
-
-    # Exclude pre-approved vision findings, the judge model evaluates text only
-    llm_findings = [
-        f for f in findings if f.confidence is not None and f.status != "approved"
-    ]
-
-    for f in findings:
-        if f.confidence is None:
-            f.status = "approved"
-
-    if not llm_findings:
-        logger.info("No LLM findings to judge.")
-        return
-
-    try:
-        llm_client.judge_findings(llm_findings, ir, rulebook)
-    except Exception:
-        logger.exception("Judge pass failed, LLM findings left as 'proposed'")
 
 
 def _run_id_from_config(config: AppConfig) -> str:
@@ -244,6 +219,7 @@ def main(argv: list[str] | None = None) -> int:
         reset_id_counters()
         path = Path(raw_path)
         file_outdir = base_outdir / path.stem
+        rule_engine = RuleEngine()
 
         parse_output = parser.parse(path, run_id=run_id, config_hash=config_hash)
         parser_findings = parse_output.parser_findings
@@ -284,8 +260,16 @@ def main(argv: list[str] | None = None) -> int:
         logger.debug("Wrote raw_findings.json (%d findings)", len(analyser_findings))
 
         if llm_client:
-            logger.info("Running judge model on %d findings...", len(analyser_findings))
-            _run_judge(analyser_findings, ir_doc, rulebook, llm_client)
+            judge_findings = rule_engine.prepare_judge_batch(analyser_findings)
+            if judge_findings:
+                logger.info(
+                    "Running judge model on %d findings...", len(judge_findings)
+                )
+                judge_response = llm_client.judge_findings(
+                    judge_findings, ir_doc, rulebook
+                )
+                if judge_response is not None:
+                    rule_engine.apply_judge_response(judge_findings, judge_response)
             approved = sum(1 for f in analyser_findings if f.status == "approved")
             dismissed = sum(1 for f in analyser_findings if f.status == "dismissed")
             logger.info(
@@ -294,7 +278,6 @@ def main(argv: list[str] | None = None) -> int:
         write_json(file_outdir / "judged_findings.json", analyser_findings)
         logger.debug("Wrote judged_findings.json")
 
-        rule_engine = RuleEngine()
         final_findings, re_summary = rule_engine.process(analyser_findings)
         write_json(file_outdir / "findings.json", final_findings)
         logger.debug("Wrote findings.json (%d final findings)", len(final_findings))
