@@ -35,6 +35,14 @@
             "enabled": true,
             "model": "gpt-4o",
             "params": {}
+        },
+        {
+            "analyser_id": "integrity_analyser",
+            "enabled": false,
+            "params": {
+                "spec_path": "data/ipp-ifj-zadani/ipp23spec.pdf",
+                "min_chunk_len": 40
+            }
         }
     ]
 }
