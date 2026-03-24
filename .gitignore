@@ -12,8 +12,6 @@ out/
 deprecated/*
 
 # Data
-data/raw
-data/ifj_13_to_24
-data/ipp_13_to_24
-data/clean_ipp_data.csv
-!data/overview.xlsx
+data/
+!data/clean_ipp_data.csv
+
