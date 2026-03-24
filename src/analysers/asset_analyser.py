@@ -6,6 +6,8 @@ Responsible for AC:
 - 'OWNDIF': Diagram does not visually distinguish custom (student) classes from
   framework/library classes (e.g. ipp-core).
 - 'BW': Dark-background diagram pasted into a light-background document.
+
+todo: vision fine tune a binary image classifier for baduml?
 """
 
 from __future__ import annotations
