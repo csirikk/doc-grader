@@ -123,14 +123,21 @@ def format_finding_short(finding: Finding) -> str:
 
     if finding.anchors:
         for i, anchor in enumerate(finding.anchors, 1):
+            me = (
+                finding.model_evals[i - 1] if i - 1 < len(finding.model_evals) else None
+            )
             if anchor.snippet:
                 snippet = anchor.snippet.replace("\n", " ")
-                max_len = 500
-                if len(snippet) > max_len:
-                    snippet = snippet[:max_len] + "..."
+                if len(snippet) > 500:
+                    snippet = snippet[:500] + "..."
                 lines.append(f'  Evidence [{i}]: "{snippet}"')
             else:
                 lines.append(f"  Evidence [{i}]: (No snippet provided)")
+            if me and me.raw and (spec_text := me.raw.get("spec_text")):
+                spec_text = spec_text.replace("\n", " ")
+                if len(spec_text) > 500:
+                    spec_text = spec_text[:500] + "..."
+                lines.append(f'  Spec match: "{spec_text}"')
 
     if finding.notes:
         lines.append(f"  Notes: {', '.join(finding.notes)}")
