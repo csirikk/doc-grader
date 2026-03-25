@@ -1,5 +1,6 @@
 {
     "version": "config/0.1",
+    "course": "ipp",
     "analysers": [
         {
             "analyser_id": "structure_analyser",
@@ -38,9 +39,9 @@
         },
         {
             "analyser_id": "integrity_analyser",
-            "enabled": false,
+            "enabled": true,
             "params": {
-                "spec_path": "data/ipp-ifj-zadani/ipp23spec.pdf",
+                "spec_path": "data/ipp-ifj-zadani/ipp25spec.pdf",
                 "min_chunk_len": 40
             }
         }
