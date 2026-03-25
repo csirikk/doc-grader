@@ -635,11 +635,13 @@ class IntegrityAnalyser(BaseAnalyser):
             item = src["item"]
             if item is None:
                 continue
+            cref = item.get_ref().cref
             finding.anchors.append(
                 Anchor(
-                    target=FineRef.model_validate({"$ref": item.get_ref().cref}),
+                    target=FineRef.model_validate({"$ref": cref}),
                     snippet=src["student_text"][:300],
                     prov=list(item.prov),
+                    section_path=doc.section_paths.get(cref),
                 )
             )
 
