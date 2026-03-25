@@ -156,7 +156,7 @@
         "NOSRP"
       ],
       "analyser_id": "design_analyser",
-      "course": null,
+      "course": "ipp",
       "prompt_instruction": "Ignoring or poorly applying the Single Responsibility Principle, specifically describing a single class or method that handles multiple completely unrelated responsibilities.",
       "is_bonus": false
     },
@@ -166,7 +166,7 @@
         "NOOOP"
       ],
       "analyser_id": "design_analyser",
-      "course": null,
+      "course": "ipp",
       "prompt_instruction": "OOP design evaluation. NOOOP: The text indicates a failure to use the object-oriented paradigm properly, such as merely wrapping procedural functions into one or two classes. OOP: The OOP usage is highly meaningful, well-justified, and terminologically accurately described.",
       "is_bonus": false
     },
@@ -176,7 +176,7 @@
         "BADDP"
       ],
       "analyser_id": "design_analyser",
-      "course": null,
+      "course": "ipp",
       "prompt_instruction": "Design pattern evaluation. BADDP: Completely inappropriate use, or entirely wrong/missing implementation of a documented design pattern. DP: Exceptionally nice and well-justified use of a design pattern.",
       "is_bonus": false
     },
@@ -185,7 +185,7 @@
         "SINGLETON"
       ],
       "analyser_id": "design_analyser",
-      "course": null,
+      "course": "ipp",
       "prompt_instruction": "Explicit mention of the use of the Singleton design pattern in the context of the voluntary NVP extension.",
       "is_bonus": false
     },
@@ -194,7 +194,7 @@
         "EXT"
       ],
       "analyser_id": "design_analyser",
-      "course": null,
+      "course": "ipp",
       "prompt_instruction": "Missing, clumsy, or nonsensical description of the design's extensibility.",
       "is_bonus": false
     },
@@ -203,7 +203,7 @@
         "EX"
       ],
       "analyser_id": "design_analyser",
-      "course": null,
+      "course": "ipp",
       "prompt_instruction": "Innovative and advanced use of exceptions for error management (e.g., defining custom exceptions to replace ugly if-else cascades, going beyond basic subclassing by error codes).",
       "is_bonus": true
     },
@@ -230,7 +230,7 @@
         "SA"
       ],
       "analyser_id": "content_analyser",
-      "course": null,
+      "course": "ifj",
       "prompt_instruction": "Missing, insufficient, or inaccurate description of syntax analysis (e.g., falsely claiming that recursive descent is implemented by having a function for every single grammar rule).",
       "is_bonus": false
     },
@@ -239,7 +239,7 @@
         "SAV"
       ],
       "analyser_id": "content_analyser",
-      "course": null,
+      "course": "ifj",
       "prompt_instruction": "Missing or insufficient description regarding the syntax analysis of expressions.",
       "is_bonus": false
     },
@@ -248,7 +248,7 @@
         "SéA"
       ],
       "analyser_id": "content_analyser",
-      "course": null,
+      "course": "ifj",
       "prompt_instruction": "Missing or insufficiently specific description of semantic analysis, typically failing to clearly describe exactly what semantic properties and rules are being checked.",
       "is_bonus": false
     },
@@ -257,7 +257,7 @@
         "PSA"
       ],
       "analyser_id": "content_analyser",
-      "course": null,
+      "course": "ifj",
       "prompt_instruction": "Missing or insufficient description of precedence syntax analysis.",
       "is_bonus": false
     },
@@ -266,7 +266,7 @@
         "TS"
       ],
       "analyser_id": "content_analyser",
-      "course": null,
+      "course": "ifj",
       "prompt_instruction": "Missing or insufficient description of the symbol table implementation, specifically lacking details about its internal structure (e.g., whether there is one global table or multiple local tables).",
       "is_bonus": false
     },
@@ -275,7 +275,7 @@
         "GK"
       ],
       "analyser_id": "content_analyser",
-      "course": null,
+      "course": "ifj",
       "prompt_instruction": "Missing or insufficient description of code generation.",
       "is_bonus": false
     },
@@ -284,7 +284,7 @@
         "RP"
       ],
       "analyser_id": "content_analyser",
-      "course": null,
+      "course": "ifj",
       "prompt_instruction": "Missing description of the division of work among team members.",
       "is_bonus": false
     },
@@ -293,7 +293,7 @@
         "IR"
       ],
       "analyser_id": "content_analyser",
-      "course": null,
+      "course": "ipp",
       "prompt_instruction": "Missing or insufficient internal representation description (e.g., trivially stating that 'instructions are stored in an array' or 'assignments are stored in an AST' without deeper architectural explanation).",
       "is_bonus": false
     },
@@ -302,7 +302,7 @@
         "JAK"
       ],
       "analyser_id": "content_analyser",
-      "course": null,
+      "course": "ipp",
       "prompt_instruction": "Technically insufficient description of the implementation (e.g., failing to mention if regular expressions, state machines,, parser-generators or other techniques were used).",
       "is_bonus": false
     },
@@ -311,7 +311,7 @@
         "NVPDOC"
       ],
       "analyser_id": "content_analyser",
-      "course": null,
+      "course": "ipp",
       "prompt_instruction": "Claims to have implemented the NVP extension, yet the documentation is missing or insufficient.",
       "is_bonus": false
     },
@@ -320,7 +320,7 @@
         "BADUML"
       ],
       "analyser_id": "asset_analyser",
-      "course": null,
+      "course": "ipp",
       "prompt_instruction": "The UML class diagram is syntactically incorrect, uses the wrong diagram type, was auto-generated from an IDE without curation, is missing significant classes or methods, or fails to convey how classes interact.",
       "is_bonus": false
     },
@@ -329,7 +329,7 @@
         "OWNDIF"
       ],
       "analyser_id": "asset_analyser",
-      "course": null,
+      "course": "ipp",
       "prompt_instruction": "The diagram does not visually distinguish the student's own classes from framework or library classes (e.g. ipp-core AbstractInterpreter).",
       "is_bonus": false
     },
@@ -338,7 +338,7 @@
         "BW"
       ],
       "analyser_id": "asset_analyser",
-      "course": null,
+      "course": "ipp",
       "prompt_instruction": "The diagram has a dark background pasted into a document with a light background, making it visually inconsistent with the surrounding document.",
       "is_bonus": false
     }
