@@ -59,6 +59,7 @@ class BaseAnalyser(ABC):
                     target=FineRef.model_validate({"$ref": ref}),
                     snippet=snippet,
                     prov=list(evidence_item.prov),
+                    section_path=doc.section_paths.get(ref),
                 )
             )
 
