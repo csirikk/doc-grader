@@ -24,14 +24,14 @@ logger = logging.getLogger(__name__)
 class LLMClient:
     def __init__(
         self,
-        model: str = "gpt-4o-mini",
+        model: str = "gpt-5.4-nano-2026-03-17",
         temperature: float = 0.0,
-        max_tokens: int = 2048,
+        max_completion_tokens: int = 2048,
         api_key_env: str = "OPENAI_API_KEY",
     ) -> None:
         self.model = model
         self.temperature = temperature
-        self.max_tokens = max_tokens
+        self.max_completion_tokens = max_completion_tokens
         self._client = instructor.from_openai(
             OpenAI(api_key=os.environ.get(api_key_env))
         )
@@ -77,7 +77,7 @@ class LLMClient:
             response: GraderModelResponse = self._client.chat.completions.create(
                 model=model or self.model,
                 temperature=self.temperature,
-                max_tokens=self.max_tokens,
+                max_completion_tokens=self.max_completion_tokens,
                 response_model=GraderModelResponse,
                 messages=[
                     {"role": "system", "content": system_prompt},
@@ -181,7 +181,7 @@ class LLMClient:
             response: VisionModelResponse = self._client.chat.completions.create(
                 model=model or self.model,
                 temperature=self.temperature,
-                max_tokens=self.max_tokens,
+                max_completion_tokens=self.max_completion_tokens,
                 response_model=VisionModelResponse,
                 messages=messages,
             )
@@ -219,7 +219,7 @@ class LLMClient:
             response: JudgeModelResponse = self._client.chat.completions.create(
                 model=self.model,
                 temperature=self.temperature,
-                max_tokens=self.max_tokens,
+                max_completion_tokens=self.max_completion_tokens,
                 response_model=JudgeModelResponse,
                 messages=[
                     {
