@@ -99,6 +99,33 @@
   "rules": [
     {
       "ac_codes": [
+        "COPY"
+      ],
+      "analyser_id": "integrity_analyser",
+      "course": null,
+      "prompt_instruction": "The document includes copied or closely paraphrased passages from the assignment specification or other external sources instead of original student-authored explanation.",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "SHORT"
+      ],
+      "analyser_id": "structure_analyser",
+      "course": null,
+      "prompt_instruction": "The documentation is too short or too generic to adequately describe the solution and key implementation decisions.",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
+        "KAPTXT"
+      ],
+      "analyser_id": "structure_analyser",
+      "course": null,
+      "prompt_instruction": "Consecutive headings appear without meaningful explanatory text between them.",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
         "LANG"
       ],
       "analyser_id": "text_analyser",
