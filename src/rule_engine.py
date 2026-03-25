@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-HIGH_CONFIDENCE_THRESHOLD: float = 0.80
+HIGH_CONFIDENCE_THRESHOLD: float = 0.00
 JUDGE_MIN_CONFIDENCE: float = 0.10
 
 
@@ -33,9 +33,12 @@ class RuleEngine:
                 finding.status = "approved"
                 continue
 
-            if not finding.anchors:
+            has_anchors = bool(finding.anchors)
+            has_stats = bool(finding.stats)
+            has_model_evals = bool(finding.model_evals)
+            if not has_anchors and not has_stats and not has_model_evals:
                 logger.warning(
-                    "Dismissing finding '%s' (%s): no anchors",
+                    ("Dismissing finding '%s' (%s): no anchors, stats, or model_evals"),
                     finding.finding_id,
                     finding.ac_code,
                 )
@@ -84,6 +87,13 @@ class RuleEngine:
                     finding.severity = verdict.adjusted_severity
                 if verdict.adjusted_confidence is not None:
                     finding.confidence = verdict.adjusted_confidence
+
+            judge_meta: dict = {
+                "decision": verdict.decision,
+                "rationale": verdict.rationale,
+                "reasoning_chain": response.reasoning_chain,
+            }
+            finding.meta = {**(finding.meta or {}), "judge": judge_meta}
 
             logger.debug(
                 "RuleEngine: judge verdict for '%s': %s - %s",
