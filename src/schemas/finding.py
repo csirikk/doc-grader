@@ -35,6 +35,10 @@ class Anchor(StrictModel):
     target: FineRef
     snippet: str | None = None
     prov: list[ProvenanceItem] = Field(default_factory=list)
+    section_path: str | None = Field(
+        default=None,
+        description="Human-readable heading path to the item (e.g. '2.3 Parser').",
+    )
 
 
 class Stat(StrictModel):
