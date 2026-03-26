@@ -40,7 +40,7 @@ class AppConfig(StrictModel):
     )
 
 
-def load_config(path: Path) -> AppConfig:
+def load_app_config(path: Path) -> AppConfig:
     """Load and validate configuration from JSON file."""
     return AppConfig.model_validate_json(path.read_text(encoding="utf-8"))
 

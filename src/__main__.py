@@ -23,7 +23,7 @@ from .analysers.style_analyser import StyleAnalyser
 from .analysers.text_analyser import TextAnalyser
 from .llm_client import LLMClient
 from .rule_engine import RuleEngine
-from .schemas.config import AppConfig, load_config, load_rulebook
+from .schemas.config import AppConfig, load_app_config, load_rulebook
 from .utils import (
     compute_config_hash,
     configure_logging,
@@ -60,7 +60,7 @@ _DEFAULT_CONFIG = Path(__file__).parent.parent / "config" / "default.json"
 
 def _load_app_config(config_path: str | None) -> AppConfig:
     """Load application config from JSON file, falling back to config/default.json."""
-    return load_config(Path(config_path) if config_path else _DEFAULT_CONFIG)
+    return load_app_config(Path(config_path) if config_path else _DEFAULT_CONFIG)
 
 
 def _run_analysers(
