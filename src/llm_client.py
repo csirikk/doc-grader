@@ -1,10 +1,9 @@
-from __future__ import annotations
+from __future__ import annotations  # TODO: add better token usage tracking
 
 import logging
 import os
 from typing import TYPE_CHECKING
 
-import instructor
 from openai import OpenAI
 
 if TYPE_CHECKING:
@@ -15,7 +14,6 @@ if TYPE_CHECKING:
         LLMFinding,
         LLMRule,
         Rulebook,
-        VisionModelResponse,
     )
 
 logger = logging.getLogger(__name__)
@@ -32,9 +30,16 @@ class LLMClient:
         self.model = model
         self.temperature = temperature
         self.max_completion_tokens = max_completion_tokens
-        self._client = instructor.from_openai(
-            OpenAI(api_key=os.environ.get(api_key_env))
-        )
+        self._client = OpenAI(api_key=os.environ.get(api_key_env))
+
+    @staticmethod
+    def _encode_pil(pil_image) -> str:
+        import base64
+        import io
+
+        buf = io.BytesIO()
+        pil_image.save(buf, format="PNG")
+        return base64.b64encode(buf.getvalue()).decode("ascii")
 
     def _build_grader_model_prompt(
         self, rules: list[LLMRule], rulebook: Rulebook
@@ -42,7 +47,7 @@ class LLMClient:
         rules_text = ""
         for r in rules:
             codes_str = "/".join(r.ac_codes)
-            rules_text += f"- [{codes_str}]: {r.prompt_instruction}\n"
+            rules_text += f"- {codes_str}: {r.prompt_instruction}\n"
 
         template = "\n".join(rulebook.grader_model_prompt_template)
         return template.replace("{rules}", rules_text)
@@ -74,11 +79,11 @@ class LLMClient:
         )
 
         try:
-            response: GraderModelResponse = self._client.chat.completions.create(
+            response = self._client.beta.chat.completions.parse(
                 model=model or self.model,
                 temperature=self.temperature,
                 max_completion_tokens=self.max_completion_tokens,
-                response_model=GraderModelResponse,
+                response_format=GraderModelResponse,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": text_chunk},
@@ -88,9 +93,15 @@ class LLMClient:
             logger.error(f"LLM API call or processing failed: {e}")
             return []
 
-        logger.info(f"LLM Reasoning Chain: {response.reasoning_chain}")
-        logger.info(f"Successfully parsed {len(response.findings)} findings from LLM.")
-        return response.findings
+        parsed_response = response.choices[0].message.parsed
+        if parsed_response is None:
+            logger.error("LLM returned unparseable response.")
+            return []
+        logger.info(f"LLM Reasoning Chain: {parsed_response.reasoning_chain}")
+        logger.info(
+            f"Successfully parsed {len(parsed_response.findings)} findings from LLM."
+        )
+        return parsed_response.findings
 
     def _build_vision_grader_prompt(
         self, rules: list[LLMRule], rulebook: Rulebook
@@ -98,7 +109,7 @@ class LLMClient:
         rules_text = ""
         for r in rules:
             codes_str = "/".join(r.ac_codes)
-            rules_text += f"- [{codes_str}]: {r.prompt_instruction}\n"
+            rules_text += f"- {codes_str}: {r.prompt_instruction}\n"
 
         template = "\n".join(rulebook.vision_model_prompt_template)
         return template.replace("{rules}", rules_text)
@@ -111,19 +122,11 @@ class LLMClient:
         model: str | None = None,
     ) -> list:
         """Encode all PictureItems (with page context) and call the vision model."""
-        import base64
-        import io
-
         from .schemas.llm import VisionModelResponse
 
         if not rules:
             logger.debug("No asset rules provided. Skipping vision LLM call.")
             return []
-
-        def _encode_pil(pil_image) -> str:
-            buf = io.BytesIO()
-            pil_image.save(buf, format="PNG")
-            return base64.b64encode(buf.getvalue()).decode("ascii")
 
         user_content: list[dict] = []
         n_images = 0
@@ -136,7 +139,7 @@ class LLMClient:
                 page_no = item.prov[0].page_no
                 page = doc.docling_doc.pages.get(page_no)
                 if page and page.image and page.image.pil_image:
-                    b64 = _encode_pil(page.image.pil_image)
+                    b64 = self._encode_pil(page.image.pil_image)
                     user_content.append(
                         {"type": "text", "text": f"[Page context for {cref}]"}
                     )
@@ -149,7 +152,7 @@ class LLMClient:
 
             user_content.append({"type": "text", "text": f"[Ref: {cref}]"})
             if item.image is not None and item.image.pil_image is not None:
-                b64 = _encode_pil(item.image.pil_image)
+                b64 = self._encode_pil(item.image.pil_image)
                 user_content.append(
                     {
                         "type": "image_url",
@@ -178,20 +181,26 @@ class LLMClient:
         ]
 
         try:
-            response: VisionModelResponse = self._client.chat.completions.create(
+            response = self._client.beta.chat.completions.parse(
                 model=model or self.model,
                 temperature=self.temperature,
                 max_completion_tokens=self.max_completion_tokens,
-                response_model=VisionModelResponse,
+                response_format=VisionModelResponse,
                 messages=messages,
             )
         except Exception as e:
             logger.error(f"Vision LLM API call failed: {e}")
             return []
 
-        logger.info(f"Vision LLM Reasoning Chain: {response.reasoning_chain}")
-        logger.info(f"Successfully parsed {len(response.findings)} vision findings.")
-        return response.findings
+        parsed_response = response.choices[0].message.parsed
+        if parsed_response is None:
+            logger.error("Vision LLM returned unparseable response.")
+            return []
+        logger.info(f"Vision LLM Reasoning Chain: {parsed_response.reasoning_chain}")
+        logger.info(
+            f"Successfully parsed {len(parsed_response.findings)} vision findings."
+        )
+        return parsed_response.findings
 
     def judge_findings(
         self,
@@ -202,50 +211,60 @@ class LLMClient:
         """Run the judge model and return its response."""
         from .schemas.llm import JudgeModelResponse
 
-        # Build a lookup of ac_code to LLMRule for prompt_instruction retrieval
+        if not findings:
+            logger.info("No findings passed to judge model.")
+            return None
+
         ac_to_rule: dict[str, LLMRule] = {}
         for rule in rulebook.rules:
             for code in rule.ac_codes:
                 ac_to_rule[code] = rule
 
-        if not findings:
-            logger.info("No findings passed to judge model.")
-            return None
+        prompt_lines = rulebook.judge_model_prompt_template
+        logger.info("Sending %d findings to the judge model.", len(findings))
 
-        logger.info(f"Sending {len(findings)} findings to judge model.")
         user_message = self._build_judge_user_message(findings, doc, ac_to_rule)
 
+        messages: list = [
+            {"role": "system", "content": "\n".join(prompt_lines)},
+            {"role": "user", "content": user_message},
+        ]
+
         try:
-            response: JudgeModelResponse = self._client.chat.completions.create(
+            response = self._client.beta.chat.completions.parse(
                 model=self.model,
                 temperature=self.temperature,
-                max_completion_tokens=self.max_completion_tokens,
-                response_model=JudgeModelResponse,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "\n".join(rulebook.judge_model_prompt),
-                    },
-                    {"role": "user", "content": user_message},
-                ],
+                response_format=JudgeModelResponse,
+                messages=messages,
             )
         except Exception:
             logger.exception("Judge model LLM call failed.")
             return None
 
-        logger.debug(f"Judge reasoning: {response.reasoning_chain}")
-        return response
+        parsed_response = response.choices[0].message.parsed
+        if parsed_response is None:
+            logger.error("Judge LLM returned unparseable response.")
+            return None
+
+        logger.debug("Judge reasoning: %s", parsed_response.reasoning_chain)
+        return parsed_response
 
     def _build_judge_user_message(
         self,
         findings: list[Finding],
         doc: Document,
         ac_to_rule: dict[str, LLMRule],
-    ) -> str:
-        """Construct the user message for the Judge from a list of findings."""
+    ) -> str | list[dict]:
+        """Construct the user message for the Judge from a list of findings.
+
+        For PDF source documents the full file is attached as an inline base64
+        file content part so the model can read the original layout and context.
+        For markdown source documents the raw text is prepended as a document
+        section before the findings list.
+        """
         parts: list[str] = []
         for f in findings:
-            # Retrieve passage text and section path from document
+            # Primary passage
             cref = f.anchors[0].target.cref if f.anchors else ""
             text_item = doc.text_items.get(cref)
             passage = getattr(text_item, "text", "") or "" if text_item else ""
@@ -256,18 +275,71 @@ class LLMClient:
                 rule.prompt_instruction if rule else "(rule definition unavailable)"
             )
 
-            snippet = f.anchors[0].snippet if f.anchors else None
-            snippet_str = f'Snippet: "{snippet}"' if snippet else "Snippet: (none)"
+            anchor_lines: list[str] = []
+            for i, anchor in enumerate(f.anchors, 1):
+                loc = anchor.section_path or anchor.target.cref or "?"
+                snip = anchor.snippet or "(no snippet)"
+                anchor_lines.append(f"[{i}] {loc}: {snip}")
+            anchors_str = "\n".join(anchor_lines) if anchor_lines else "  (none)"
+
+            eval_lines: list[str] = []
+            for ev in f.model_evals:
+                score_str = f"{ev.score:.3f}" if ev.score is not None else "n/a"
+                spec_text = (ev.raw or {}).get("spec_text", "") if ev.raw else ""
+                if spec_text:
+                    eval_lines.append(
+                        f"sim={score_str} ({ev.label or 'match'})"
+                        f"\nSpec passage: {spec_text[:300]}"
+                    )
+            evals_str = "\n".join(eval_lines) if eval_lines else "(no model evidence)"
+
+            # Stats as a compact one-liner
+            stats_str = ", ".join(f"{s.name}={s.value}" for s in f.stats) or "(none)"
 
             parts.append(
                 f"### Finding ID: {f.finding_id}\n"
                 f"AC Rule [{f.ac_code}]: {rule_def}\n"
                 f"Section: {section_path or '(unknown)'}\n"
                 f"Passage: {passage or '(unavailable)'}\n"
-                f"{snippet_str}\n"
+                f"Anchor snippets:\n{anchors_str}\n"
+                f"Similarity evidence (student vs spec):\n{evals_str}\n"
+                f"Stats: {stats_str}\n"
                 f"Detector Reason: {f.summary}\n"
                 f"Severity: {f.severity}\n"
                 f"Confidence: {f.confidence}"
             )
 
-        return "\n\n".join(parts)
+        findings_text = "\n\n".join(parts)
+
+        user_content: list[dict] = [
+            {
+                "type": "text",
+                "text": f"### FINDINGS TO EVALUATE\n{findings_text}\n\n### ORIGINAL DOCUMENT CONTENT\n",
+            }
+        ]
+
+        pages = doc.docling_doc.pages
+        if pages:
+            for page_no, page in sorted(pages.items()):
+                if page.image and page.image.pil_image:
+                    b64 = self._encode_pil(page.image.pil_image)
+                    user_content.append({"type": "text", "text": f"[Page {page_no}]"})
+                    user_content.append(
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/png;base64,{b64}"},
+                        }
+                    )
+        else:
+            from pathlib import Path
+
+            source = Path(doc.doc_ref.source_path)
+            try:
+                raw_text = source.read_text(encoding="utf-8")
+                user_content.append({"type": "text", "text": raw_text})
+            except Exception as e:
+                logger.warning(
+                    "Could not read source file %s for judge context: %s", source, e
+                )
+
+        return user_content

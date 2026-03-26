@@ -260,23 +260,21 @@ def main(argv: list[str] | None = None) -> int:
         logger.debug("Wrote raw_findings.json (%d findings)", len(analyser_findings))
 
         if llm_client:
-            judge_findings = rule_engine.prepare_judge_batch(analyser_findings)
-            if judge_findings:
-                logger.info(
-                    "Running judge model on %d findings...", len(judge_findings)
-                )
+            judge_batch = rule_engine.prepare_judge_batch(analyser_findings)
+            if judge_batch:
+                logger.info("Running judge model on %d findings...", len(judge_batch))
                 judge_response = llm_client.judge_findings(
-                    judge_findings, ir_doc, rulebook
+                    judge_batch, ir_doc, rulebook
                 )
-                if judge_response is not None:
-                    rule_engine.apply_judge_response(judge_findings, judge_response)
+                if judge_response:
+                    rule_engine.apply_judge_response(judge_batch, judge_response)
             approved = sum(1 for f in analyser_findings if f.status == "approved")
             dismissed = sum(1 for f in analyser_findings if f.status == "dismissed")
             logger.info(
                 "Judge complete: %d approved, %d dismissed", approved, dismissed
             )
-        write_json(file_outdir / "judged_findings.json", analyser_findings)
-        logger.debug("Wrote judged_findings.json")
+            write_json(file_outdir / "judged_findings.json", analyser_findings)
+            logger.debug("Wrote judged_findings.json")
 
         final_findings, re_summary = rule_engine.process(analyser_findings)
         write_json(file_outdir / "findings.json", final_findings)

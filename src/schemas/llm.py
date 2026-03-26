@@ -33,9 +33,9 @@ class Rulebook(StrictModel):
             "Vision model system prompt template with a '{rules}' placeholder"
         ),
     )
-    judge_model_prompt: list[str] = Field(
+    judge_model_prompt_template: list[str] = Field(
         ...,
-        description="Judge model system prompt",
+        description="Judge model system prompt template.",
     )
     rules: list[LLMRule] = Field(
         default_factory=list, description="List of all available LLM rules"
@@ -43,14 +43,16 @@ class Rulebook(StrictModel):
 
 
 class LLMFinding(StrictModel):
-    ac_code: str
+    ac_code: str = Field(
+        ..., description="The AC code exactly as listed in the rules (e.g. 'ICH')."
+    )
     item_cref: str = Field(
         ..., description="The Docling canonical reference (cref) of the relevant item"
     )
     snippet: str | None = None
     reason: str
-    severity: float
-    confidence: float = 1.0
+    severity: float = Field(default=0.5, ge=0.0, le=1.0)
+    confidence: float = Field(default=1.0, ge=0.0, le=1.0)
 
 
 class GraderModelResponse(StrictModel):
@@ -69,7 +71,9 @@ class GraderModelResponse(StrictModel):
 class VisionFinding(StrictModel):
     """A single finding from the vision model."""
 
-    ac_code: str
+    ac_code: str = Field(
+        ..., description="The AC code exactly as listed in the rules (e.g. 'BADUML')."
+    )
     item_cref: str = Field(
         ...,
         description="Docling picture cref (e.g. '#/pictures/0')",
