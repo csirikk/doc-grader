@@ -1,5 +1,4 @@
 {
-    "version": "config/0.1",
     "analysers": [
         {
             "analyser_id": "integrity_analyser",

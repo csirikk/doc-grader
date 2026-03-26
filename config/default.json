@@ -1,5 +1,4 @@
 {
-    "version": "config/0.1",
     "course": "ipp",
     "analysers": [
         {

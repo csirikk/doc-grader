@@ -29,7 +29,6 @@ class AnalyserConfig(StrictModel):
 class AppConfig(StrictModel):
     """Configuration for the application."""
 
-    version: str = Field(default="config/0.1", description="Configuration version")
     run_id: str | None = Field(default=None, description="Unique run identifier")
     course: str | None = Field(
         default=None,
