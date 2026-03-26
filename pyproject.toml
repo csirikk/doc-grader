@@ -14,8 +14,11 @@ dependencies = [
     "scipy",
     "langdetect",
     "openai",
-    "instructor",
     "python-dotenv",
+    "sentence-transformers",
+    "scikit-learn",
+    "streamlit",
+    "streamlit-pdf-viewer",
 ]
 
 [project.scripts]
