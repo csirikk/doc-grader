@@ -11,12 +11,14 @@ docs/                Project documentation (specifications, criteria, overview)
 notebooks/           Jupyter notebooks for data analysis
 research/            Aggregated research, study materials and notes
 src/                 Source code
-    parsers/           Docling parsering
+    analysers/         Document analysers
+    llm_client.py      LLM integration
+    parsers/           Docling parsing
+    rule_engine.py     Validation, post-processing, and finding aggregation
     schemas/           Pydantic models (IR, findings, config)
+    ui/                Grading UI
     __main__.py        Entry point
-    logger.py          Logging and debugging utilities
-    rule_engine.py     Post-processing and finding aggregation
-    util.py            Helper utilities
+    utils.py           Logging and helper utilities
 ```
 
 ## Installation
@@ -52,6 +54,14 @@ python -m ipykernel install --user --name doc-grader
 
 Open the notebooks in VS Code and select the **doc-grader** kernel.
 
+## Review UI
+
+Launch the Streamlit review UI:
+
+```bash
+streamlit run src/ui/app.py
+```
+
 ## Command Line Usage
 
 Process one or more input files (Markdown or PDF):
@@ -65,3 +75,7 @@ python -m src path/to/file.pdf path/to/other.md --out out/results/
 - `-d, --debug`: Enable debug logging and JSON dumps of processed models.
 - `-o, --out`: Specify the output directory (defaults to `out/default/`).
 - `-c, --config`: Path to a JSON configuration file for analysers.
+- `--csv-out PATH`: Write all findings as CSV to the given path.
+
+The `doc-grader` command is installed from the project package; `python -m src` is
+equivalent when running from the repository checkout.
