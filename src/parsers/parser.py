@@ -7,6 +7,9 @@ import re
 import unicodedata
 from typing import TYPE_CHECKING
 
+from docling_core.types.doc.base import (
+    CoordOrigin,
+)
 from docling_core.types.doc.document import (
     SectionHeaderItem,
     TableCell,
@@ -266,6 +269,20 @@ class DocumentParser:
 
             is_pdf = path.suffix.lower() == ".pdf"
             for item, _ in doc.iterate_items():
+
+                prov_items = getattr(item, "prov", None)
+                if prov_items:
+                    for prov in prov_items:
+                        if (
+                            prov.bbox
+                            and prov.bbox.coord_origin == CoordOrigin.BOTTOMLEFT
+                        ):
+                            page = doc.pages.get(prov.page_no)
+                            if page and page.size and page.size.height:
+                                prov.bbox = prov.bbox.to_top_left_origin(
+                                    page_height=page.size.height
+                                )
+
                 if is_pdf:
                     if isinstance(item, TextItem) and item.text:
                         item.text = clean_pdf_text(item.text)
