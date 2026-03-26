@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import streamlit as st
 
 from src.ui.utils import FILTER_OPTIONS, STATUS_COLOURS
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # CSS for tinting expander headers based on the hidden status marker
 _STATUS_TINT_CSS = """
@@ -108,20 +111,6 @@ def _on_view_anchor(safe_fid: str):
     st.session_state["scroll_trigger"] += 1
 
 
-def _on_expander_toggle(safe_fid: str):
-    """Sync expanded state and set as active finding when opened."""
-    is_now_open = st.session_state.get(f"exp_{safe_fid}", False)
-    expanded_set = st.session_state.get("expanded_fids", set())
-    if is_now_open:
-        expanded_set.add(safe_fid)
-        st.session_state["active_finding_id"] = safe_fid
-        st.session_state["scroll_trigger"] += 1
-    else:
-        expanded_set.discard(safe_fid)
-
-    st.session_state["expanded_fids"] = expanded_set
-
-
 def render_findings(findings: list[dict], out_dir: Path) -> None:
     """Render the full findings panel in the right column."""
 
@@ -136,13 +125,9 @@ def render_findings(findings: list[dict], out_dir: Path) -> None:
         key="findings_sort",
     )
 
-    visible = [
-        f
-        for f in findings
-        if status_filter == "All" or f.get("status") == status_filter
-    ]
+    visible = [f for f in findings if status_filter in ("All", f.get("status"))]
     sort_key = sort_by.lower()
-    visible.sort(key=lambda x: x.get(sort_key) or 0.0, reverse=True)
+    visible = sorted(visible, key=lambda x: x.get(sort_key) or 0.0, reverse=True)
 
     if not visible:
         st.info("No findings match the current filter.")
@@ -163,9 +148,6 @@ def render_findings(findings: list[dict], out_dir: Path) -> None:
         with st.expander(
             f"[{fid}] {finding.get('title', '(untitled)')}",
             expanded=is_active,
-            key=f"exp_{safe_fid}",
-            on_change=_on_expander_toggle,
-            args=(safe_fid,),
         ):
             # colour the expander
             st.html(f'<span data-status-marker="{status}" style="display:none"></span>')

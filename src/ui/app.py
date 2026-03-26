@@ -27,25 +27,31 @@ st.set_page_config(
 )
 
 _DEFAULT_OUT = _PROJECT_ROOT / "out"
+_WORKSPACE_HEIGHT = 820
 
-# Sticky document-column CSS.
-# Streamlit renders columns in a flex row with align-items:stretch, forcing
-# both columns to share the same height and preventing sticky positioning.
-# Resetting to flex-start gives the columns independent heights so the
-# document column can stick to the viewport top while findings scroll.
-_STICKY_CSS = """
+# AI generated css for scrolling fixes:
+_CUSTOM_SCROLL_CSS = """
 <style>
-div[data-testid="stHorizontalBlock"] {
-    align-items: flex-start;
+/* 1. Shrink the actual top bar (hamburger menu) */
+[data-testid="stHeader"] {
+    height: 1rem !important; /* Keep the header compact */
 }
-div[data-testid="stHorizontalBlock"]
-> div[data-testid="stColumn"]:first-child {
-    position: sticky;
-    top: 3.5rem;          /* clear Streamlit's top toolbar */
+
+/* 2. Reduce the whitespace at the top of the page */
+[data-testid="stMainBlockContainer"] {
+    padding-top: 4rem !important; /* Trim the top gap */
+    padding-bottom: 0px !important;
+    overflow: hidden !important;
+}
+
+/* 3. Lock the absolute top-level Streamlit containers to stop page jumping */
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"] {
+    overflow: hidden !important;
 }
 </style>
 """
-st.html(_STICKY_CSS)
+st.html(_CUSTOM_SCROLL_CSS)
 
 
 def _on_stage_change():
@@ -59,18 +65,12 @@ def _on_stage_change():
 
 
 def _init_state() -> None:
-    defaults = {
-        "expanded_fids": set(),
-        "out_dir": None,
-        "findings": [],
-        "info": {},
-        "active_finding_id": None,
-        "stage": "Final",
-        "scroll_trigger": 0,
-    }
-    for key, value in defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = value
+    st.session_state.setdefault("out_dir", None)
+    st.session_state.setdefault("findings", [])
+    st.session_state.setdefault("info", {})
+    st.session_state.setdefault("active_finding_id", None)
+    st.session_state.setdefault("stage", "Final")
+    st.session_state.setdefault("scroll_trigger", 0)
 
 
 _init_state()
@@ -105,32 +105,33 @@ with st.sidebar:
         placeholder="/path/to/out/name/",
     )
 
-    load_clicked = st.button("Load run", type="primary", width="stretch")
+    load_clicked = st.button("Load run", type="primary", use_container_width=True)
 
     if load_clicked:
-        target = (
-            Path(manual_path.strip())
-            if manual_path.strip()
-            else (Path(selected_run_str) if selected_run_str else None)
-        )
-        if target is None:
+        target_path_str = manual_path.strip() or selected_run_str
+
+        if not target_path_str:
             st.error("No run selected.")
-        elif not target.exists():
-            st.error(f"Directory not found: `{target}`")
-        elif not (target / "findings.json").exists():
-            st.error(f"No `findings.json` in `{target}`")
         else:
-            findings, info = load_run(target, stage="Final")
-            st.session_state["out_dir"] = target
-            st.session_state["findings"] = findings
-            st.session_state["info"] = info
-            st.session_state["active_finding_id"] = None
-            st.session_state["stage"] = "Final"
-            st.caption(f"Loaded {len(findings)} findings from `{target.name}`")
+            target = Path(target_path_str)
+            if not target.exists():
+                st.error(f"Directory not found: `{target}`")
+            elif not (target / "findings.json").exists():
+                st.error(f"No `findings.json` in `{target}`")
+            else:
+                findings, info = load_run(target, stage="Final")
+                st.session_state.update(
+                    {
+                        "out_dir": target,
+                        "findings": findings,
+                        "info": info,
+                        "active_finding_id": None,
+                        "stage": "Final",
+                    }
+                )
 
     # Run info
     if st.session_state["out_dir"]:
-        st.divider()
         current_dir: Path = st.session_state["out_dir"]
         info = st.session_state["info"]
         run_meta = info.get("run", {})
@@ -205,10 +206,15 @@ if out_dir is not None:
         )
 
         with doc_col:
-            render_document(source_path, selected_finding)
+            with st.container(height=_WORKSPACE_HEIGHT, border=False):
+                render_document(
+                    source_path,
+                    selected_finding,
+                    viewer_height=_WORKSPACE_HEIGHT,
+                )
 
         with findings_col:
-            with st.container(height=800, border=False):
+            with st.container(height=_WORKSPACE_HEIGHT, border=False):
                 render_findings(findings, out_dir)
 
     workspace()
