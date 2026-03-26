@@ -2,19 +2,13 @@
 
 from __future__ import annotations
 
-from pathlib import Path  # noqa: TC003
+from pathlib import Path
 
 import streamlit as st
 
-_STATUS_COLOURS: dict[str, str] = {
-    "approved": "green",
-    "dismissed": "red",
-    "proposed": "orange",
-}
-_ALL_STATUSES: list[str] = ["proposed", "approved", "dismissed"]
-_FILTER_OPTIONS: list[str] = ["All", *_ALL_STATUSES]
+from src.ui.utils import FILTER_OPTIONS, STATUS_COLOURS
 
-# AI generated css:
+# CSS for tinting expander headers based on the hidden status marker
 _STATUS_TINT_CSS = """
 <style>
 details:has([data-status-marker="approved"]) > summary {
@@ -54,72 +48,86 @@ def _render_evidence(finding: dict) -> None:
                 snippet = anchor.get("snippet")
                 prov_list: list[dict] = anchor.get("prov") or []
 
-                prov_parts: list[str] = []
-                for prov in prov_list:
-                    page = prov.get("page_no")
-                    if page is not None:
-                        prov_parts.append(f"p.{page}")
-
+                prov_parts: list[str] = [
+                    f"p.{p.get('page_no')}"
+                    for p in prov_list
+                    if p.get("page_no") is not None
+                ]
                 loc = ", ".join(prov_parts) if prov_parts else "no provenance"
                 label = anchor.get("section_path") or ref
+
                 st.text(f"[{i}] {label} ({loc})")
                 if snippet:
                     st.caption(snippet)
 
         if stats:
             st.caption("Stats")
-            rows = []
-            for s in stats:
-                val = s.get("value")
-                unit = s.get("unit") or ""
-                notes = s.get("notes") or ""
-                rows.append(
-                    {
-                        "Name": s.get("name", ""),
-                        "Value": f"{val} {unit}".strip() if val is not None else "n/a",
-                        "Notes": notes,
-                    }
-                )
+            rows = [
+                {
+                    "Name": s.get("name", ""),
+                    "Value": f"{s.get('value')} {s.get('unit', '')}".strip()
+                    if s.get("value") is not None
+                    else "n/a",
+                    "Notes": s.get("notes") or "",
+                }
+                for s in stats
+            ]
             st.dataframe(rows, width="stretch", hide_index=True)
 
         if model_evals:
             st.caption("Model Evals")
             for ev in model_evals:
-                model = ev.get("model_name") or "model"
-                label = ev.get("label") or "n/a"
-                score = ev.get("score")
+                model, label, score = (
+                    ev.get("model_name", "model"),
+                    ev.get("label", "n/a"),
+                    ev.get("score"),
+                )
                 score_str = f"{score:.3f}" if score is not None else "n/a"
                 st.text(f"{model}: {label} (score {score_str})")
 
         if meta:
-            judge = meta.get("judge")
-            rest = {k: v for k, v in meta.items() if k != "judge"}
-
-            if judge:
+            if judge := meta.get("judge"):
                 st.markdown("#### Judge")
                 decision = judge.get("decision", "")
-                colour = _STATUS_COLOURS.get(
+                colour = STATUS_COLOURS.get(
                     "approved" if decision in ("approved", "adjusted") else decision,
                     "grey",
                 )
-                rationale = judge.get("rationale", "")
-                st.markdown(f":{colour}[{decision}]: {rationale}")
-                reasoning = judge.get("reasoning_chain", "")
-                if reasoning:
+                st.markdown(f":{colour}[{decision}]: {judge.get('rationale', '')}")
+                if reasoning := judge.get("reasoning_chain"):
                     st.caption(reasoning)
 
-            if rest:
+            if rest := {k: v for k, v in meta.items() if k != "judge"}:
                 st.caption("Meta")
                 st.json(rest, expanded=False)
+
+
+def _on_view_anchor(safe_fid: str):
+    """Explicit button click to focus a finding."""
+    st.session_state["active_finding_id"] = safe_fid
+    st.session_state["scroll_trigger"] += 1
+
+
+def _on_expander_toggle(safe_fid: str):
+    """Sync expanded state and set as active finding when opened."""
+    is_now_open = st.session_state.get(f"exp_{safe_fid}", False)
+    expanded_set = st.session_state.get("expanded_fids", set())
+    if is_now_open:
+        expanded_set.add(safe_fid)
+        st.session_state["active_finding_id"] = safe_fid
+        st.session_state["scroll_trigger"] += 1
+    else:
+        expanded_set.discard(safe_fid)
+
+    st.session_state["expanded_fids"] = expanded_set
 
 
 def render_findings(findings: list[dict], out_dir: Path) -> None:
     """Render the full findings panel in the right column."""
 
-    # Filter controls
     filter_col, sort_col = st.columns([1, 1], vertical_alignment="bottom")
     status_filter = filter_col.selectbox(
-        "Filter by status", _FILTER_OPTIONS, key="findings_filter"
+        "Filter by status", FILTER_OPTIONS, key="findings_filter"
     )
     sort_by = sort_col.radio(
         "Sort by descending",
@@ -128,64 +136,65 @@ def render_findings(findings: list[dict], out_dir: Path) -> None:
         key="findings_sort",
     )
 
-    # Apply filter and sort
     visible = [
-        (i, f)
-        for i, f in enumerate(findings)
+        f
+        for f in findings
         if status_filter == "All" or f.get("status") == status_filter
     ]
-    sort_key = "severity" if sort_by == "Severity" else "confidence"
-    visible.sort(key=lambda x: x[1].get(sort_key) or 0.0, reverse=True)
+    sort_key = sort_by.lower()
+    visible.sort(key=lambda x: x.get(sort_key) or 0.0, reverse=True)
 
     if not visible:
         st.info("No findings match the current filter.")
         return
 
-    st.markdown(_STATUS_TINT_CSS, unsafe_allow_html=True)
+    st.html(_STATUS_TINT_CSS)
 
-    # Per-finding expanders
-    for original_idx, finding in visible:
+    for finding in visible:
         fid = finding.get("finding_id", "?")
-        ftitle = finding.get("title", "(untitled)")
+        safe_fid = fid.replace(":", "-")
         status = finding.get("status", "proposed")
         severity = finding.get("severity")
-        colour = _STATUS_COLOURS.get(status, "grey")
+        confidence = finding.get("confidence")
+        colour = STATUS_COLOURS.get(status, "grey")
 
-        label = f"[{fid}] {ftitle}"
+        is_active = safe_fid == st.session_state.get("active_finding_id")
 
-        with st.expander(label):
-            st.markdown(
-                f'<span data-status-marker="{status}" style="display:none"></span>',
-                unsafe_allow_html=True,
-            )
-            left_col, right_col = st.columns([3, 1], vertical_alignment="center")
+        with st.expander(
+            f"[{fid}] {finding.get('title', '(untitled)')}",
+            expanded=is_active,
+            key=f"exp_{safe_fid}",
+            on_change=_on_expander_toggle,
+            args=(safe_fid,),
+        ):
+            # colour the expander
+            st.html(f'<span data-status-marker="{status}" style="display:none"></span>')
 
-            with left_col:
-                analyser_name = (finding.get("analyser") or {}).get("name", "")
-                st.markdown("### " + analyser_name)
-                meta_parts = [
-                    f":{colour}[{status}], ",
-                    f"sev `{_severity_label(severity)}`, ",
-                    f"conf `{_severity_label(finding.get('confidence'))}`",
-                ]
-                st.markdown("".join(meta_parts))
+            header_l, header_r = st.columns([3, 1], vertical_alignment="center")
 
-            with right_col:
-                if st.button(
+            with header_l:
+                analyser = (finding.get("analyser") or {}).get(
+                    "name", "Unknown Analyser"
+                )
+                st.markdown(f"### {analyser}")
+                st.markdown(
+                    f":{colour}[{status}], "
+                    f"sev `{_severity_label(severity)}`, "
+                    f"conf `{_severity_label(confidence)}`"
+                )
+
+            with header_r:
+                st.button(
                     "View anchor",
-                    key=f"sel_{fid}",
+                    key=f"btn_{safe_fid}",
                     width="stretch",
-                ):
-                    st.session_state["selected_idx"] = original_idx
-                    st.session_state["scroll_trigger"] = (
-                        st.session_state.get("scroll_trigger", 0) + 1
-                    )
-                    st.rerun()
+                    on_click=_on_view_anchor,
+                    args=(safe_fid,),
+                )
 
             st.markdown(finding.get("summary", ""))
 
-            notes_list: list[str] = finding.get("notes") or []
-            if notes_list:
-                st.caption(", ".join(notes_list))
+            if notes := finding.get("notes"):
+                st.caption(", ".join(notes))
 
             _render_evidence(finding)

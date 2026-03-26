@@ -45,16 +45,28 @@ div[data-testid="stHorizontalBlock"]
 }
 </style>
 """
-st.markdown(_STICKY_CSS, unsafe_allow_html=True)
+st.html(_STICKY_CSS)
+
+
+def _on_stage_change():
+    new_stage = st.session_state["stage_radio"]
+    current_dir = st.session_state["out_dir"]
+    new_findings, _ = load_run(current_dir, stage=new_stage)
+
+    st.session_state["findings"] = new_findings
+    st.session_state["stage"] = new_stage
+    st.session_state["active_finding_id"] = None  # Reset selection on stage change
 
 
 def _init_state() -> None:
-    defaults: dict = {
+    defaults = {
+        "expanded_fids": set(),
         "out_dir": None,
         "findings": [],
         "info": {},
-        "selected_idx": None,
+        "active_finding_id": None,
         "stage": "Final",
+        "scroll_trigger": 0,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -112,7 +124,7 @@ with st.sidebar:
             st.session_state["out_dir"] = target
             st.session_state["findings"] = findings
             st.session_state["info"] = info
-            st.session_state["selected_idx"] = None
+            st.session_state["active_finding_id"] = None
             st.session_state["stage"] = "Final"
             st.caption(f"Loaded {len(findings)} findings from `{target.name}`")
 
@@ -143,13 +155,8 @@ with st.sidebar:
                 else 0,
                 horizontal=True,
                 key="stage_radio",
+                on_change=_on_stage_change,
             )
-            if stage != st.session_state.get("stage"):
-                new_findings, _ = load_run(current_dir, stage=stage)
-                st.session_state["findings"] = new_findings
-                st.session_state["stage"] = stage
-                st.session_state["selected_idx"] = None
-                st.rerun()
         else:
             stage = st.session_state.get("stage", "Final")
 
@@ -168,25 +175,40 @@ with st.sidebar:
             f"- {n_proposed} proposed"
         )
 
-out_dir: Path | None = st.session_state["out_dir"]
+out_dir: Path = st.session_state["out_dir"]
 findings: list[dict] = st.session_state["findings"]
 info: dict = st.session_state["info"]
-selected_idx: int | None = st.session_state.get("selected_idx")
+active_id: str | None = st.session_state.get("active_finding_id")
 
 source_path = source_path_from_info(info)
-selected_finding = (
-    findings[selected_idx]
-    if (selected_idx is not None and 0 <= selected_idx < len(findings))
-    else None
-)
+selected_finding = None
+if active_id:
+    for f in findings:
+        if f.get("finding_id", "").replace(":", "-") == active_id:
+            selected_finding = f
+            break
 
-if out_dir is None:
-    st.info("Select a run from the sidebar and click **Load run** to begin.")
-else:
-    doc_col, findings_col = st.columns([0.55, 0.45], gap="medium")
+if out_dir is not None:
 
-    with doc_col:
-        render_document(source_path, selected_finding)
+    @st.fragment
+    def workspace():
+        doc_col, findings_col = st.columns([0.55, 0.45], gap="medium")
 
-    with findings_col:
-        render_findings(findings, out_dir)
+        active_id = st.session_state.get("active_finding_id")
+        selected_finding = next(
+            (
+                f
+                for f in findings
+                if f.get("finding_id", "").replace(":", "-") == active_id
+            ),
+            None,
+        )
+
+        with doc_col:
+            render_document(source_path, selected_finding)
+
+        with findings_col:
+            with st.container(height=800, border=False):
+                render_findings(findings, out_dir)
+
+    workspace()
