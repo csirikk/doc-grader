@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import io
 import logging
 import re
 import unicodedata
 from typing import TYPE_CHECKING
 
+import charset_normalizer
 from docling_core.types.doc.base import (
     CoordOrigin,
 )
@@ -17,6 +19,7 @@ from docling_core.types.doc.document import (
     TextItem,
 )
 from docling_core.types.doc.labels import DocItemLabel
+from docling_core.types.io import DocumentStream
 from pydantic import Field
 
 from ..schemas.base import StrictModel
@@ -207,14 +210,14 @@ class DocumentParser:
         config_hash: str | None = None,
     ) -> ParseOutput:
         """Parse the given document."""
-        doc_ref = DocumentRef(source_path=str(path), origin=None, binary_hash=None)
+        doc_ref = DocumentRef(source_path=str(path))
 
         parse_meta = ParseMeta(
             used_ocr=self.do_ocr,
             table_structure=self.do_table_structure,
         )
 
-        if not path.exists():
+        if not path.is_file():
             return self._create_error_output(
                 doc_ref,
                 parse_meta,
@@ -238,9 +241,59 @@ class DocumentParser:
                 config_hash,
             )
 
+        findings: list[Finding] = []
+
+        if path.stat().st_size == 0:
+            parse_meta.parsed_ok = True
+            findings.append(
+                self._make_finding(
+                    doc_ref,
+                    "EMPTY_FILE",
+                    "Empty Document",
+                    "File is 0 bytes.",
+                    run_id,
+                    config_hash,
+                )
+            )
+            return ParseOutput(
+                doc_ref=doc_ref,
+                ir=None,
+                parser_findings=findings,
+                parse_meta=parse_meta,
+            )
+
         try:
             logger.debug("Parsing %s with Docling...", path)
-            doc = self.converter.convert(path).document
+
+            if path.suffix.lower() == ".md":
+                raw_bytes = path.read_bytes()
+
+                results = charset_normalizer.from_bytes(raw_bytes)
+                best_match = results.best()
+                encoding = best_match.encoding if best_match else "utf-8"
+
+                if encoding and encoding.lower() != "utf-8":
+                    findings.append(
+                        self._make_finding(
+                            doc_ref,
+                            "DOCTYPE",
+                            "Auto-detected Encoding",
+                            f"Converted from {encoding} to UTF-8",
+                            run_id,
+                            config_hash,
+                        )
+                    )
+
+                clean_text = raw_bytes.decode(encoding, errors="replace")
+                source = DocumentStream(
+                    name=path.name,
+                    stream=io.BytesIO(clean_text.encode("utf-8")),
+                )
+            else:
+                source = path
+
+            converted = self.converter.convert(source)
+            doc = converted.document
 
             if doc.origin is None:
                 return self._create_error_output(
@@ -257,7 +310,6 @@ class DocumentParser:
             doc_ref.origin = doc.origin
             doc_ref.binary_hash = int(doc.origin.binary_hash)
             parse_meta.parsed_ok = True
-            parse_meta.error = None
 
             words, chars, paras, headings = 0, 0, 0, 0
             text_items: dict[str, TextItem] = {}
@@ -269,7 +321,6 @@ class DocumentParser:
 
             is_pdf = path.suffix.lower() == ".pdf"
             for item, _ in doc.iterate_items():
-
                 prov_items = getattr(item, "prov", None)
                 if prov_items:
                     for prov in prov_items:
@@ -317,7 +368,7 @@ class DocumentParser:
                     section_paths[cref] = " > ".join(heading_stack)
                     text_items[cref] = item
 
-            if words == 0:
+            if words == 0:  # TODO: reevaluate whether this should throw an error
                 return self._create_error_output(
                     doc_ref,
                     parse_meta,
@@ -339,12 +390,14 @@ class DocumentParser:
                 text_items=text_items,
                 section_paths=section_paths,
             )
+
             return ParseOutput(
                 doc_ref=doc_ref,
                 ir=ir,
-                parser_findings=[],
+                parser_findings=findings,
                 parse_meta=parse_meta,
             )
+
         except Exception as e:
             logger.error("Error parsing %s: %s", path, e)
             return self._create_error_output(
