@@ -28,7 +28,7 @@ def render_document(
     suffix = path.suffix.lower()
 
     if suffix == ".pdf":
-        render_pdf(path, selected_finding, viewer_height)
+        render_pdf(path, selected_finding)
 
     elif suffix == ".md":
         render_markdown(path, selected_finding)

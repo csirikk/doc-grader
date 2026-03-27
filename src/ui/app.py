@@ -221,11 +221,7 @@ if out_dir is not None:
 
         with doc_col:
             with st.container(height=_WORKSPACE_HEIGHT, border=False):
-                render_document(
-                    source_path,
-                    selected_finding,
-                    viewer_height=_WORKSPACE_HEIGHT,
-                )
+                render_document(source_path, selected_finding)
 
         with findings_col:
             with st.container(height=_WORKSPACE_HEIGHT, border=False):
