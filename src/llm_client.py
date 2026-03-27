@@ -108,6 +108,8 @@ class LLMClient:
     ) -> str:
         rules_text = ""
         for r in rules:
+            if "NOUML" in r.ac_codes:
+                continue
             codes_str = "/".join(r.ac_codes)
             rules_text += f"- {codes_str}: {r.prompt_instruction}\n"
 

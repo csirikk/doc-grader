@@ -113,9 +113,7 @@ def _run_analysers(
                     vision_findings = llm_client.analyse_assets(
                         ir, rules, rulebook, model=model
                     )
-                    result = instance.process_vision_findings(
-                        ir, vision_findings, rules, params
-                    )
+                    result = instance.process_assets(ir, vision_findings, rules, params)
                 else:
                     llm_findings = llm_client.analyse_document(
                         ir, rules, rulebook, model=model

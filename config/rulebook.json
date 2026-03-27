@@ -28,6 +28,8 @@
     "### TASK",
     "You will receive pairs of images: first a full page image for document context, then the extracted diagram.",
     "Analyse each diagram against the Assessment Criteria (AC) rules listed below. Respond in English.",
+    "Only flag UML Class Diagram violations if it is clear that a diagram you were provided is supposed to be a UML Class Diagram.",
+    "If the diagram is clearly not a UML Class Diagram, output the NOUML finding.",
     "",
     "### RULES LIST",
     "{rules}",
@@ -326,12 +328,22 @@
     },
     {
       "ac_codes": [
+        "NOUML"
+      ],
+      "title": "Missing UML Diagram",
+      "analyser_id": "asset_analyser",
+      "course": "ipp",
+      "prompt_instruction": "No UML Class Diagram is present in the document. The provided diagrams are not UML Class Diagrams.",
+      "is_bonus": false
+    },
+    {
+      "ac_codes": [
         "BADUML"
       ],
       "title": "UML Diagram Quality",
       "analyser_id": "asset_analyser",
       "course": "ipp",
-      "prompt_instruction": "The UML class diagram is syntactically incorrect, uses the wrong diagram type, was auto-generated from an IDE without curation, is missing significant classes or methods, or fails to convey how classes interact.",
+      "prompt_instruction": "The UML Class Diagram is syntactically incorrect, uses the wrong diagram type, was auto-generated from an IDE without curation, is missing significant classes or methods, or fails to convey how classes interact.",
       "is_bonus": false
     },
     {
