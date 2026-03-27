@@ -13,7 +13,6 @@ from src.ui.renderers.pdf_renderer import render_pdf
 def render_document(
     source_path: str | None,
     selected_finding: dict | None,
-    viewer_height: int = 760,
 ) -> None:
     """Render the student document in the left column."""
     if not source_path:

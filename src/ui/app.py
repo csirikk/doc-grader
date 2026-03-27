@@ -60,8 +60,16 @@ def _on_stage_change():
     new_findings, _ = load_run(current_dir, stage=new_stage)
 
     st.session_state["findings"] = new_findings
-    st.session_state["stage"] = new_stage
     st.session_state["active_finding_id"] = None  # Reset selection on stage change
+
+
+def _reset_run_ui_state(initial_stage: str = "Final") -> None:
+    st.session_state["active_finding_id"] = None
+    st.session_state["scroll_trigger"] = 0
+    st.session_state["stage_radio"] = initial_stage
+    st.session_state["findings_filter"] = "All"
+    st.session_state["findings_sort"] = "Severity"
+    st.session_state["manual_run_path"] = ""
 
 
 def _init_state() -> None:
@@ -69,8 +77,10 @@ def _init_state() -> None:
     st.session_state.setdefault("findings", [])
     st.session_state.setdefault("info", {})
     st.session_state.setdefault("active_finding_id", None)
-    st.session_state.setdefault("stage", "Final")
     st.session_state.setdefault("scroll_trigger", 0)
+    st.session_state.setdefault("findings_filter", "All")
+    st.session_state.setdefault("findings_sort", "Severity")
+    st.session_state.setdefault("manual_run_path", "")
 
 
 _init_state()
@@ -103,6 +113,7 @@ with st.sidebar:
     manual_path = st.text_input(
         "Or enter path manually",
         placeholder="/path/to/out/name/",
+        key="manual_run_path",
     )
 
     load_clicked = st.button("Load run", type="primary", use_container_width=True)
@@ -126,11 +137,9 @@ with st.sidebar:
                         "out_dir": target,
                         "findings": findings,
                         "info": info,
-                        "active_finding_id": None,
-                        "stage": initial_stage,
-                        "stage_radio": initial_stage,
                     }
                 )
+                _reset_run_ui_state(initial_stage)
 
     # Run info
     if st.session_state["out_dir"]:
@@ -138,8 +147,6 @@ with st.sidebar:
         info = st.session_state["info"]
         run_meta = info.get("run", {})
         parse_meta = info.get("parse", {})
-        counts = info.get("counts", {})
-        re_info = info.get("rule_engine", {})
 
         st.markdown(f"Run: `{run_meta.get('run_id', '-')}`")
         st.markdown(f"Parsed OK: `{parse_meta.get('parsed_ok', '-')}`")
@@ -150,21 +157,17 @@ with st.sidebar:
         # Pipeline stage selector
         stages = available_stages(current_dir)
         if len(stages) > 1:
-            stage = st.radio(
+            st.radio(
                 "Pipeline stage",
                 stages,
-                index=stages.index(st.session_state.get("stage", "Final"))
-                if st.session_state.get("stage", "Final") in stages
+                index=stages.index(st.session_state.get("stage_radio", "Final"))
+                if st.session_state.get("stage_radio", "Final") in stages
                 else 0,
                 horizontal=True,
                 key="stage_radio",
                 on_change=_on_stage_change,
             )
-        else:
-            stage = st.session_state.get("stage", "Final")
-
         current_findings = st.session_state["findings"]
-        stage: str = st.session_state.get("stage", "Final")
 
         n_total = len(current_findings)
         n_not_to_be_judged = sum(
@@ -195,15 +198,8 @@ with st.sidebar:
 out_dir: Path = st.session_state["out_dir"]
 findings: list[dict] = st.session_state["findings"]
 info: dict = st.session_state["info"]
-active_id: str | None = st.session_state.get("active_finding_id")
 
 source_path = source_path_from_info(info)
-selected_finding = None
-if active_id:
-    for f in findings:
-        if f.get("finding_id", "").replace(":", "-") == active_id:
-            selected_finding = f
-            break
 
 if out_dir is not None:
 
