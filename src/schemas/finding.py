@@ -14,6 +14,16 @@ from pydantic import Field
 from .base import StrictModel, utc_now
 from .ir import DocumentRef  # noqa: TC001
 
+JudgeStatus = Literal[
+    "not_to_be_judged",
+    "to_be_judged",
+    "judged_adjusted",
+    "judged_dismissed",
+    "judged_approved",
+]
+
+HumanStatus = Literal["proposed", "approved", "adjusted", "dismissed"]
+
 
 class AnalyserInfo(StrictModel):
     """Info about the analyser that generated a finding."""
@@ -83,11 +93,16 @@ class Finding(StrictModel):
     severity: float | None = Field(default=None, ge=0.0, le=1.0)
     confidence: float | None = Field(default=None, ge=0.0, le=1.0)
 
+    judge_status: JudgeStatus = Field(
+        ..., description="Judge review lifecycle state for this finding"
+    )
+    human_status: HumanStatus = Field(
+        ..., description="Human review lifecycle state for this finding"
+    )
+
     # Evidence
     anchors: list[Anchor] = Field(default_factory=list)
     stats: list[Stat] = Field(default_factory=list)
     model_evals: list[ModelEval] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
-
-    status: Literal["proposed", "approved", "dismissed"] = "proposed"
     meta: dict[str, Any] | None = None

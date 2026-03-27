@@ -165,15 +165,29 @@ with st.sidebar:
         stage: str = st.session_state.get("stage", "Final")
 
         n_total = len(current_findings)
-        n_approved = sum(1 for f in current_findings if f.get("status") == "approved")
-        n_dismissed = sum(1 for f in current_findings if f.get("status") == "dismissed")
-        n_proposed = sum(1 for f in current_findings if f.get("status") == "proposed")
+        n_not_to_be_judged = sum(
+            1 for f in current_findings if f["judge_status"] == "not_to_be_judged"
+        )
+        n_to_be_judged = sum(
+            1 for f in current_findings if f["judge_status"] == "to_be_judged"
+        )
+        n_judged_approved = sum(
+            1 for f in current_findings if f["judge_status"] == "judged_approved"
+        )
+        n_judged_adjusted = sum(
+            1 for f in current_findings if f["judge_status"] == "judged_adjusted"
+        )
+        n_judged_dismissed = sum(
+            1 for f in current_findings if f["judge_status"] == "judged_dismissed"
+        )
 
         st.markdown(
             f"{n_total} findings total:\n"
-            f"- {n_approved} approved\n"
-            f"- {n_dismissed} dismissed\n"
-            f"- {n_proposed} proposed"
+            f"- {n_not_to_be_judged} not to be judged\n"
+            f"- {n_to_be_judged} to be judged\n"
+            f"- {n_judged_approved} judged approved\n"
+            f"- {n_judged_adjusted} judged adjusted\n"
+            f"- {n_judged_dismissed} judged dismissed\n"
         )
 
 out_dir: Path = st.session_state["out_dir"]

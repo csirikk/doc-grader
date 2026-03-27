@@ -112,6 +112,8 @@ def format_finding_short(finding: Finding) -> str:
         metrics.append(f"severity={finding.severity:.2f}")
     if finding.confidence is not None:
         metrics.append(f"confidence={finding.confidence:.2f}")
+    metrics.append(f"judge_status={finding.judge_status}")
+    metrics.append(f"human_status={finding.human_status}")
     if metrics:
         lines.append(f"{', '.join(metrics)}")
 
@@ -172,6 +174,8 @@ CSV_COLUMNS: list[str] = [
     # Extras
     "severity",
     "confidence",
+    "judge_status",
+    "human_status",
     "finding_id",
 ]
 
@@ -199,6 +203,8 @@ def findings_to_csv_rows(path: Path, findings: list[Finding]) -> list[dict[str, 
                 "bonus_points": None,
                 "severity": f.severity,
                 "confidence": f.confidence,
+                "judge_status": f.judge_status,
+                "human_status": f.human_status,
                 "finding_id": f.finding_id,
             }
         )

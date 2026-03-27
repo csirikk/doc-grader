@@ -33,7 +33,7 @@ def _get_annotations(finding: dict | None) -> list[dict]:
         return []
 
     safe_id = finding.get("finding_id", "").replace(":", "-")
-    status_color = STATUS_COLOURS.get(finding.get("status", "proposed"), "blue")
+    status_color = STATUS_COLOURS.get(finding["judge_status"], "blue")
 
     annotations = []
     for anchor in finding.get("anchors", []):

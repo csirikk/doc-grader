@@ -268,10 +268,24 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 if judge_response:
                     rule_engine.apply_judge_response(judge_batch, judge_response)
-            approved = sum(1 for f in analyser_findings if f.status == "approved")
-            dismissed = sum(1 for f in analyser_findings if f.status == "dismissed")
+            judged_approved = sum(
+                1 for f in analyser_findings if f.judge_status == "judged_approved"
+            )
+            judged_adjusted = sum(
+                1 for f in analyser_findings if f.judge_status == "judged_adjusted"
+            )
+            judged_dismissed = sum(
+                1 for f in analyser_findings if f.judge_status == "judged_dismissed"
+            )
+            not_judged = sum(
+                1 for f in analyser_findings if f.judge_status == "not_to_be_judged"
+            )
             logger.info(
-                "Judge complete: %d approved, %d dismissed", approved, dismissed
+                ("Judge complete: approved=%d adjusted=%d dismissed=%d not_judged=%d"),
+                judged_approved,
+                judged_adjusted,
+                judged_dismissed,
+                not_judged,
             )
             write_json(file_outdir / "judged_findings.json", analyser_findings)
             logger.debug("Wrote judged_findings.json")

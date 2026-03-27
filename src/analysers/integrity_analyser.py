@@ -623,6 +623,8 @@ class IntegrityAnalyser(BaseAnalyser):
             ac_code="COPY",
             title="Specification text detected",
             summary=summary,
+            judge_status="to_be_judged",
+            human_status="proposed",
             evidence_item=anchor_sources[0]["item"] if anchor_sources else None,
             snippet_override=anchor_sources[0]["student_text"][:300]
             if anchor_sources

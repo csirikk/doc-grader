@@ -301,6 +301,8 @@ class LLMClient:
                 f"AC Rule [{f.ac_code}]: {rule_def}\n"
                 f"Section: {section_path or '(unknown)'}\n"
                 f"Passage: {passage or '(unavailable)'}\n"
+                f"Judge status: {f.judge_status}\n"
+                f"Human status: {f.human_status}\n"
                 f"Anchor snippets:\n{anchors_str}\n"
                 f"Similarity evidence (student vs spec):\n{evals_str}\n"
                 f"Stats: {stats_str}\n"
@@ -314,7 +316,10 @@ class LLMClient:
         user_content: list[dict] = [
             {
                 "type": "text",
-                "text": f"### FINDINGS TO EVALUATE\n{findings_text}\n\n### ORIGINAL DOCUMENT CONTENT\n",
+                "text": (
+                    f"### FINDINGS TO EVALUATE\n{findings_text}\n\n"
+                    "### ORIGINAL DOCUMENT CONTENT\n"
+                ),
             }
         ]
 

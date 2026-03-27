@@ -23,7 +23,7 @@ from docling_core.types.io import DocumentStream
 from pydantic import Field
 
 from ..schemas.base import StrictModel
-from ..schemas.finding import AnalyserInfo, Finding
+from ..schemas.finding import AnalyserInfo, Finding, HumanStatus, JudgeStatus
 from ..schemas.ir import Document, DocumentRef
 from ..utils import next_id
 
@@ -161,6 +161,8 @@ class DocumentParser:
         ac_code: str,
         title: str,
         summary: str,
+        judge_status: JudgeStatus,
+        human_status: HumanStatus,
         run_id: str | None,
         config_hash: str | None,
     ) -> Finding:
@@ -176,6 +178,8 @@ class DocumentParser:
             ac_code=ac_code,
             title=title,
             summary=summary,
+            judge_status=judge_status,
+            human_status=human_status,
         )
 
     def _create_error_output(
@@ -193,7 +197,14 @@ class DocumentParser:
         parse_meta.parsed_ok = False
 
         finding = self._make_finding(
-            doc_ref, ac_code, title, summary, run_id, config_hash
+            doc_ref,
+            ac_code,
+            title,
+            summary,
+            "not_to_be_judged",
+            "proposed",
+            run_id,
+            config_hash,
         )
         return ParseOutput(
             doc_ref=doc_ref,
@@ -251,6 +262,8 @@ class DocumentParser:
                     "EMPTY_FILE",
                     "Empty Document",
                     "File is 0 bytes.",
+                    "not_to_be_judged",
+                    "proposed",
                     run_id,
                     config_hash,
                 )
@@ -279,6 +292,8 @@ class DocumentParser:
                             "DOCTYPE",
                             "Auto-detected Encoding",
                             f"Converted from {encoding} to UTF-8",
+                            "not_to_be_judged",
+                            "proposed",
                             run_id,
                             config_hash,
                         )

@@ -8,7 +8,14 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from docling_core.types.doc.document import TextItem
 
-from ..schemas.finding import AnalyserInfo, Anchor, Finding, FineRef
+from ..schemas.finding import (
+    AnalyserInfo,
+    Anchor,
+    Finding,
+    FineRef,
+    HumanStatus,
+    JudgeStatus,
+)
 from ..utils import next_id
 
 if TYPE_CHECKING:
@@ -35,6 +42,8 @@ class BaseAnalyser(ABC):
         ac_code: str,
         title: str,
         summary: str,
+        judge_status: JudgeStatus,
+        human_status: HumanStatus,
         evidence_item: DocItem | None = None,
         snippet_override: str | None = None,
         severity: float | None = None,
@@ -80,6 +89,8 @@ class BaseAnalyser(ABC):
             summary=summary,
             severity=severity,
             confidence=confidence,
+            judge_status=judge_status,
+            human_status=human_status,
             anchors=anchors,
         )
 
@@ -133,12 +144,13 @@ class BaseLLMAnalyser(BaseAnalyser):
                 ac_code=f.ac_code,
                 title=f.ac_code,
                 summary=f.reason,
+                judge_status="not_to_be_judged",
+                human_status="proposed",
                 evidence_item=picture_map.get(f.item_cref),
                 snippet_override=None,
                 severity=f.severity,
                 confidence=f.confidence,
             )
-            finding.status = "approved"
             findings.append(finding)
         return findings
 
@@ -168,6 +180,8 @@ class BaseLLMAnalyser(BaseAnalyser):
             ac_code=f.ac_code,
             title=f.ac_code,
             summary=f.reason,
+            judge_status="to_be_judged",
+            human_status="proposed",
             evidence_item=doc.text_items.get(f.item_cref),
             snippet_override=f.snippet,
             severity=f.severity,

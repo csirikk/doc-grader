@@ -6,21 +6,27 @@ from typing import TYPE_CHECKING
 
 import streamlit as st
 
-from src.ui.utils import FILTER_OPTIONS, STATUS_COLOURS
+from src.ui.utils import (
+    FILTER_OPTIONS,
+    STATUS_COLOURS,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-# CSS for tinting expander headers based on the hidden status marker
+# CSS for tinting expander headers based on the hidden judge-status marker
 _STATUS_TINT_CSS = """
 <style>
-details:has([data-status-marker="approved"]) > summary {
+details:has([data-status-marker="judged_approved"]) > summary {
     background-color: rgba(33, 195, 84, 0.1);
 }
-details:has([data-status-marker="dismissed"]) > summary {
+details:has([data-status-marker="judged_adjusted"]) > summary {
+    background-color: rgba(255, 211, 74, 0.12);
+}
+details:has([data-status-marker="judged_dismissed"]) > summary {
     background-color: rgba(255, 75, 75, 0.1);
 }
-details:has([data-status-marker="proposed"]) > summary {
+details:has([data-status-marker="to_be_judged"]) > summary {
     background-color: rgba(255, 170, 0, 0.1);
 }
 </style>
@@ -93,7 +99,11 @@ def _render_evidence(finding: dict) -> None:
                 st.markdown("#### Judge")
                 decision = judge.get("decision", "")
                 colour = STATUS_COLOURS.get(
-                    "approved" if decision in ("approved", "adjusted") else decision,
+                    "judged_approved"
+                    if decision in ("approved", "adjusted")
+                    else f"judged_{decision}"
+                    if decision
+                    else "judged_dismissed",
                     "grey",
                 )
                 st.markdown(f":{colour}[{decision}]: {judge.get('rationale', '')}")
@@ -116,7 +126,7 @@ def render_findings(findings: list[dict], out_dir: Path) -> None:
 
     filter_col, sort_col = st.columns([1, 1], vertical_alignment="bottom")
     status_filter = filter_col.selectbox(
-        "Filter by status", FILTER_OPTIONS, key="findings_filter"
+        "Filter by judge status", FILTER_OPTIONS, key="findings_filter"
     )
     sort_by = sort_col.radio(
         "Sort by descending",
@@ -125,7 +135,7 @@ def render_findings(findings: list[dict], out_dir: Path) -> None:
         key="findings_sort",
     )
 
-    visible = [f for f in findings if status_filter in ("All", f.get("status"))]
+    visible = [f for f in findings if status_filter in ("All", f["judge_status"])]
     sort_key = sort_by.lower()
     visible = sorted(visible, key=lambda x: x.get(sort_key) or 0.0, reverse=True)
 
@@ -138,10 +148,11 @@ def render_findings(findings: list[dict], out_dir: Path) -> None:
     for finding in visible:
         fid = finding.get("finding_id", "?")
         safe_fid = fid.replace(":", "-")
-        status = finding.get("status", "proposed")
+        judge_status = finding["judge_status"]
+        human_status = finding["human_status"]
         severity = finding.get("severity")
         confidence = finding.get("confidence")
-        colour = STATUS_COLOURS.get(status, "grey")
+        colour = STATUS_COLOURS.get(judge_status, "grey")
 
         is_active = safe_fid == st.session_state.get("active_finding_id")
 
@@ -150,7 +161,9 @@ def render_findings(findings: list[dict], out_dir: Path) -> None:
             expanded=is_active,
         ):
             # colour the expander
-            st.html(f'<span data-status-marker="{status}" style="display:none"></span>')
+            st.html(
+                f'<span data-status-marker="{judge_status}" style="display:none"></span>'
+            )
 
             header_l, header_r = st.columns([3, 1], vertical_alignment="center")
 
@@ -160,7 +173,8 @@ def render_findings(findings: list[dict], out_dir: Path) -> None:
                 )
                 st.markdown(f"### {analyser}")
                 st.markdown(
-                    f":{colour}[{status}], "
+                    f":{colour}[{judge_status}], "
+                    f"human `{human_status}`, "
                     f"sev `{_severity_label(severity)}`, "
                     f"conf `{_severity_label(confidence)}`"
                 )

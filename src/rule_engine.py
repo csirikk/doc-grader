@@ -9,28 +9,14 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-HIGH_CONFIDENCE_THRESHOLD: float = 0.00
-JUDGE_MIN_CONFIDENCE: float = 0.10
-
 
 class RuleEngine:
-    def __init__(self, *, high_confidence_threshold: float | None = None):
-        self.high_confidence_threshold = (
-            high_confidence_threshold
-            if high_confidence_threshold is not None
-            else HIGH_CONFIDENCE_THRESHOLD
-        )
-
     def prepare_judge_batch(self, findings: list[Finding]) -> list[Finding]:
         """Select findings that should be sent to the judge model."""
         to_judge: list[Finding] = []
 
         for finding in findings:
-            if finding.status == "approved":
-                continue
-
-            if finding.confidence is None:
-                finding.status = "approved"
+            if finding.judge_status != "to_be_judged":
                 continue
 
             has_anchors = bool(finding.anchors)
@@ -38,21 +24,11 @@ class RuleEngine:
             has_model_evals = bool(finding.model_evals)
             if not has_anchors and not has_stats and not has_model_evals:
                 logger.warning(
-                    ("Dismissing finding '%s' (%s): no anchors, stats, or model_evals"),
+                    ("Skipping finding '%s' (%s): no anchors, stats, or model_evals"),
                     finding.finding_id,
                     finding.ac_code,
                 )
-                finding.status = "dismissed"
-                continue
-
-            if finding.confidence < JUDGE_MIN_CONFIDENCE:
-                logger.debug(
-                    ("Dismissing finding '%s' (%s): confidence %.2f below threshold"),
-                    finding.finding_id,
-                    finding.ac_code,
-                    finding.confidence,
-                )
-                finding.status = "dismissed"
+                finding.judge_status = "not_to_be_judged"
                 continue
 
             to_judge.append(finding)
@@ -72,17 +48,17 @@ class RuleEngine:
             verdict = verdict_map.get(finding.finding_id)
             if verdict is None:
                 logger.warning(
-                    ("Judge returned no verdict for '%s', leaving as 'proposed'"),
+                    ("Judge returned no verdict for '%s', leaving as 'to_be_judged'"),
                     finding.finding_id,
                 )
                 continue
 
             if verdict.decision == "dismissed":
-                finding.status = "dismissed"
+                finding.judge_status = "judged_dismissed"
             elif verdict.decision == "approved":
-                finding.status = "approved"
+                finding.judge_status = "judged_approved"
             elif verdict.decision == "adjusted":
-                finding.status = "approved"
+                finding.judge_status = "judged_adjusted"
                 if verdict.adjusted_severity is not None:
                     finding.severity = verdict.adjusted_severity
                 if verdict.adjusted_confidence is not None:
@@ -105,34 +81,19 @@ class RuleEngine:
     def process(self, findings: list[Finding]) -> tuple[list[Finding], dict]:
         """Filter and normalise findings. Returns (final_findings, summary_dict).
 
-        - dismissed: dropped (judge vetoed).
-        - approved: kept unconditionally (judge validated).
-        - proposed: kept only if confidence >= high_confidence_threshold.
+        - judged_dismissed: dropped (judge vetoed).
+        - all other judge states: kept.
         - duplicates: de-duplicated by finding_id.
         """
         final: list[Finding] = []
         seen_ids: set[str] = set()
         dropped_dismissed = 0
-        dropped_low_conf = 0
         dropped_dupe = 0
 
         for f in findings:
-            if f.status == "dismissed":
+            if f.judge_status == "judged_dismissed":
                 dropped_dismissed += 1
                 logger.debug("RuleEngine: dropped dismissed finding '%s'", f.finding_id)
-                continue
-
-            if (
-                f.status == "proposed"
-                and f.confidence is not None
-                and f.confidence < self.high_confidence_threshold
-            ):
-                dropped_low_conf += 1
-                logger.debug(
-                    "Dropped low-confidence proposed finding '%s' (%.2f)",
-                    f.finding_id,
-                    f.confidence,
-                )
                 continue
 
             if f.finding_id in seen_ids:
@@ -145,10 +106,8 @@ class RuleEngine:
 
         summary = {
             "rule_engine": {
-                "high_conf_threshold": self.high_confidence_threshold,
                 "dropped": {
                     "dismissed_by_judge": dropped_dismissed,
-                    "low_confidence_proposed": dropped_low_conf,
                     "duplicates": dropped_dupe,
                 },
                 "final_count": len(final),
@@ -156,11 +115,10 @@ class RuleEngine:
         }
 
         logger.info(
-            "RuleEngine: %d findings in %d final (dismissed=%d, low-conf=%d, dupes=%d)",
+            "RuleEngine: %d findings in %d final (dismissed=%d, dupes=%d)",
             len(findings),
             len(final),
             dropped_dismissed,
-            dropped_low_conf,
             dropped_dupe,
         )
 

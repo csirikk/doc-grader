@@ -46,7 +46,7 @@ Analysers
   - LLM Analysers ----------> LLMClient.analyse_document() [grader model]
        |  (AssetAnalyser) --> LLMClient.analyse_assets()   [vision model]
        |
-       v  raw findings (status = "proposed" | "approved")
+       v  raw findings (judge_status = "to_be_judged" | "not_to_be_judged")
 RuleEngine.prepare_judge_batch()
        |
        v  judgeable findings
@@ -54,10 +54,10 @@ LLMClient.judge_findings()                              [judge model]
        |
        v
 RuleEngine.apply_judge_response()
-       |  updates status: "approved" | "dismissed"
+       |  updates judge_status: "judged_approved" | "judged_adjusted" | "judged_dismissed"
        v
 RuleEngine.process()
-       |  drops dismissed, low confidence, deduplicates
+       |  drops judged_dismissed, deduplicates
        v
 Final findings -> JSON + optional CSV
 ```
@@ -106,7 +106,7 @@ All analysers implement `BaseAnalyser.analyse(doc, params) -> list[Finding]`.
 - `SHORT`: flagged when word count < 486, char count < 3422, or heading count < 7 (covers ~90% of historically short submissions).
 - `KAPTXT`: iterates all `SectionHeaderItem` nodes, severity depends on the relationship between adjacent heading levels (sibling, parent->child, child->parent).
 
-Deterministic findings have `confidence = None` and are unconditionally approved, bypassing the judge.
+Deterministic findings set `judge_status = "to_be_judged"` when they are meant to be reviewed by the judge, and `judge_status = "not_to_be_judged"` when they should bypass the judge.
 
 #### LLM-based
 
@@ -120,7 +120,7 @@ These analysers declare which rules they own via `get_rules(rulebook, params)` a
 | `DesignAnalyser`  | `OOP`, `NOOOP`, `NOSRP`, `DP`, `BADDP`, `SINGLETON`, `EXT`, `EX`, `FILO`      | OOP/architecture quality |
 | `AssetAnalyser`   | `BADUML`, `OWNDIF`, `BW`                                                      | Vision model             |
 
-`AssetAnalyser` uses a separate vision path, every `PictureItem` and its surrounding page image are base64-encoded and sent to `LLMClient.analyse_assets()`. Vision findings bypass the judge and are immediately `"approved"`.
+`AssetAnalyser` uses a separate vision path, every `PictureItem` and its surrounding page image are base64-encoded and sent to `LLMClient.analyse_assets()`. Vision findings bypass the judge and are marked `judge_status = "not_to_be_judged"`.
 
 ### 4.4 LLM Client (`src/llm_client.py`)
 
@@ -144,13 +144,11 @@ Receives the judgeable batch selected by `RuleEngine.prepare_judge_batch()`. Re-
 
 `RuleEngine` handles finding validation and filtering:
 
-1. `normalise_findings()` promotes deterministic findings with no confidence to `approved`.
-2. `prepare_judge_batch()` auto-dismisses findings without anchors or below the judge threshold.
-3. `apply_judge_response()` mutates findings in-place using judge verdicts.
-4. `process(findings)` applies final filters in order:
+1. `prepare_judge_batch()` keeps explicit judge states and only returns findings marked `to_be_judged` that still have evidence.
+2. `apply_judge_response()` mutates findings in-place using judge verdicts.
+3. `process(findings)` applies final filters in order:
 
-- **Dismissed** - drop (judge vetoed).
-- **Low-confidence proposed** - drop if `confidence < N`.
+- **Judge-dismissed** - drop (judge vetoed).
 - **Deduplication** - drop if `finding_id` already seen in this run.
 
 Returns `(final_findings, summary_dict)`. The summary (counts per drop reason, final count) is written to `info.json`.
@@ -166,7 +164,8 @@ Finding
 +-- title / summary: str
 +-- severity: float [0-1]     # how serious the issue is
 +-- confidence: float | None  # model certainty; None = deterministic
-+-- status: "proposed" | "approved" | "dismissed"
++-- judge_status: ...         # explicit judge lifecycle state
++-- human_status: ...         # explicit human review lifecycle state
 +-- analyser: AnalyserInfo    # analyser_id, name, run_id, config_hash
 +-- document: DocumentRef     # source file identity
 +-- anchors: list[Anchor]     # cref + snippet + page/bbox provenance
