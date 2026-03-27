@@ -6,10 +6,7 @@ Loads pre-generated pipeline output from an ``out/<stem>/`` directory.
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from pathlib import Path
+from pathlib import Path
 
 FINDINGS_FILE = "findings.json"
 JUDGED_FILE = "judged_findings.json"
@@ -46,3 +43,14 @@ def load_run(out_dir: Path, stage: str = "Final") -> tuple[list[dict], dict]:
 def source_path_from_info(info: dict) -> str | None:
     """Extract the original document path from an ``info.json`` dict."""
     return info.get("input", {}).get("source_path")
+
+
+def run_display_name(out_dir: Path) -> str:
+    """Short label for a run."""
+    info_path = out_dir / INFO_FILE
+    if info_path.exists():
+        info = json.loads(info_path.read_text(encoding="utf-8"))
+        source = info.get("input", {}).get("source_path")
+        if source:
+            return Path(source).name
+    return out_dir.name

@@ -18,7 +18,12 @@ import streamlit as st  # noqa: E402
 
 from src.ui.document_panel import render_document  # noqa: E402
 from src.ui.findings_panel import render_findings  # noqa: E402
-from src.ui.io import available_stages, load_run, source_path_from_info  # noqa: E402
+from src.ui.io import (  # noqa: E402
+    available_stages,
+    load_run,
+    run_display_name,
+    source_path_from_info,
+)
 
 st.set_page_config(
     page_title="doc-grader review",
@@ -93,15 +98,12 @@ with st.sidebar:
             {p.parent for p in base_out.rglob("findings.json")},
             key=lambda p: p.name,
         )
-
-    run_options: list[str] = [str(p) for p in discovered]
-    selected_run_str: str | None = None
-
-    if run_options:
-        selected_run_str = st.selectbox(
+    selected_run: Path | None = None
+    if discovered:
+        selected_run = st.selectbox(
             "Discovered runs",
-            options=run_options,
-            format_func=lambda p: Path(p).name,
+            discovered,
+            format_func=run_display_name,
         )
     else:
         st.caption(f"No runs found under `{base_out}`.")
@@ -109,12 +111,11 @@ with st.sidebar:
     load_clicked = st.button("Load run", type="primary", use_container_width=True)
 
     if load_clicked:
-        target_path_str = selected_run_str
+        target = selected_run
 
-        if not target_path_str:
+        if not target:
             st.error("No run selected.")
         else:
-            target = Path(target_path_str)
             if not target.exists():
                 st.error(f"Directory not found: `{target}`")
             elif not (target / "findings.json").exists():
