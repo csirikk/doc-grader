@@ -58,6 +58,7 @@ def render_markdown(path: Path, selected_finding: dict | None) -> None:
             .markdown-surface {
                 background-color: rgba(255, 255, 255, 0.02); /* Tint for dark mode */
                 border-radius: 0.5rem;
+                border: 1px solid rgba(255, 255, 255, 0.1);
                 padding: 1.5rem;
             }
         </style>
