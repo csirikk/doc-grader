@@ -15,17 +15,7 @@ def _handle_annotation_click(clicked_annotation: dict) -> None:
     """Callback fired when a user clicks a bounding box in the PDF."""
     if not clicked_annotation or "id" not in clicked_annotation:
         return
-
-    new_id = clicked_annotation["id"]
-    old_id = st.session_state.get("active_finding_id")
-
-    if new_id != old_id:
-        st.session_state["active_finding_id"] = new_id
-        st.session_state["scroll_trigger"] = (
-            st.session_state.get("scroll_trigger", 0) + 1
-        )
-    else:
-        st.session_state["active_finding_id"] = new_id
+    st.session_state["active_finding_id"] = clicked_annotation["id"]
 
 
 def _get_annotations(finding: dict | None) -> list[dict]:
@@ -57,7 +47,7 @@ def _get_annotations(finding: dict | None) -> list[dict]:
     return annotations
 
 
-def render_pdf(path: Path, selected_finding: dict | None) -> None:
+def render_pdf(path: Path, selected_finding: dict | None, height: int = 820) -> None:
     """Render a PDF document with clickable findings annotations."""
     if pdf_viewer is None:
         st.error("streamlit-pdf-viewer is not installed.")
@@ -65,22 +55,21 @@ def render_pdf(path: Path, selected_finding: dict | None) -> None:
 
     target_annotations = _get_annotations(selected_finding)
 
-    target_page = None
+    target_page: int | None = None
     if selected_finding:
         anchors = selected_finding.get("anchors") or []
         if anchors and anchors[0].get("prov"):
             target_page = anchors[0]["prov"][0].get("page_no")
 
-    scroll_trigger = st.session_state.get("scroll_trigger", 0)
     selected_id = (selected_finding or {}).get("finding_id", "").replace(":", "-")
     pdf_viewer(
         input=str(path),
         width="100%",
-        height=None,
+        height=height,
         render_text=False,
         annotations=target_annotations,
         scroll_to_page=target_page,
         scroll_behavior="instant",
         on_annotation_click=_handle_annotation_click,
-        key=f"pdf_{path.stem}_{scroll_trigger}_{selected_id}",
+        key=f"pdf_{path.stem}_{selected_id}",
     )

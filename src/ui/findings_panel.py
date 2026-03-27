@@ -118,7 +118,6 @@ def _render_evidence(finding: dict) -> None:
 def _on_view_anchor(safe_fid: str):
     """Explicit button click to focus a finding."""
     st.session_state["active_finding_id"] = safe_fid
-    st.session_state["scroll_trigger"] += 1
 
 
 def render_findings(findings: list[dict], out_dir: Path) -> None:

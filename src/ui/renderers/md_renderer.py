@@ -37,7 +37,9 @@ def _highlight_snippets(text: str, snippets: list[str], safe_id: str) -> str:
     return highlighted
 
 
-def render_markdown(path: Path, selected_finding: dict | None) -> None:
+def render_markdown(
+    path: Path, selected_finding: dict | None, height: int = 820
+) -> None:
     """Render a Markdown document with optional active-finding highlights."""
     text = path.read_text(encoding="utf-8")
 
@@ -79,10 +81,11 @@ def render_markdown(path: Path, selected_finding: dict | None) -> None:
             f'data-finding-id="{active_id}" data-active="true"',
         )
 
-    st.markdown(
-        f'<div class="markdown-surface">\n\n{rendered_text}\n\n</div>',
-        unsafe_allow_html=True,
-    )
+    with st.container(height=height, border=False):
+        st.markdown(
+            f'<div class="markdown-surface">\n\n{rendered_text}\n\n</div>',
+            unsafe_allow_html=True,
+        )
 
     if active_id and snippets:
         components.html(

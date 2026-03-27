@@ -65,11 +65,9 @@ def _on_stage_change():
 
 def _reset_run_ui_state(initial_stage: str = "Final") -> None:
     st.session_state["active_finding_id"] = None
-    st.session_state["scroll_trigger"] = 0
     st.session_state["stage_radio"] = initial_stage
     st.session_state["findings_filter"] = "All"
     st.session_state["findings_sort"] = "Severity"
-    st.session_state["manual_run_path"] = ""
 
 
 def _init_state() -> None:
@@ -77,10 +75,8 @@ def _init_state() -> None:
     st.session_state.setdefault("findings", [])
     st.session_state.setdefault("info", {})
     st.session_state.setdefault("active_finding_id", None)
-    st.session_state.setdefault("scroll_trigger", 0)
     st.session_state.setdefault("findings_filter", "All")
     st.session_state.setdefault("findings_sort", "Severity")
-    st.session_state.setdefault("manual_run_path", "")
 
 
 _init_state()
@@ -110,16 +106,10 @@ with st.sidebar:
     else:
         st.caption(f"No runs found under `{base_out}`.")
 
-    manual_path = st.text_input(
-        "Or enter path manually",
-        placeholder="/path/to/out/name/",
-        key="manual_run_path",
-    )
-
     load_clicked = st.button("Load run", type="primary", use_container_width=True)
 
     if load_clicked:
-        target_path_str = manual_path.strip() or selected_run_str
+        target_path_str = selected_run_str
 
         if not target_path_str:
             st.error("No run selected.")
@@ -218,8 +208,7 @@ if out_dir is not None:
         )
 
         with doc_col:
-            with st.container(height=_WORKSPACE_HEIGHT, border=False):
-                render_document(source_path, selected_finding)
+            render_document(source_path, selected_finding, height=_WORKSPACE_HEIGHT)
 
         with findings_col:
             with st.container(height=_WORKSPACE_HEIGHT, border=False):
