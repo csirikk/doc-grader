@@ -119,14 +119,16 @@ with st.sidebar:
             elif not (target / "findings.json").exists():
                 st.error(f"No `findings.json` in `{target}`")
             else:
-                findings, info = load_run(target, stage="Final")
+                initial_stage = "Final"
+                findings, info = load_run(target, stage=initial_stage)
                 st.session_state.update(
                     {
                         "out_dir": target,
                         "findings": findings,
                         "info": info,
                         "active_finding_id": None,
-                        "stage": "Final",
+                        "stage": initial_stage,
+                        "stage_radio": initial_stage,
                     }
                 )
 
