@@ -8,6 +8,7 @@ from .base import StrictModel
 
 
 class LLMRule(StrictModel):
+    title: str = Field(..., description="Short rule title phrase")
     ac_codes: list[str] = Field(..., description="The assessment criterion codes")
     prompt_instruction: str = Field(..., description="LLM prompt")
     analyser_id: str = Field(..., description="ID of the analyser this rule belongs to")

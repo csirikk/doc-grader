@@ -114,13 +114,15 @@ def _run_analysers(
                         ir, rules, rulebook, model=model
                     )
                     result = instance.process_vision_findings(
-                        ir, vision_findings, params
+                        ir, vision_findings, rules, params
                     )
                 else:
                     llm_findings = llm_client.analyse_document(
                         ir, rules, rulebook, model=model
                     )
-                    result = instance.process_llm_findings(ir, llm_findings, params)
+                    result = instance.process_llm_findings(
+                        ir, llm_findings, rules, params
+                    )
                 if result:
                     findings.extend(result)
             except Exception:
