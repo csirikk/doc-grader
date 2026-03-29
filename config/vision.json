@@ -1,4 +1,5 @@
 {
+    "course": "ipp",
     "analysers": [
         {
             "analyser_id": "asset_analyser",
