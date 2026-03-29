@@ -55,9 +55,10 @@ ANALYSER_LIST: dict[str, type[BaseAnalyser]] = {
     AssetAnalyser.analyser_id: AssetAnalyser,
     IntegrityAnalyser.analyser_id: IntegrityAnalyser,
 }
-
-
-_DEFAULT_CONFIG = Path(__file__).parent.parent / "config" / "default.json"
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_CONFIG_DIR = _PROJECT_ROOT / "config"
+_DEFAULT_CONFIG = _CONFIG_DIR / "default.json"
+_RULEBOOK_PATH = _CONFIG_DIR / "rulebook.json"
 
 
 def _load_app_config(config_path: str | None) -> AppConfig:
@@ -158,7 +159,7 @@ def main(argv: list[str] | None = None) -> int:
     arg_parser.add_argument(
         "-c",
         "--config",
-        default="config/default.json",
+        default=str(_DEFAULT_CONFIG),
         help="Path to JSON config file for analysers",
     )
     arg_parser.add_argument(
@@ -181,11 +182,10 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         config = _load_app_config(args.config)
-        rulebook_path = Path("config/rulebook.json")
-        if not rulebook_path.exists():
-            logger.error("Rulebook file not found at %s", rulebook_path)
+        if not _RULEBOOK_PATH.exists():
+            logger.error("Rulebook file not found at %s", _RULEBOOK_PATH)
             return 2
-        rulebook = load_rulebook(rulebook_path)
+        rulebook = load_rulebook(_RULEBOOK_PATH)
 
     except Exception as e:
         logger.error("Failed to load config or rulebook: %s", e)
