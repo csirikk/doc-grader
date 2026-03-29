@@ -46,8 +46,18 @@ class Document(StrictModel):
         exclude=True,
         description="Map of cref to Docling TextItem",
     )
+    picture_items: dict[str, Any] = Field(
+        default_factory=dict,
+        exclude=True,
+        description="Map of cref to Docling PictureItem",
+    )
     section_paths: dict[str, str] = Field(
         default_factory=dict,
         exclude=True,
         description=("Map of cref to section heading path string for each text item"),
+    )
+    md_image_uris: list[str] = Field(
+        default_factory=list,
+        exclude=True,
+        description=("Ordered list of image URIs extracted from a Markdown source."),
     )

@@ -132,9 +132,8 @@ class LLMClient:
 
         user_content: list[dict] = []
         n_images = 0
-        for item in doc.docling_doc.pictures:
-            cref = item.get_ref().cref
-
+        md_image_uris: list[str] = getattr(doc, "md_image_uris", []) or []
+        for idx, (cref, item) in enumerate(doc.picture_items.items()):
             # Send the surrounding page image first so the model can judge
             # contrast against the document background (BW).
             if item.prov:
@@ -152,9 +151,44 @@ class LLMClient:
                         }
                     )
 
-            user_content.append({"type": "text", "text": f"[Ref: {cref}]"})
+            from pathlib import Path
+            from urllib.parse import unquote
+
+            from PIL import Image
+
+            pil_img = None
+            # Pdfs have pils, md not
             if item.image is not None and item.image.pil_image is not None:
-                b64 = self._encode_pil(item.image.pil_image)
+                pil_img = item.image.pil_image
+            else:
+                img_path_str = None
+                if item.image is not None and getattr(item.image, "uri", None):
+                    img_path_str = str(item.image.uri)
+                elif getattr(item, "uri", None):
+                    img_path_str = str(item.uri)
+
+                if not img_path_str and md_image_uris and idx < len(md_image_uris):
+                    img_path_str = md_image_uris[idx]
+
+                if img_path_str:
+                    if img_path_str.startswith("file://"):
+                        img_path_str = img_path_str[7:]
+                    img_path_str = unquote(img_path_str)
+
+                    source_dir = Path(doc.doc_ref.source_path).parent
+                    img_path = (source_dir / img_path_str).resolve()
+
+                    if img_path.exists() and img_path.is_file():
+                        try:
+                            pil_img = Image.open(img_path)
+                        except Exception as e:
+                            logger.warning(
+                                "Failed to load local image %s: %s", img_path, e
+                            )
+
+            if pil_img is not None:
+                b64 = self._encode_pil(pil_img)
+                user_content.append({"type": "text", "text": f"[Ref: {cref}]"})
                 user_content.append(
                     {
                         "type": "image_url",

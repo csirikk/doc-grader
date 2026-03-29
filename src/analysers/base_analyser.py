@@ -145,7 +145,6 @@ class BaseLLMAnalyser(BaseAnalyser):
         params: dict[str, Any] | None = None,
     ) -> list[Finding]:
         """Convert vision model findings into standard Findings. Bypasses the judge."""
-        picture_map = {item.get_ref().cref: item for item in doc.docling_doc.pictures}
         findings: list[Finding] = []
         for f in vision_findings:
             finding = self._make_finding(
@@ -155,7 +154,7 @@ class BaseLLMAnalyser(BaseAnalyser):
                 summary=f.reason,
                 judge_status="not_to_be_judged",
                 human_status="proposed",
-                evidence_item=picture_map.get(f.item_cref),
+                evidence_item=doc.picture_items.get(f.item_cref),
                 snippet_override=None,
                 severity=f.severity,
                 confidence=f.confidence,

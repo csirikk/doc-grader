@@ -239,20 +239,19 @@ def main(argv: list[str] | None = None) -> int:
                 logger.warning("Input not found or invalid: %s", path)
                 continue
 
-            subdirs = [p for p in path.iterdir() if p.is_dir()]
+            # If the directory itself contains a primary document, prefer it
+            if doc := get_primary_doc(path):
+                yield doc, path.name
+                continue
 
-            # Folder with multiple student subfolders
+            # Otherwise check for subdirectories containing documents
+            subdirs = [p for p in path.iterdir() if p.is_dir()]
             if subdirs:
                 for sd in sorted(subdirs, key=lambda p: p.name):
                     if doc := get_primary_doc(sd):
                         yield doc, sd.name
                     else:
                         logger.warning("No document found in: %s", sd)
-
-            # Single student folder
-            elif doc := get_primary_doc(path):
-                yield doc, path.name
-
             else:
                 logger.warning("No document found in: %s", path)
 

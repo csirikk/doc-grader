@@ -6,13 +6,14 @@ import io
 import logging
 import re
 import unicodedata
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import charset_normalizer
 from docling_core.types.doc.base import (
     CoordOrigin,
 )
 from docling_core.types.doc.document import (
+    PictureItem,
     SectionHeaderItem,
     TableCell,
     TableItem,
@@ -278,6 +279,7 @@ class DocumentParser:
 
         try:
             logger.debug("Parsing %s with Docling...", path)
+            md_image_uris: list[str] = []
 
             if path.suffix.lower() == ".md":
                 raw_bytes = path.read_bytes()
@@ -301,6 +303,16 @@ class DocumentParser:
                     )
 
                 clean_text = raw_bytes.decode(encoding, errors="replace")
+
+                md_image_uris: list[str] = []
+                try:
+                    from urllib.parse import unquote
+
+                    matches = re.findall(r"!\[[^\]]*\]\(([^)]+)\)", clean_text)
+                    md_image_uris = [unquote(m) for m in matches]
+                except Exception as e:
+                    logger.debug("Could not extract markdown image URIs: %s", e)
+
                 source = DocumentStream(
                     name=path.name,
                     stream=io.BytesIO(clean_text.encode("utf-8")),
@@ -329,6 +341,7 @@ class DocumentParser:
 
             words, chars, paras, headings = 0, 0, 0, 0
             text_items: dict[str, TextItem] = {}
+            picture_items: dict[str, Any] = {}
             section_paths: dict[str, str] = {}
             paragraph_labels = {DocItemLabel.TEXT, DocItemLabel.PARAGRAPH}
 
@@ -364,6 +377,8 @@ class DocumentParser:
                                 cell.text = clean_pdf_text(cell.text)
 
                 if not isinstance(item, TextItem):  # does not add tables to text
+                    if isinstance(item, PictureItem):
+                        picture_items[item.get_ref().cref] = item
                     continue
 
                 if isinstance(item, SectionHeaderItem):
@@ -404,7 +419,9 @@ class DocumentParser:
                 total_paragraphs=paras,
                 total_headings=headings,
                 text_items=text_items,
+                picture_items=picture_items,
                 section_paths=section_paths,
+                md_image_uris=md_image_uris,
             )
 
             return ParseOutput(

@@ -39,7 +39,7 @@ class AssetAnalyser(BaseLLMAnalyser):
         rules: list[LLMRule],
         params: dict[str, Any] | None = None,
     ) -> list[Finding]:
-        pictures = list(doc.docling_doc.pictures)
+        pictures = list(doc.picture_items.values())
         if not pictures:
             return [
                 self._make_finding(
