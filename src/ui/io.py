@@ -50,7 +50,11 @@ def run_display_name(out_dir: Path) -> str:
     info_path = out_dir / INFO_FILE
     if info_path.exists():
         info = json.loads(info_path.read_text(encoding="utf-8"))
-        source = info.get("input", {}).get("source_path")
+        input = info.get("input", {})
+        student_id = input.get("student_id")
+        if student_id:
+            return student_id
+        source = input.get("source_path")
         if source:
             return Path(source).name
     return out_dir.name

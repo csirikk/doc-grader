@@ -219,9 +219,10 @@ class DocumentParser:
         *,
         run_id: str | None = None,
         config_hash: str | None = None,
+        student_id: str | None = None,
     ) -> ParseOutput:
         """Parse the given document."""
-        doc_ref = DocumentRef(source_path=str(path))
+        doc_ref = DocumentRef(source_path=str(path), student_id=student_id)
 
         parse_meta = ParseMeta(
             used_ocr=self.do_ocr,

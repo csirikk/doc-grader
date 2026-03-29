@@ -17,6 +17,10 @@ class DocumentRef(StrictModel):
     """Reference to the source document."""
 
     source_path: str
+    student_id: str | None = Field(
+        default=None,
+        description=("Student identifier derived from the input folder or filename."),
+    )
     origin: DocumentOrigin | None = None
     binary_hash: int | None = Field(
         default=None,

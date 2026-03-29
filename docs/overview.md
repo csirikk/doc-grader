@@ -10,27 +10,27 @@ Manual grading of student documentation is slow and inconsistent across years an
 
 Inputs:
 
-| Item            | Format                 | Notes                                              |
-| --------------- | ---------------------- | -------------------------------------------------- |
-| Student doc     | `.pdf` or `.md`        | One or more files per invocation.                  |
-| App config      | `config/default.json`  | Enabled analysers, model overrides, course.        |
-| Rulebook        | `config/rulebook.json` | LLM prompt templates and per-AC rule instructions. |
-| Course tag      | `"ipp"` or `"ifj"`     | Filters which AC rules and thresholds apply.       |
+| Item        | Format                      | Notes                                              |
+|-------------|-----------------------------|----------------------------------------------------|
+| Student doc | `.pdf` or `.md` or a folder | -                                                  |
+| App config  | `config/default.json`       | Enabled analysers, model overrides, course.        |
+| Rulebook    | `config/rulebook.json`      | LLM prompt templates and per-AC rule instructions. |
+| Course tag  | `"ipp"` or `"ifj"`          | Filters which AC rules and thresholds apply.       |
 
 Outputs:
 
-Per document, written to `out/<stem>/`
+Per student, written to `out/<student_id>/`
 
-| File                   | Contents                                                           |
-| ---------------------- | ------------------------------------------------------------------ |
-| `ir.json`              | IR document (stats, metadata, `doc_ref`)                           |
-| `docling.json`         | Raw Docling `DoclingDocument`                                      |
-| `parser_findings.json` | Findings from parsing (missing file, unsupported format, ...)      |
-| `raw_findings.json`    | All analyser findings before judge pass                            |
-| `judged_findings.json` | Findings after judge approval/dismissal                            |
-| `findings.json`        | Final findings after `RuleEngine` filtering                        |
-| `info.json`            | Run metadata and `RuleEngine` summary statistics                   |
-| CSV (optional)         | Findings in the same schema as ground-truth assessment datasets    |
+| File                   | Contents                                                        |
+|------------------------|-----------------------------------------------------------------|
+| `ir.json`              | IR document (stats, metadata, `doc_ref`)                        |
+| `docling.json`         | Raw Docling `DoclingDocument`                                   |
+| `parser_findings.json` | Findings from parsing (missing file, unsupported format, ...)   |
+| `raw_findings.json`    | All analyser findings before judge pass                         |
+| `judged_findings.json` | Findings after judge approval/dismissal                         |
+| `findings.json`        | Final findings after `RuleEngine` filtering                     |
+| `info.json`            | Run metadata and `RuleEngine` summary statistics                |
+| CSV (optional)         | Findings in the same schema as ground-truth assessment datasets |
 
 ## 3. Pipeline
 

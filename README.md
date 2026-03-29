@@ -64,16 +64,29 @@ streamlit run src/ui/app.py
 
 ## Command Line Usage
 
-Process one or more input files (Markdown or PDF):
+The CLI accepts one or more input paths. Each input may be:
+
+- a single document file (`.pdf` or `.md`)
+- a student folder containing one or more documents
+- a folder containing multiple student subfolders
+
+Outputs are written per-student to `out/<student_id>/` by default.
 
 ```bash
-python -m src path/to/file.pdf path/to/other.md --out out/results/
+# single file
+python -m src path/to/student123.pdf -o out/results/
+
+# student folder
+python -m src path/to/student123_folder -o out/results/
+
+# variant folder (with student subfolders)
+python -m src path/to/variantX -o out/results/
 ```
 
 ### Options
 
 - `-d, --debug`: Enable debug logging and JSON dumps of processed models.
-- `-o, --out`: Specify the output directory (defaults to `out/default/`).
+- `-o, --out`: Specify the output directory (defaults to `out/default/`). The tool will create a per-student subfolder under this path (for example `out/default/student123/`).
 - `-c, --config`: Path to a JSON configuration file for analysers.
 - `--csv-out PATH`: Write all findings as CSV to the given path.
 

@@ -36,6 +36,8 @@ from .utils import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from schemas.llm import Rulebook
 
     from .analysers.base_analyser import BaseAnalyser
@@ -215,13 +217,54 @@ def main(argv: list[str] | None = None) -> int:
     logger.info("Initializing parser...")
     parser = DocumentParser()
 
-    for raw_path in args.inputs:
+    def discover_cases(inputs: list[str]) -> Iterator[tuple[Path, str]]:
+        """Yields (doc_path, student_id) per target."""
+
+        def get_primary_doc(directory: Path) -> Path | None:
+            """Grabs the first doc file."""
+            for pattern in ("*.pdf", "*.md"):
+                if match := next(directory.glob(pattern), None):
+                    return match
+            return None
+
+        for raw_input in inputs:
+            path = Path(raw_input)
+
+            # Single doc file
+            if path.is_file() and path.suffix.lower() in {".pdf", ".md"}:
+                yield path, path.stem
+                continue
+
+            if not path.is_dir():
+                logger.warning("Input not found or invalid: %s", path)
+                continue
+
+            subdirs = [p for p in path.iterdir() if p.is_dir()]
+
+            # Folder with multiple student subfolders
+            if subdirs:
+                for sd in sorted(subdirs, key=lambda p: p.name):
+                    if doc := get_primary_doc(sd):
+                        yield doc, sd.name
+                    else:
+                        logger.warning("No document found in: %s", sd)
+
+            # Single student folder
+            elif doc := get_primary_doc(path):
+                yield doc, path.name
+
+            else:
+                logger.warning("No document found in: %s", path)
+
+    for doc_path, student_id in discover_cases(args.inputs):
         reset_id_counters()
-        path = Path(raw_path)
-        file_outdir = base_outdir / path.stem
+        path = doc_path
+        file_outdir = base_outdir / student_id
         rule_engine = RuleEngine()
 
-        parse_output = parser.parse(path, run_id=run_id, config_hash=config_hash)
+        parse_output = parser.parse(
+            path, run_id=run_id, config_hash=config_hash, student_id=student_id
+        )
         parser_findings = parse_output.parser_findings
         ir_doc = parse_output.ir
 
@@ -231,17 +274,11 @@ def main(argv: list[str] | None = None) -> int:
 
         info = {
             "input": doc_ref.model_dump(mode="json", by_alias=True, exclude_none=True),
-            "run": {
-                "run_id": run_id,
-                "config_hash": config_hash,
-            },
+            "run": {"run_id": run_id, "config_hash": config_hash},
             "parse": parse_output.parse_meta.model_dump(
                 mode="json", by_alias=True, exclude_none=True
             ),
-            "counts": {
-                "n_parser_findings": len(parser_findings),
-                "n_findings": 0,
-            },
+            "counts": {"n_parser_findings": len(parser_findings), "n_findings": 0},
         }
 
         write_json(file_outdir / "parser_findings.json", parser_findings)
@@ -281,7 +318,7 @@ def main(argv: list[str] | None = None) -> int:
                 1 for f in analyser_findings if f.judge_status == "not_to_be_judged"
             )
             logger.info(
-                ("Judge complete: approved=%d adjusted=%d dismissed=%d not_judged=%d"),
+                ("Judge: approved=%d adjusted=%d dismissed=%d not_judged=%d"),
                 judged_approved,
                 judged_adjusted,
                 judged_dismissed,

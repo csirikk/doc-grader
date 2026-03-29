@@ -32,7 +32,7 @@ st.set_page_config(
 )
 
 _DEFAULT_OUT = _PROJECT_ROOT / "out"
-_WORKSPACE_HEIGHT = 820
+_WORKSPACE_HEIGHT = 820  # todo: make dynamic
 
 # AI generated css for scrolling fixes:
 _CUSTOM_SCROLL_CSS = """
@@ -142,7 +142,10 @@ with st.sidebar:
         st.markdown(f"Run: `{run_meta.get('run_id', '-')}`")
         st.markdown(f"Parsed OK: `{parse_meta.get('parsed_ok', '-')}`")
         source = source_path_from_info(info)
-        if source:
+        student_id = info.get("input", {}).get("student_id")
+        if student_id:
+            st.markdown(f"Student: `{student_id}`")
+        elif source:
             st.markdown(f"Source: `{Path(source).name}`")
 
         # Pipeline stage selector
