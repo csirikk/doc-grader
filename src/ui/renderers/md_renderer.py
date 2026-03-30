@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import base64
-import html
-import json
 import mimetypes
 import re
 from typing import TYPE_CHECKING
+from urllib.parse import unquote
 
+import marko
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -14,132 +14,164 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-def _find_finding_snippets(finding: dict | None) -> list[str]:
-    if not finding:
-        return []
-    return [
-        anchor["snippet"]
-        for anchor in finding.get("anchors", [])
-        if anchor.get("snippet")
-    ]
-
-
-def _highlight_snippets(text: str, snippets: list[str], safe_id: str) -> str:
-    if not snippets:
-        return text
-
-    for snippet in sorted(set(snippets), key=len, reverse=True):
-        replacement = (
-            f'<span data-finding-id="{safe_id}" class="finding-mark">'
-            f"{html.escape(snippet)}</span>"
-        )
-        text = text.replace(snippet, replacement)
-
-    return text
-
-
-def _embed_local_images(text: str, base_dir: Path) -> str:
-    """Finds local markdown images and converts them to base64 data URIs using re.sub."""
+def _embed_html_images(html_body: str, base_dir: Path) -> str:
+    """Find local images in rendered HTML and convert them to base64 data URIs."""
     base_resolved = base_dir.resolve()
 
-    def replace_image(match: re.Match) -> str:
-        alt_text, inner = match.groups()
-        inner = inner.strip()
+    def replace_img_src(match: re.Match) -> str:
+        full_tag = match.group(0)
+        src_uri = match.group(1)
 
-        # Ignore web URLs
-        if inner.startswith(("http://", "https://")):
-            return match.group(0)
-
-        # Clean up optional <url> syntax and trim titles
-        img_ref = (
-            inner[1:-1].strip()
-            if inner.startswith("<") and inner.endswith(">")
-            else inner.split(None, 1)[0]
-        )
+        # Ignore web URLs and data URIs
+        if src_uri.startswith(("http://", "https://", "data:")):
+            return full_tag
 
         try:
-            img_path = (base_dir / img_ref).resolve()
+            clean_src = unquote(src_uri)
+            img_path = (base_dir / clean_src).resolve()
 
-            # Security check
             if not img_path.is_file() or not img_path.is_relative_to(base_resolved):
-                return match.group(0)
+                return full_tag
 
             mime_type = mimetypes.guess_type(str(img_path))[0] or "image/png"
             encoded = base64.b64encode(img_path.read_bytes()).decode("ascii")
 
-            return f"![{alt_text}](data:{mime_type};base64,{encoded})"
+            new_src = f"data:{mime_type};base64,{encoded}"
+            return full_tag.replace(f'src="{src_uri}"', f'src="{new_src}"')
         except Exception:
-            return match.group(0)
+            return full_tag
 
-    return re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", replace_image, text)
+    # Matches Marko img tags <img src="something" ...>
+    return re.sub(r'<img\s+[^>]*src="([^"]+)"', replace_img_src, html_body)
+
+
+def _inject_html_highlights(
+    html_body: str, ranges: list[dict], active_id: str | None
+) -> str:
+    """Inject highlight spans into rendered HTML."""
+    search_cursor = 0
+
+    for r in ranges:
+        snippet = r.get("snippet")
+        if not snippet:
+            continue
+
+        # Strip links and formatting
+        snippet = re.sub(r"!\[.*?\]\(.*?\)", "", snippet)
+        snippet = snippet.strip("*_`# \n")
+        words = snippet.split()
+        if not words:
+            continue
+
+        # Match words, ignore HTML tags and spaces
+        pattern = r"(?:<[^>]+>|\s)*".join(re.escape(w) for w in words)
+
+        try:
+            match = re.search(pattern, html_body[search_cursor:])
+            if match:
+                start_idx = search_cursor + match.start()
+                end_idx = search_cursor + match.end()
+            else:
+                match = re.search(pattern, html_body)
+                if not match:
+                    continue
+                start_idx = match.start()
+                end_idx = match.end()
+                if start_idx < search_cursor:
+                    continue
+
+            if active_id:
+                span_open = f'<span data-finding-id="{active_id}" data-active="true" class="finding-mark">'
+            else:
+                span_open = '<span class="finding-mark">'
+            span_close = "</span>"
+
+            html_body = (
+                html_body[:start_idx]
+                + span_open
+                + html_body[start_idx:end_idx]
+                + span_close
+                + html_body[end_idx:]
+            )
+            search_cursor = (
+                start_idx + len(span_open) + (end_idx - start_idx) + len(span_close)
+            )
+        except Exception:
+            pass
+
+    return html_body
 
 
 def render_markdown(
     path: Path, selected_finding: dict | None, height: int = 820
 ) -> None:
-    """Render a Markdown document with optional active-finding highlights."""
+    """Render a Markdown document with optional highlights."""
     text = path.read_text(encoding="utf-8")
-    text = _embed_local_images(text, path.parent)
 
-    st.html(
+    # highlight data
+    active_id = None
+    ranges: list[dict] = []
+    if selected_finding:
+        active_id = selected_finding.get("finding_id", "").replace(":", "-")
+        for anchor in selected_finding.get("anchors", []):
+            snippet = anchor.get("snippet")
+            if snippet:
+                ranges.append({"snippet": snippet})
+
+    html_body = marko.Markdown().convert(text)
+
+    if ranges:
+        html_body = _inject_html_highlights(html_body, ranges, active_id)
+    html_body = _embed_html_images(html_body, path.parent)
+
+    st.markdown(
         """
         <style>
-            .finding-mark {
+            .finding-mark { 
                 background-color: rgba(255, 170, 0, 0.18);
                 border-radius: 3px;
                 padding: 0 0.15rem;
             }
-
-            .finding-mark[data-active="true"] {
+            .finding-mark[data-active="true"] { 
                 background-color: rgba(255, 170, 0, 0.42);
                 outline: 1px solid rgba(255, 140, 0, 0.85);
             }
-            
-            .markdown-surface {
-                background-color: rgba(255, 255, 255, 0.02);
+            .markdown-surface { background-color: rgba(255, 255, 255, 0.02);
                 border-radius: 0.5rem;
                 border: 1px solid rgba(255, 255, 255, 0.1);
                 padding: 1.5rem;
             }
+            .markdown-surface img { 
+                max-width: 100%;
+                border-radius: 4px;
+            }
         </style>
-        """
+        """,
+        unsafe_allow_html=True,
     )
-
-    active_id = None
-    snippets = []
-    if selected_finding:
-        active_id = selected_finding.get("finding_id", "").replace(":", "-")
-        snippets = _find_finding_snippets(selected_finding)
-
-    rendered_text = _highlight_snippets(text, snippets, active_id or "")
-
-    if active_id and snippets:
-        rendered_text = rendered_text.replace(
-            f'data-finding-id="{active_id}"',
-            f'data-finding-id="{active_id}" data-active="true"',
-        )
 
     with st.container(height=height, border=False):
         st.markdown(
-            f'<div class="markdown-surface">\n\n{rendered_text}\n\n</div>',
+            f'<div class="markdown-surface">\n\n{html_body}\n\n</div>',
             unsafe_allow_html=True,
         )
 
     # Inject scroll logic
-    if active_id and snippets:
+    if active_id and ranges:
         components.html(
             f"""
             <script>
                 setTimeout(() => {{
-                    const element = window.parent.document.querySelector(
-                        {json.dumps(f'[data-finding-id="{active_id}"]')}
-                    );
-                    if (element) {{
-                        element.scrollIntoView({{
-                            behavior: 'smooth',
-                            block: 'center'
-                        }});
-                    }}
+                    try {{
+                        const selector = '[data-finding-id="{active_id}"]';
+                        const el = window.parent.document.querySelector(selector);
+                        if (el) {{
+                            el.scrollIntoView({{ 
+                                behavior: 'smooth',
+                                block: 'center'
+                            }});
+                        }}
+                    }} catch (e) {{ console.error(e); }}
                 }}, 100);
             </script>
             """,
