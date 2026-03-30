@@ -57,11 +57,14 @@ def _render_evidence(finding: dict) -> None:
                 snippet = anchor.get("snippet")
                 prov_list: list[dict] = anchor.get("prov") or []
 
-                prov_parts: list[str] = [
-                    f"p.{p.get('page_no')}"
+                valid_pages = (
+                    int(p["page_no"])
                     for p in prov_list
-                    if p.get("page_no") is not None
-                ]
+                    if p.get("page_no") is not None and str(p["page_no"]).isdigit()
+                )
+
+                prov_parts = [f"p.{pn}" for pn in sorted(set(valid_pages))]
+
                 loc = ", ".join(prov_parts) if prov_parts else "no provenance"
                 label = anchor.get("section_path") or ref
 
