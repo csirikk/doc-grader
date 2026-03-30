@@ -84,13 +84,13 @@ def render_markdown(
     st.html(
         """
         <style>
-            finding-mark {
+            .finding-mark {
                 background-color: rgba(255, 170, 0, 0.18);
                 border-radius: 3px;
                 padding: 0 0.15rem;
             }
 
-            finding-mark[data-active="true"] {
+            .finding-mark[data-active="true"] {
                 background-color: rgba(255, 170, 0, 0.42);
                 outline: 1px solid rgba(255, 140, 0, 0.85);
             }
