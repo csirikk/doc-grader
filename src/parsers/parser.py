@@ -399,18 +399,6 @@ class DocumentParser:
                     section_paths[cref] = " > ".join(heading_stack)
                     text_items[cref] = item
 
-            if words == 0:  # TODO: reevaluate whether this should throw an error
-                return self._create_error_output(
-                    doc_ref,
-                    parse_meta,
-                    "EMPTY",
-                    "Document contains no readable words",
-                    "The document was parsed but has 0 words.",
-                    "No text extracted",
-                    run_id,
-                    config_hash,
-                )
-
             ir = Document(
                 doc_ref=doc_ref,
                 docling_doc=doc,
