@@ -154,6 +154,8 @@ def render_findings(findings: list[dict], out_dir: Path) -> None:
         colour = STATUS_COLOURS.get(judge_status, "grey")
 
         is_active = safe_fid == st.session_state.get("active_finding_id")
+        anchors: list[dict] = finding.get("anchors") or []
+        has_anchors = bool(anchors)
 
         with st.expander(
             f"[{fid}] {finding.get('title', '(untitled)')}",
@@ -185,6 +187,7 @@ def render_findings(findings: list[dict], out_dir: Path) -> None:
                     width="stretch",
                     on_click=_on_view_anchor,
                     args=(safe_fid,),
+                    disabled=not has_anchors,
                 )
 
             st.markdown(finding.get("summary", ""))
