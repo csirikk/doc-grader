@@ -102,9 +102,7 @@ def _inject_html_highlights(
     return html_body
 
 
-def render_markdown(
-    path: Path, selected_finding: dict | None, height: int = 820
-) -> None:
+def render_markdown(path: Path, selected_finding: dict | None) -> None:
     """Render a Markdown document with optional highlights."""
     text = path.read_text(encoding="utf-8")
 
@@ -150,7 +148,7 @@ def render_markdown(
         unsafe_allow_html=True,
     )
 
-    with st.container(height=height, border=False):
+    with st.container(border=False):
         st.markdown(
             f'<div class="markdown-surface">\n\n{html_body}\n\n</div>',
             unsafe_allow_html=True,
@@ -175,5 +173,4 @@ def render_markdown(
                 }}, 100);
             </script>
             """,
-            height=0,
         )

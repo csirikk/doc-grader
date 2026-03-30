@@ -32,7 +32,6 @@ st.set_page_config(
 )
 
 _DEFAULT_OUT = _PROJECT_ROOT / "out"
-_WORKSPACE_HEIGHT = 820  # todo: make dynamic
 
 # AI generated css for scrolling fixes:
 _CUSTOM_SCROLL_CSS = """
@@ -53,6 +52,19 @@ _CUSTOM_SCROLL_CSS = """
 [data-testid="stAppViewContainer"],
 [data-testid="stMain"] {
     overflow: hidden !important;
+}
+
+/* 4. Make top level columns be the height of the screen */
+[data-testid="stColumn"] {
+    height: calc(100vh - 6rem); 
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin; 
+}
+[data-testid="stColumn"] [data-testid="stColumn"] {
+    height: auto;
+    overflow-y: visible;
+    overflow-x: visible;
 }
 </style>
 """
@@ -212,10 +224,10 @@ if out_dir is not None:
         )
 
         with doc_col:
-            render_document(source_path, selected_finding, height=_WORKSPACE_HEIGHT)
+            render_document(source_path, selected_finding)
 
         with findings_col:
-            with st.container(height=_WORKSPACE_HEIGHT, border=False):
+            with st.container(border=False):
                 render_findings(findings, out_dir)
 
     workspace()

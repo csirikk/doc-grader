@@ -47,7 +47,7 @@ def _get_annotations(finding: dict | None) -> list[dict]:
     return annotations
 
 
-def render_pdf(path: Path, selected_finding: dict | None, height: int = 820) -> None:
+def render_pdf(path: Path, selected_finding: dict | None) -> None:
     """Render a PDF document with clickable findings annotations."""
     if pdf_viewer is None:
         st.error("streamlit-pdf-viewer is not installed.")
@@ -65,7 +65,6 @@ def render_pdf(path: Path, selected_finding: dict | None, height: int = 820) -> 
     pdf_viewer(
         input=str(path),
         width="100%",
-        height=height,
         render_text=False,
         annotations=target_annotations,
         scroll_to_page=target_page,
