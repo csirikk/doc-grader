@@ -1,5 +1,4 @@
-"""Structure analyser for deterministic document structure checks.
-TODO: add guard in judge show context around"""
+"""Structure analyser for deterministic document structure checks."""
 
 from __future__ import annotations
 
