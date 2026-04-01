@@ -1,0 +1,11 @@
+{
+    "course": "ipp",
+    "judge": true,
+    "analysers": [
+        {
+            "analyser_id": "grammar_analyser",
+            "enabled": true,
+            "params": {}
+        }
+    ]
+}

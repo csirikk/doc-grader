@@ -44,6 +44,11 @@
                 "spec_path": "data/ipp-ifj-zadani/ipp25spec.pdf",
                 "min_chunk_len": 40
             }
+        },
+        {
+            "analyser_id": "grammar_analyser",
+            "enabled": true,
+            "params": {}
         }
     ]
 }
