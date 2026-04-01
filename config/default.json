@@ -1,5 +1,6 @@
 {
     "course": "ipp",
+    "judge": true,
     "analysers": [
         {
             "analyser_id": "structure_analyser",

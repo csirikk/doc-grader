@@ -17,6 +17,7 @@ from .analysers.asset_analyser import AssetAnalyser
 from .analysers.base_analyser import BaseLLMAnalyser
 from .analysers.content_analyser import ContentAnalyser
 from .analysers.design_analyser import DesignAnalyser
+from .analysers.grammar_analyser import GrammarAnalyser
 from .analysers.integrity_analyser import IntegrityAnalyser
 from .analysers.structure_analyser import StructureAnalyser
 from .analysers.style_analyser import StyleAnalyser
@@ -54,6 +55,7 @@ ANALYSER_LIST: dict[str, type[BaseAnalyser]] = {
     DesignAnalyser.analyser_id: DesignAnalyser,
     AssetAnalyser.analyser_id: AssetAnalyser,
     IntegrityAnalyser.analyser_id: IntegrityAnalyser,
+    GrammarAnalyser.analyser_id: GrammarAnalyser,
 }
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 _CONFIG_DIR = _PROJECT_ROOT / "config"
@@ -192,12 +194,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     llm_client = None
-    llm_needed = any(
-        a.enabled and issubclass(ANALYSER_LIST[a.analyser_id], BaseLLMAnalyser)
-        for a in config.analysers
-        if a.analyser_id in ANALYSER_LIST
-    )
-    if llm_needed:
+    if config.judge:
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
             logger.error("An LLM Analyser is enabled but OPENAI_API_KEY is not set.")

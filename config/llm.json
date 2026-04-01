@@ -1,4 +1,5 @@
 {
+    "judge": true,
     "analysers": [
         {
             "analyser_id": "text_analyser",

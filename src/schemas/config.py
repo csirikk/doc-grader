@@ -34,6 +34,12 @@ class AppConfig(StrictModel):
         default=None,
         description="Course code: 'ifj' or 'ipp', None to auto-detect",
     )
+    judge: bool = Field(
+        default=False,
+        description=(
+            "Whether to run the LLM judge on findings from non-LLM analysers."
+        ),
+    )
     analysers: list[AnalyserConfig] = Field(
         default_factory=list, description="List of analyser configurations"
     )
