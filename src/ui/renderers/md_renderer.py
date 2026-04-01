@@ -1,3 +1,4 @@
+# TODO: fix formatting when inline html, see data/ipp/ipp2425/parser/REDACTED_STUDENT
 from __future__ import annotations
 
 import base64
