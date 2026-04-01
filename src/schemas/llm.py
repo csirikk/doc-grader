@@ -15,6 +15,10 @@ class LLMRule(StrictModel):
     course: Literal["ifj", "ipp", None] = Field(
         default=None, description="The course this rule applies to. None means both."
     )
+    language: str | None = Field(
+        default=None,
+        description="Language code this rule applies to. None means all languages.",
+    )
     is_bonus: bool = Field(
         default=False,
         description="Whether this rule represents a bonus points criterion",

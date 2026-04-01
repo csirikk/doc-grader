@@ -61,3 +61,9 @@ class Document(StrictModel):
         exclude=True,
         description=("Ordered list of image URIs extracted from a Markdown source."),
     )
+    language: str = Field(
+        default="en",
+        description=(
+            "Detected dominant language of the document as a BCP-47 code. (en, cs, sk)"
+        ),
+    )

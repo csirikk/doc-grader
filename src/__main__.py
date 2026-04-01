@@ -91,6 +91,8 @@ def _run_analysers(
         analyser_params = analyser_cfg.params.copy()
         if "course" not in analyser_params:
             analyser_params["course"] = config.course
+        if "language" not in analyser_params:
+            analyser_params["language"] = ir.language
 
         try:
             analyser_instance = analyser_class()

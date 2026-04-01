@@ -36,6 +36,28 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 SUPPORTED_EXTENSIONS = {".pdf", ".md"}
+SUPPORTED_LANGUAGES = {"cs", "sk", "en"}
+
+
+def _detect_language(text: str) -> str:
+    """Return a BCP-47 code ('cs', 'sk', 'en') for text.
+
+    Returns 'en' when text is too short, ambiguous, or the top result is unsupported.
+    """
+    if not text or len(text.split()) < 20:
+        return "en"
+    try:
+        from langdetect import DetectorFactory, detect_langs
+
+        DetectorFactory.seed = 0
+        probs = detect_langs(text)
+        top = probs[0]
+        lang = top.lang if top.lang in SUPPORTED_LANGUAGES else "en"
+        if lang != "en" and top.prob < 0.80:
+            lang = "en"
+        return lang
+    except Exception:
+        return "en"
 
 
 class ParseMeta(StrictModel):
@@ -399,6 +421,12 @@ class DocumentParser:
                     section_paths[cref] = " > ".join(heading_stack)
                     text_items[cref] = item
 
+            combined_text = " ".join(
+                item.text for item in text_items.values() if item.text
+            )
+            detected_language = _detect_language(combined_text)
+            logger.debug("Detected document language: %r", detected_language)
+
             ir = Document(
                 doc_ref=doc_ref,
                 docling_doc=doc,
@@ -410,6 +438,7 @@ class DocumentParser:
                 picture_items=picture_items,
                 section_paths=section_paths,
                 md_image_uris=md_image_uris,
+                language=detected_language,
             )
 
             return ParseOutput(

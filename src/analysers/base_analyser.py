@@ -125,16 +125,18 @@ class BaseLLMAnalyser(BaseAnalyser):
     def get_rules(
         self, rulebook: Rulebook, params: dict[str, Any] | None = None
     ) -> list[LLMRule]:
-        """Return the rules this analyser owns, filtered by course.
+        """Return the rules this analyser owns, filtered by course and language.
 
         Subclasses may override for custom rule selection logic.
         """
         course = params.get("course") if params else None
+        language = params.get("language") if params else None
         return [
             r
             for r in rulebook.rules
             if r.analyser_id == self.analyser_id
             and (r.course is None or r.course == course)
+            and (r.language is None or r.language == language)
         ]
 
     def process_vision_findings(
