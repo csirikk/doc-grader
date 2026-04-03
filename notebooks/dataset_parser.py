@@ -591,7 +591,7 @@ def parse_document_tokens(
 
 def main() -> None:
     root_dir = Path(__file__).parent.parent
-    data_dir = root_dir / "data" / "raw" / "ipp_13_to_24" / "ipp_assessments"
+    data_dir = root_dir / "data" / "raw_old" / "ipp_13_to_24" / "ipp_assessments"
     all_files = list(data_dir.glob("ipp*.csv"))
 
     print(f"Found {len(all_files)} files in {data_dir}")
