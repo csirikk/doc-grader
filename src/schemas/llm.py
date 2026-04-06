@@ -19,10 +19,6 @@ class LLMRule(StrictModel):
         default=None,
         description="Language code this rule applies to. None means all languages.",
     )
-    is_bonus: bool = Field(
-        default=False,
-        description="Whether this rule represents a bonus points criterion",
-    )
 
 
 class Rulebook(StrictModel):

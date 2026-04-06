@@ -112,6 +112,17 @@ def _render_evidence(finding: dict) -> None:
                 st.markdown(f":{colour}[{decision}]: {judge.get('rationale', '')}")
                 if reasoning := judge.get("reasoning_chain"):
                     st.caption(reasoning)
+                if change := judge.get("change"):
+                    fields: list[str] = change.get("fields") or []
+                    before: dict = change.get("before") or {}
+                    after: dict = change.get("after") or {}
+                    if fields:
+                        st.caption("Judge changes")
+                        for field in fields:
+                            st.text(
+                                f"{field}: {before.get(field, 'n/a')} -> "
+                                f"{after.get(field, 'n/a')}"
+                            )
 
             if rest := {k: v for k, v in meta.items() if k != "judge"}:
                 st.caption("Meta")

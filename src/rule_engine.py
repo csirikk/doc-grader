@@ -53,6 +53,13 @@ class RuleEngine:
                 )
                 continue
 
+            before_state = {
+                "summary": finding.summary,
+                "severity": finding.severity,
+                "confidence": finding.confidence,
+                "snippet": finding.anchors[0].snippet if finding.anchors else None,
+            }
+
             if verdict.decision == "dismissed":
                 finding.judge_status = "judged_dismissed"
             elif verdict.decision == "approved":
@@ -64,12 +71,34 @@ class RuleEngine:
                 if verdict.adjusted_confidence is not None:
                     finding.confidence = verdict.adjusted_confidence
 
+            after_state = {
+                "summary": finding.summary,
+                "severity": finding.severity,
+                "confidence": finding.confidence,
+                "snippet": finding.anchors[0].snippet if finding.anchors else None,
+            }
+            changed_fields = [
+                key for key in before_state if before_state[key] != after_state[key]
+            ]
+
             judge_meta: dict = {
                 "decision": verdict.decision,
                 "rationale": verdict.rationale,
                 "reasoning_chain": response.reasoning_chain,
             }
+            if changed_fields:
+                judge_meta["change"] = {
+                    "fields": changed_fields,
+                    "before": before_state,
+                    "after": after_state,
+                }
             finding.meta = {**(finding.meta or {}), "judge": judge_meta}
+
+            if verdict.decision in {"approved", "dismissed"} and not changed_fields:
+                logger.info(
+                    "Judge confirmed finding '%s' without content changes.",
+                    finding.finding_id,
+                )
 
             logger.debug(
                 "RuleEngine: judge verdict for '%s': %s - %s",
