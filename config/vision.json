@@ -6,7 +6,9 @@
             "analyser_id": "asset_analyser",
             "enabled": true,
             "model": "gpt-4o",
-            "params": {}
+            "params": {
+                "baduml_engine": "openai"
+            }
         }
     ]
 }

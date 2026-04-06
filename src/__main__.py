@@ -15,13 +15,10 @@ from dotenv import load_dotenv
 # Analysers
 from .analysers.asset_analyser import AssetAnalyser
 from .analysers.base_analyser import BaseLLMAnalyser
-from .analysers.content_analyser import ContentAnalyser
-from .analysers.design_analyser import DesignAnalyser
 from .analysers.grammar_analyser import GrammarAnalyser
 from .analysers.integrity_analyser import IntegrityAnalyser
+from .analysers.language_analyser import LanguageAnalyser
 from .analysers.structure_analyser import StructureAnalyser
-from .analysers.style_analyser import StyleAnalyser
-from .analysers.text_analyser import TextAnalyser
 from .llm_client import LLMClient
 from .rule_engine import RuleEngine
 from .schemas.config import AppConfig, load_app_config, load_rulebook
@@ -49,10 +46,7 @@ logger = logging.getLogger(__name__)
 
 ANALYSER_LIST: dict[str, type[BaseAnalyser]] = {
     StructureAnalyser.analyser_id: StructureAnalyser,
-    StyleAnalyser.analyser_id: StyleAnalyser,
-    TextAnalyser.analyser_id: TextAnalyser,
-    ContentAnalyser.analyser_id: ContentAnalyser,
-    DesignAnalyser.analyser_id: DesignAnalyser,
+    LanguageAnalyser.analyser_id: LanguageAnalyser,
     AssetAnalyser.analyser_id: AssetAnalyser,
     IntegrityAnalyser.analyser_id: IntegrityAnalyser,
     GrammarAnalyser.analyser_id: GrammarAnalyser,
@@ -108,22 +102,30 @@ def _run_analysers(
         except Exception:
             logger.exception("Error running analyser %s", analyser_cfg.analyser_id)
 
-    if llm_analysers and llm_client:
+    if llm_analysers:
         for analyser_id, instance in llm_analysers.items():
             params = llm_params.get(analyser_id)
             model = llm_models.get(analyser_id)
             rules = instance.get_rules(rulebook, params=params)
-            if not rules:
-                continue
             try:
                 if isinstance(instance, AssetAnalyser):
+                    # Vision analysis requires both rules and an LLM client.
+                    if not rules or not llm_client:
+                        continue
                     vision_findings = llm_client.analyse_assets(
                         ir, rules, rulebook, model=model
                     )
                     result = instance.process_assets(ir, vision_findings, rules, params)
                 else:
-                    llm_findings = llm_client.analyse_document(
-                        ir, rules, rulebook, model=model
+                    # Call the cloud grader only when rules exist and a client is
+                    # available; otherwise pass empty findings so local pipelines
+                    # (e.g. IntegrityAnalyser with copy_engine="local") still run.
+                    llm_findings: list = (
+                        llm_client.analyse_document(
+                            ir, rules, rulebook, model=model, params=params
+                        )
+                        if rules and llm_client
+                        else []
                     )
                     result = instance.process_llm_findings(
                         ir, llm_findings, rules, params

@@ -94,7 +94,7 @@ class LLMClient:
                     system_prompt += (
                         "\n\n### ASSIGNMENT SPECIFICATION"
                         " (For COPY rule comparison)\n" + spec_text
-                    )&
+                    )
                     logger.debug(
                         "Appended spec text (%d chars) to grader prompt",
                         len(spec_text),

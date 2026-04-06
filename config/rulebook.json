@@ -89,7 +89,7 @@
         "LANG"
       ],
       "title": "Mixing Languages",
-      "analyser_id": "text_analyser",
+      "analyser_id": "language_analyser",
       "course": null,
       "prompt_instruction": "Unnatural mixing of languages (Czech, Slovak, English). English terms in Czech/Slovak text are penalised unless they are standard technical terminology or exact identifiers from the source code.",
       "is_bonus": false
@@ -99,7 +99,7 @@
         "CH"
       ],
       "title": "Grammar and Spelling",
-      "analyser_id": "text_analyser",
+      "analyser_id": "language_analyser",
       "course": null,
       "prompt_instruction": "Spelling and grammar mistakes, including punctuation errors. Flag minor, isolated typos as low severity for information.",
       "is_bonus": false
@@ -109,7 +109,7 @@
         "ICH"
       ],
       "title": "First Person",
-      "analyser_id": "text_analyser",
+      "analyser_id": "language_analyser",
       "course": null,
       "prompt_instruction": "Explicit use of first-person singular pronouns or verb forms (e.g., 'já', 'implementoval jsem', 'I'). Program documentation should be passive or first-person plural.",
       "is_bonus": false
@@ -119,7 +119,7 @@
         "TERM"
       ],
       "title": "Terminology",
-      "analyser_id": "text_analyser",
+      "analyser_id": "language_analyser",
       "course": null,
       "prompt_instruction": "Problematic, inaccurate, or incorrect technical terminology.",
       "is_bonus": false
@@ -129,7 +129,7 @@
         "STYLE"
       ],
       "title": "Readability",
-      "analyser_id": "style_analyser",
+      "analyser_id": "language_analyser",
       "course": null,
       "prompt_instruction": "Unreadable, confusing, or poorly stylised text, particularly overly long or incomprehensible complex sentences.",
       "is_bonus": false
@@ -139,7 +139,7 @@
         "HOV"
       ],
       "title": "Informal Language",
-      "analyser_id": "style_analyser",
+      "analyser_id": "language_analyser",
       "course": null,
       "prompt_instruction": "Informal, conversational, or slang language, including unnecessary English terms with Czech suffixes (e.g., 'pushnout', 'symtable', 'list', 'array').",
       "is_bonus": false
@@ -149,7 +149,7 @@
         "NOSRP"
       ],
       "title": "Single Responsibility Principle",
-      "analyser_id": "design_analyser",
+      "analyser_id": "language_analyser",
       "course": "ipp",
       "prompt_instruction": "Ignoring or poorly applying the Single Responsibility Principle, specifically describing a single class or method that handles multiple completely unrelated responsibilities.",
       "is_bonus": false
@@ -160,7 +160,7 @@
         "NOOOP"
       ],
       "title": "OOP Design",
-      "analyser_id": "design_analyser",
+      "analyser_id": "language_analyser",
       "course": "ipp",
       "prompt_instruction": "OOP design evaluation. NOOOP: The text indicates a failure to use the object-oriented paradigm properly, such as merely wrapping procedural functions into one or two classes. OOP: The OOP usage is highly meaningful, well-justified, and terminologically accurately described.",
       "is_bonus": false
@@ -171,7 +171,7 @@
         "BADDP"
       ],
       "title": "Design Patterns",
-      "analyser_id": "design_analyser",
+      "analyser_id": "language_analyser",
       "course": "ipp",
       "prompt_instruction": "Design pattern evaluation. BADDP: Completely inappropriate use, or entirely wrong/missing implementation of a documented design pattern. DP: Exceptionally nice and well-justified use of a design pattern.",
       "is_bonus": false
@@ -181,7 +181,7 @@
         "SINGLETON"
       ],
       "title": "Singleton Pattern",
-      "analyser_id": "design_analyser",
+      "analyser_id": "language_analyser",
       "course": "ipp",
       "prompt_instruction": "Explicit mention of the use of the Singleton design pattern in the context of the voluntary NVP extension.",
       "is_bonus": false
@@ -191,7 +191,7 @@
         "EXT"
       ],
       "title": "Extensibility",
-      "analyser_id": "design_analyser",
+      "analyser_id": "language_analyser",
       "course": "ipp",
       "prompt_instruction": "Missing, clumsy, or nonsensical description of the design's extensibility.",
       "is_bonus": false
@@ -201,7 +201,7 @@
         "EX"
       ],
       "title": "Exception Usage",
-      "analyser_id": "design_analyser",
+      "analyser_id": "language_analyser",
       "course": "ipp",
       "prompt_instruction": "Innovative and advanced use of exceptions for error management (e.g., defining custom exceptions to replace ugly if-else cascades, going beyond basic subclassing by error codes).",
       "is_bonus": true
@@ -211,7 +211,7 @@
         "FILO"
       ],
       "title": "Overall Structure",
-      "analyser_id": "design_analyser",
+      "analyser_id": "language_analyser",
       "course": null,
       "prompt_instruction": "Missing or insufficient design philosophy, specifically failing to provide an abstract description of the program's overall structure and execution flow (what follows what).",
       "is_bonus": false
@@ -221,7 +221,7 @@
         "CONTENT"
       ],
       "title": "Content Quality",
-      "analyser_id": "content_analyser",
+      "analyser_id": "language_analyser",
       "course": null,
       "prompt_instruction": "Inappropriate content, specifically descriptions of the chronological process of solving the project, expressing personal feelings, irrelevant thoughts, or unsupported opinions.",
       "is_bonus": false
@@ -231,7 +231,7 @@
         "SA"
       ],
       "title": "Syntax Analysis",
-      "analyser_id": "content_analyser",
+      "analyser_id": "language_analyser",
       "course": "ifj",
       "prompt_instruction": "Missing, insufficient, or inaccurate description of syntax analysis (e.g., falsely claiming that recursive descent is implemented by having a function for every single grammar rule).",
       "is_bonus": false
@@ -241,7 +241,7 @@
         "SAV"
       ],
       "title": "Expression Syntax",
-      "analyser_id": "content_analyser",
+      "analyser_id": "language_analyser",
       "course": "ifj",
       "prompt_instruction": "Missing or insufficient description regarding the syntax analysis of expressions.",
       "is_bonus": false
@@ -251,7 +251,7 @@
         "SéA"
       ],
       "title": "Semantic Analysis",
-      "analyser_id": "content_analyser",
+      "analyser_id": "language_analyser",
       "course": "ifj",
       "prompt_instruction": "Missing or insufficiently specific description of semantic analysis, typically failing to clearly describe exactly what semantic properties and rules are being checked.",
       "is_bonus": false
@@ -261,7 +261,7 @@
         "PSA"
       ],
       "title": "Precedence Syntax",
-      "analyser_id": "content_analyser",
+      "analyser_id": "language_analyser",
       "course": "ifj",
       "prompt_instruction": "Missing or insufficient description of precedence syntax analysis.",
       "is_bonus": false
@@ -271,7 +271,7 @@
         "TS"
       ],
       "title": "Symbol Table",
-      "analyser_id": "content_analyser",
+      "analyser_id": "language_analyser",
       "course": "ifj",
       "prompt_instruction": "Missing or insufficient description of the symbol table implementation, specifically lacking details about its internal structure (e.g., whether there is one global table or multiple local tables).",
       "is_bonus": false
@@ -281,7 +281,7 @@
         "GK"
       ],
       "title": "Code Generation",
-      "analyser_id": "content_analyser",
+      "analyser_id": "language_analyser",
       "course": "ifj",
       "prompt_instruction": "Missing or insufficient description of code generation.",
       "is_bonus": false
@@ -291,7 +291,7 @@
         "RP"
       ],
       "title": "Team Split",
-      "analyser_id": "content_analyser",
+      "analyser_id": "language_analyser",
       "course": "ifj",
       "prompt_instruction": "Missing description of the division of work among team members.",
       "is_bonus": false
@@ -301,7 +301,7 @@
         "IR"
       ],
       "title": "Internal Representation",
-      "analyser_id": "content_analyser",
+      "analyser_id": "language_analyser",
       "course": "ipp",
       "prompt_instruction": "Missing or insufficient internal representation description (e.g., trivially stating that 'instructions are stored in an array' or 'assignments are stored in an AST' without deeper architectural explanation).",
       "is_bonus": false
@@ -311,7 +311,7 @@
         "JAK"
       ],
       "title": "Implementation Details",
-      "analyser_id": "content_analyser",
+      "analyser_id": "language_analyser",
       "course": "ipp",
       "prompt_instruction": "Technically insufficient description of the implementation (e.g., failing to mention if regular expressions, state machines,, parser-generators or other techniques were used).",
       "is_bonus": false
@@ -321,7 +321,7 @@
         "NVPDOC"
       ],
       "title": "NVP Documentation",
-      "analyser_id": "content_analyser",
+      "analyser_id": "language_analyser",
       "course": "ipp",
       "prompt_instruction": "Claims to have implemented the NVP extension, yet the documentation is missing or insufficient.",
       "is_bonus": false

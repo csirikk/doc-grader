@@ -12,22 +12,7 @@
             }
         },
         {
-            "analyser_id": "text_analyser",
-            "enabled": true,
-            "params": {}
-        },
-        {
-            "analyser_id": "style_analyser",
-            "enabled": true,
-            "params": {}
-        },
-        {
-            "analyser_id": "content_analyser",
-            "enabled": true,
-            "params": {}
-        },
-        {
-            "analyser_id": "design_analyser",
+            "analyser_id": "language_analyser",
             "enabled": true,
             "params": {}
         },
@@ -35,7 +20,9 @@
             "analyser_id": "asset_analyser",
             "enabled": true,
             "model": "gpt-4o",
-            "params": {}
+            "params": {
+                "baduml_engine": "openai"
+            }
         },
         {
             "analyser_id": "integrity_analyser",
