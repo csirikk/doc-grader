@@ -196,7 +196,7 @@ Each analyser entry can override the OpenAI model and pass arbitrary `params`. T
 - `grader_model_prompt_template` - system prompt with a `{rules}` placeholder.
 - `vision_model_prompt_template` - system prompt for the vision model.
 - `judge_model_prompt` - judge system prompt.
-- `rules: list[LLMRule]` - one entry per AC code group, each with `ac_codes`, `prompt_instruction`, `analyser_id`, `course`, and `is_bonus`.
+- `rules: list[LLMRule]` - one entry per AC code group, each with `ac_codes`, `prompt_instruction`, `analyser_id`, `course`, and optional language scope.
 
 ## 5. CLI
 
