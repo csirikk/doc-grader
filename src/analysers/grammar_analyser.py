@@ -7,11 +7,12 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from docling_core.types.doc.document import TextItem
 
-from .base_analyser import BaseAnalyser
+from .base_analyser import BaseLLMAnalyser
 
 if TYPE_CHECKING:
     from ..schemas.finding import Finding
     from ..schemas.ir import Document
+    from ..schemas.llm import LLMFinding, LLMRule, Rulebook
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,7 @@ def _make_message(issue_type: str, snippet: str, replacements: list[str]) -> str
     return msg
 
 
-class GrammarAnalyser(BaseAnalyser):
+class GrammarAnalyser(BaseLLMAnalyser):
     """LanguageTool-based grammar and spelling analyser for English and Slovak.
 
     Text items are grouped by section path, concatenated, and checked
@@ -63,9 +64,48 @@ class GrammarAnalyser(BaseAnalyser):
     # Cache keyed by lt_lang so each server starts only once
     _lt: ClassVar[dict[str, Any]] = {}
 
+    def get_rules(
+        self,
+        rulebook: Rulebook,
+        params: dict[str, Any] | None = None,
+    ) -> list[LLMRule]:
+        params = params or {}
+        if params.get("grammar_engine", "local") == "local":
+            return []
+
+        language = params.get("language")
+        if language == "cs":
+            # Czech CH is handled by language_analyser.
+            return []
+
+        course = params.get("course")
+        return [
+            rule
+            for rule in rulebook.rules
+            if "CH" in rule.ac_codes
+            and (rule.course is None or rule.course == course)
+            and (rule.language is None or rule.language == language)
+        ]
+
+    def process_llm_findings(
+        self,
+        doc: Document,
+        llm_findings: list[LLMFinding],
+        rules: list[LLMRule],
+        params: dict[str, Any] | None = None,
+    ) -> list[Finding]:
+        if (params or {}).get("grammar_engine", "local") == "local":
+            return self._run_local_analysis(doc)
+        return super().process_llm_findings(doc, llm_findings, rules, params)
+
     def analyse(
         self, doc: Document, params: dict[str, Any] | None = None
     ) -> list[Finding]:
+        if (params or {}).get("grammar_engine", "local") != "local":
+            return []
+        return self._run_local_analysis(doc)
+
+    def _run_local_analysis(self, doc: Document) -> list[Finding]:
         if doc.language == "cs":
             logger.debug(
                 "Skipping grammar check, czech is not supported by LanguageTool"

@@ -5,7 +5,9 @@
         {
             "analyser_id": "grammar_analyser",
             "enabled": true,
-            "params": {}
+            "params": {
+                "grammar_engine": "local"
+            }
         }
     ]
 }
