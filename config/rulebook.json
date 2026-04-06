@@ -308,6 +308,15 @@
     },
     {
       "ac_codes": [
+        "NOUML"
+      ],
+      "title": "UML Diagram Missing",
+      "analyser_id": "asset_analyser",
+      "course": "ipp",
+      "prompt_instruction": "The UML Class Diagram is missing."
+    },
+    {
+      "ac_codes": [
         "OWNDIF"
       ],
       "title": "UML Diagram Own Classes",
