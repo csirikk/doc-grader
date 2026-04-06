@@ -591,7 +591,7 @@ def parse_document_tokens(
 
 def main() -> None:
     root_dir = Path(__file__).parent.parent
-    data_dir = root_dir / "data" / "raw_old" / "ipp_13_to_24" / "ipp_assessments"
+    data_dir = root_dir / "data" / "ipp" / "assessments"
     all_files = list(data_dir.glob("ipp*.csv"))
 
     print(f"Found {len(all_files)} files in {data_dir}")
@@ -609,12 +609,14 @@ def main() -> None:
             print(f"Skipping {file_path}, no 'comment' column")
             continue
 
-        filename = file_path.name  # "ipp13-php.csv"
-        year_match = re.search(r"\d{2}", filename)
-        year = "20" + year_match.group(0) if year_match else "Unknown"
-        task_variant = (
-            filename.split("-")[1].split(".")[0] if "-" in filename else "Unknown"
-        )
+        filename = file_path.name
+        match = re.match(r"ipp(\d{4})-(.*)\.csv", filename)
+        if match:
+            year = match.group(1)
+            task_variant = match.group(2)
+        else:
+            year = "Unknown"
+            task_variant = "Unknown"
 
         all_extracted_rows.extend(
             extract_rows_from_dataframe(df, filename, year, task_variant)
