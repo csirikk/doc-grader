@@ -94,7 +94,7 @@ class RuleEngine:
                 }
             finding.meta = {**(finding.meta or {}), "judge": judge_meta}
 
-            if verdict.decision in {"approved", "dismissed"} and not changed_fields:
+            if verdict.decision == "approved" and not changed_fields:
                 logger.info(
                     "Judge confirmed finding '%s' without content changes.",
                     finding.finding_id,
