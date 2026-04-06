@@ -10,6 +10,9 @@ src/doc_grader.egg-info
 test/
 out/
 deprecated/*
+unsloth*
+outputs
+baduml-classifier
 
 # Data
 data/
