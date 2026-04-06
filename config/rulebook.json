@@ -200,6 +200,15 @@
     },
     {
       "ac_codes": [
+        "COVER"
+      ],
+      "title": "Insufficient Cover Page",
+      "analyser_id": "language_analyser",
+      "course": "ifj",
+      "prompt_instruction": "The cover page is missing required information, specifically: first and last name of all students, leader highlighted, point distribution, variant identificator."
+    },
+    {
+      "ac_codes": [
         "SA"
       ],
       "title": "Syntax Analysis",

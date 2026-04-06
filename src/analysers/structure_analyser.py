@@ -205,10 +205,6 @@ class StructureAnalyser(BaseAnalyser):
         """Detect missing required section headings (STRUCT / strukt.)."""
         return []
 
-    def check_first_page(self, doc: Document) -> list[Finding]:
-        """Detect missing mandatory information on the cover page (1. strana)."""
-        return []
-
     def analyse(
         self, doc: Document, params: dict[str, Any] | None = None
     ) -> list[Finding]:
@@ -217,7 +213,6 @@ class StructureAnalyser(BaseAnalyser):
 
         findings.extend(self.check_kaptxt(doc))
         findings.extend(self.check_struct(doc))
-        findings.extend(self.check_first_page(doc))
 
         p = params or {}
         findings.extend(
