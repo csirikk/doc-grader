@@ -6,20 +6,18 @@
     "",
     "### TASK",
     "Analyse the provided text passages against the specific Assessment Criteria (AC) rules listed below. Respond in English.",
-    "IMPORTANT: Most rules describe VIOLATIONS or OMISSIONS. If the text successfully fulfills the requirement, DO NOT flag it with a violation code. Only flag if the text matches the negative description.",
+    "All rules describe strictly negative behaviors, violations, or omissions. Only flag a passage if it matches the negative description.",
     "",
     "### RULES LIST",
     "{rules}",
     "",
     "### HIGH RECALL GRADING PHILOSOPHY",
-    "1. THE BASELINE IS SCRUTINY: Do not gloss over imperfections. Your job is to catch every possible deviation from the rules, no matter how small.",
-    "2. WHEN IN DOUBT, FLAG IT: If you suspect a rule is broken or the text is borderline insufficient, you MUST generate a finding. Do not suppress uncertain findings.",
-    "3. USE CONFIDENCE SCORING: You must reflect your level of certainty in the 'confidence' field. Use 1.0 for guaranteed violations, and lower scores (e.g., 0.4 - 0.7) for suspected or borderline issues.",
-    "4. PENALIZE AMBIGUITY: If a technical explanation is vague or lacks required depth, flag it.",
-    "5. OBJECTIVITY: Ignore personal writing style unless evaluating a specific 'STYLE' rule. Focus strictly on technical accuracy and AC rule adherence.",
+    "1. THE BASELINE IS SCRUTINY: Catch every possible deviation from the rules.",
+    "2. WHEN IN DOUBT, FLAG IT: If you suspect a rule is broken or the text is borderline insufficient, you MUST generate a finding.",
+    "3. OBJECTIVITY: Ignore personal writing style unless evaluating a specific readability rule. Focus strictly on technical accuracy and AC rule adherence.",
     "",
     "### INPUT FORMAT",
-    "Input passages are prefixed with a canonical reference tag, e.g., [Ref: #/texts/1]. Use this tag for the 'item_cref' field."
+    "Input passages are prefixed with a canonical reference tag, e.g., [Ref: #/texts/1]. Use this tag for your item reference fields."
   ],
   "vision_model_prompt_template": [
     "### ROLE",
@@ -35,23 +33,34 @@
     "{rules}",
     "",
     "### INPUT FORMAT",
-    "Each diagram is preceded by its canonical reference tag, e.g., [Ref: #/pictures/0]. Use this tag for the 'item_cref' field.",
-    "Each diagram is also preceded by its page context image labeled [Page context for #/pictures/N], use this to assess document background colour for the BW rule."
+    "Each diagram is preceded by its canonical reference tag, e.g., [Ref: #/pictures/0]. Use this tag for your item reference fields.",
+    "Each diagram is also preceded by its page context image labeled [Page context for #/pictures/N]; use this to assess document background colour."
   ],
   "judge_model_prompt_template": [
     "### ROLE",
-    "You are a strict second-opinion reviewer of automated code documentation analysis.",
-    "You receive a set of flagged findings produced by a high-recall automated detector. Your job is to act as the final judge and eliminate or adjust false positives.",
+    "You are a strict second-opinion reviewer and senior technical editor of automated code documentation analysis.",
+    "You receive a set of flagged findings produced by a high-recall automated detector. Your job is to act as the final judge to eliminate false positives and refine true positives.",
     "",
     "### TASK",
     "The full student document is attached. Consult it to verify the context of the flagged passages.",
     "Evaluate each finding strictly against its specific AC Rule definition and the provided document context.",
+    "If a finding is a true positive, you have full authority to rewrite the explanation for clarity and adjust the quoted text to be a more accurate anchor.",
     "Respond in English.",
     "",
-    "### DECISION RULES",
-    "- 'approved': True Positive. The violation described in the AC Rule is unambiguously present in the text.",
-    "- 'dismissed': False Positive. The text does not violate the AC Rule (e.g., the requirement is actually satisfied, or the flagged evidence is circumstantial/invalid).",
-    "- 'adjusted': The violation is real, but the severity or confidence is miscalibrated. Provide corrected float values."
+    "### PROCESS",
+    "1. Read the specific AC Rule definition.",
+    "2. Read the flagged finding and the corresponding section in the provided document.",
+    "3. Determine if the text actually violates the rule.",
+    "4. If it DOES violate the rule:",
+    "   - Check the explanation. If it is vague, write a clearer explanation.",
+    "   - Check the evidence anchor. Identify the most specific, exact substring from the document that proves the violation.",
+    "   - Adjust the confidence score to reflect your certainty.",
+    "   - Adjust the severity score to reflect the actual severity of the violation.",
+    "",
+    "### DECISION DEFINITIONS",
+    "- 'approved': True Positive. The finding is accurate as originally written. No changes needed.",
+    "- 'adjusted': True Positive (Modified). The violation is real, but you have rewritten the explanation to be clearer, updated the exact evidence quote, or recalibrated the confidence score.",
+    "- 'dismissed': False Positive. The text does not violate the AC Rule, or the flagged evidence is invalid."
   ],
   "rules": [
     {
@@ -61,8 +70,7 @@
       "title": "Specification Copying",
       "analyser_id": "integrity_analyser",
       "course": null,
-      "prompt_instruction": "The document includes copied or closely paraphrased passages from the assignment specification or other external sources instead of original student-authored explanation.",
-      "is_bonus": false
+      "prompt_instruction": "The document includes copied or closely paraphrased passages from the assignment specification or other external sources instead of original student-authored explanation."
     },
     {
       "ac_codes": [
@@ -71,8 +79,7 @@
       "title": "Too Short",
       "analyser_id": "structure_analyser",
       "course": null,
-      "prompt_instruction": "The documentation is too short or too generic to adequately describe the solution and key implementation decisions.",
-      "is_bonus": false
+      "prompt_instruction": "The documentation fails to describe the purpose of the core classes, or lacks a description of the program's main execution loop."
     },
     {
       "ac_codes": [
@@ -81,8 +88,7 @@
       "title": "Empty Section",
       "analyser_id": "structure_analyser",
       "course": null,
-      "prompt_instruction": "Consecutive headings appear without meaningful explanatory text between them.",
-      "is_bonus": false
+      "prompt_instruction": "Consecutive headings appear without meaningful explanatory text between them."
     },
     {
       "ac_codes": [
@@ -91,8 +97,7 @@
       "title": "Mixing Languages",
       "analyser_id": "language_analyser",
       "course": null,
-      "prompt_instruction": "Unnatural mixing of languages (Czech, Slovak, English). English terms in Czech/Slovak text are penalised unless they are standard technical terminology or exact identifiers from the source code.",
-      "is_bonus": false
+      "prompt_instruction": "Unnatural mixing of languages (Czech, Slovak, English). English terms in Czech/Slovak text are penalised unless they are standard technical terminology or exact identifiers from the source code."
     },
     {
       "ac_codes": [
@@ -101,8 +106,7 @@
       "title": "Grammar and Spelling",
       "analyser_id": "language_analyser",
       "course": null,
-      "prompt_instruction": "Spelling and grammar mistakes, including punctuation errors. Flag minor, isolated typos as low severity for information.",
-      "is_bonus": false
+      "prompt_instruction": "Spelling and grammar mistakes, including punctuation errors."
     },
     {
       "ac_codes": [
@@ -111,8 +115,7 @@
       "title": "First Person",
       "analyser_id": "language_analyser",
       "course": null,
-      "prompt_instruction": "Explicit use of first-person singular pronouns or verb forms (e.g., 'já', 'implementoval jsem', 'I'). Program documentation should be passive or first-person plural.",
-      "is_bonus": false
+      "prompt_instruction": "Explicit use of first-person singular pronouns or verb forms (e.g., 'já', 'implementoval jsem', 'I'). Program documentation should be passive or first-person plural."
     },
     {
       "ac_codes": [
@@ -121,8 +124,7 @@
       "title": "Terminology",
       "analyser_id": "language_analyser",
       "course": null,
-      "prompt_instruction": "Problematic, inaccurate, or incorrect technical terminology.",
-      "is_bonus": false
+      "prompt_instruction": "Problematic, inaccurate, or incorrect technical terminology."
     },
     {
       "ac_codes": [
@@ -131,8 +133,7 @@
       "title": "Readability",
       "analyser_id": "language_analyser",
       "course": null,
-      "prompt_instruction": "Unreadable, confusing, or poorly stylised text, particularly overly long or incomprehensible complex sentences.",
-      "is_bonus": false
+      "prompt_instruction": "Sentences that exceed 40 words and fail to clearly articulate a single technical concept, making the technical logic difficult to follow."
     },
     {
       "ac_codes": [
@@ -141,8 +142,7 @@
       "title": "Informal Language",
       "analyser_id": "language_analyser",
       "course": null,
-      "prompt_instruction": "Informal, conversational, or slang language, including unnecessary English terms with Czech suffixes (e.g., 'pushnout', 'symtable', 'list', 'array').",
-      "is_bonus": false
+      "prompt_instruction": "Informal, conversational, or slang language, including unnecessary English terms with Czech suffixes (e.g., 'pushnout', 'symtable', 'list', 'array')."
     },
     {
       "ac_codes": [
@@ -151,40 +151,25 @@
       "title": "Single Responsibility Principle",
       "analyser_id": "language_analyser",
       "course": "ipp",
-      "prompt_instruction": "Ignoring or poorly applying the Single Responsibility Principle, specifically describing a single class or method that handles multiple completely unrelated responsibilities.",
-      "is_bonus": false
+      "prompt_instruction": "Ignoring or poorly applying the Single Responsibility Principle, specifically describing a single class or method that handles multiple completely unrelated responsibilities."
     },
     {
       "ac_codes": [
-        "OOP",
         "NOOOP"
       ],
-      "title": "OOP Design",
+      "title": "OOP Design Failure",
       "analyser_id": "language_analyser",
       "course": "ipp",
-      "prompt_instruction": "OOP design evaluation. NOOOP: The text indicates a failure to use the object-oriented paradigm properly, such as merely wrapping procedural functions into one or two classes. OOP: The OOP usage is highly meaningful, well-justified, and terminologically accurately described.",
-      "is_bonus": false
+      "prompt_instruction": "The text indicates a failure to use the object-oriented paradigm properly, such as merely wrapping procedural functions into one or two monolithic classes."
     },
     {
       "ac_codes": [
-        "DP",
         "BADDP"
       ],
-      "title": "Design Patterns",
+      "title": "Design Patterns Failure",
       "analyser_id": "language_analyser",
       "course": "ipp",
-      "prompt_instruction": "Design pattern evaluation. BADDP: Completely inappropriate use, or entirely wrong/missing implementation of a documented design pattern. DP: Exceptionally nice and well-justified use of a design pattern.",
-      "is_bonus": false
-    },
-    {
-      "ac_codes": [
-        "SINGLETON"
-      ],
-      "title": "Singleton Pattern",
-      "analyser_id": "language_analyser",
-      "course": "ipp",
-      "prompt_instruction": "Explicit mention of the use of the Singleton design pattern in the context of the voluntary NVP extension.",
-      "is_bonus": false
+      "prompt_instruction": "Completely inappropriate use, or entirely wrong/missing implementation of a documented design pattern."
     },
     {
       "ac_codes": [
@@ -193,18 +178,7 @@
       "title": "Extensibility",
       "analyser_id": "language_analyser",
       "course": "ipp",
-      "prompt_instruction": "Missing, clumsy, or nonsensical description of the design's extensibility.",
-      "is_bonus": false
-    },
-    {
-      "ac_codes": [
-        "EX"
-      ],
-      "title": "Exception Usage",
-      "analyser_id": "language_analyser",
-      "course": "ipp",
-      "prompt_instruction": "Innovative and advanced use of exceptions for error management (e.g., defining custom exceptions to replace ugly if-else cascades, going beyond basic subclassing by error codes).",
-      "is_bonus": true
+      "prompt_instruction": "Fails to provide concrete examples of how the architecture could accommodate future changes, or provides technically nonsensical expansion paths."
     },
     {
       "ac_codes": [
@@ -213,8 +187,7 @@
       "title": "Overall Structure",
       "analyser_id": "language_analyser",
       "course": null,
-      "prompt_instruction": "Missing or insufficient design philosophy, specifically failing to provide an abstract description of the program's overall structure and execution flow (what follows what).",
-      "is_bonus": false
+      "prompt_instruction": "Missing or insufficient design philosophy, specifically failing to provide an abstract description of the program's overall structure and execution flow (what follows what)."
     },
     {
       "ac_codes": [
@@ -223,8 +196,7 @@
       "title": "Content Quality",
       "analyser_id": "language_analyser",
       "course": null,
-      "prompt_instruction": "Inappropriate content, specifically descriptions of the chronological process of solving the project, expressing personal feelings, irrelevant thoughts, or unsupported opinions.",
-      "is_bonus": false
+      "prompt_instruction": "Inappropriate content, specifically descriptions of the chronological process of solving the project, expressing personal feelings, irrelevant thoughts, or unsupported opinions."
     },
     {
       "ac_codes": [
@@ -233,8 +205,7 @@
       "title": "Syntax Analysis",
       "analyser_id": "language_analyser",
       "course": "ifj",
-      "prompt_instruction": "Missing, insufficient, or inaccurate description of syntax analysis (e.g., falsely claiming that recursive descent is implemented by having a function for every single grammar rule).",
-      "is_bonus": false
+      "prompt_instruction": "Missing, insufficient, or inaccurate description of syntax analysis (e.g., falsely claiming that recursive descent is implemented by having a function for every single grammar rule)."
     },
     {
       "ac_codes": [
@@ -243,8 +214,7 @@
       "title": "Expression Syntax",
       "analyser_id": "language_analyser",
       "course": "ifj",
-      "prompt_instruction": "Missing or insufficient description regarding the syntax analysis of expressions.",
-      "is_bonus": false
+      "prompt_instruction": "Missing or insufficient description regarding the syntax analysis of expressions."
     },
     {
       "ac_codes": [
@@ -253,8 +223,7 @@
       "title": "Semantic Analysis",
       "analyser_id": "language_analyser",
       "course": "ifj",
-      "prompt_instruction": "Missing or insufficiently specific description of semantic analysis, typically failing to clearly describe exactly what semantic properties and rules are being checked.",
-      "is_bonus": false
+      "prompt_instruction": "Missing or insufficiently specific description of semantic analysis, typically failing to clearly describe exactly what semantic properties and rules are being checked."
     },
     {
       "ac_codes": [
@@ -263,8 +232,7 @@
       "title": "Precedence Syntax",
       "analyser_id": "language_analyser",
       "course": "ifj",
-      "prompt_instruction": "Missing or insufficient description of precedence syntax analysis.",
-      "is_bonus": false
+      "prompt_instruction": "Missing or insufficient description of precedence syntax analysis."
     },
     {
       "ac_codes": [
@@ -273,8 +241,7 @@
       "title": "Symbol Table",
       "analyser_id": "language_analyser",
       "course": "ifj",
-      "prompt_instruction": "Missing or insufficient description of the symbol table implementation, specifically lacking details about its internal structure (e.g., whether there is one global table or multiple local tables).",
-      "is_bonus": false
+      "prompt_instruction": "Missing or insufficient description of the symbol table implementation, specifically lacking details about its internal structure (e.g., whether there is one global table or multiple local tables)."
     },
     {
       "ac_codes": [
@@ -283,8 +250,7 @@
       "title": "Code Generation",
       "analyser_id": "language_analyser",
       "course": "ifj",
-      "prompt_instruction": "Missing or insufficient description of code generation.",
-      "is_bonus": false
+      "prompt_instruction": "Missing or insufficient description of code generation."
     },
     {
       "ac_codes": [
@@ -293,8 +259,7 @@
       "title": "Team Split",
       "analyser_id": "language_analyser",
       "course": "ifj",
-      "prompt_instruction": "Missing description of the division of work among team members.",
-      "is_bonus": false
+      "prompt_instruction": "Missing description of the division of work among team members."
     },
     {
       "ac_codes": [
@@ -303,8 +268,7 @@
       "title": "Internal Representation",
       "analyser_id": "language_analyser",
       "course": "ipp",
-      "prompt_instruction": "Missing or insufficient internal representation description (e.g., trivially stating that 'instructions are stored in an array' or 'assignments are stored in an AST' without deeper architectural explanation).",
-      "is_bonus": false
+      "prompt_instruction": "Missing or insufficient internal representation description (e.g., trivially stating that 'instructions are stored in an array' or 'assignments are stored in an AST' without deeper architectural explanation)."
     },
     {
       "ac_codes": [
@@ -313,8 +277,7 @@
       "title": "Implementation Details",
       "analyser_id": "language_analyser",
       "course": "ipp",
-      "prompt_instruction": "Technically insufficient description of the implementation (e.g., failing to mention if regular expressions, state machines,, parser-generators or other techniques were used).",
-      "is_bonus": false
+      "prompt_instruction": "Technically insufficient description of the implementation (e.g., failing to mention if regular expressions, state machines, parser-generators or other techniques were used)."
     },
     {
       "ac_codes": [
@@ -323,18 +286,7 @@
       "title": "NVP Documentation",
       "analyser_id": "language_analyser",
       "course": "ipp",
-      "prompt_instruction": "Claims to have implemented the NVP extension, yet the documentation is missing or insufficient.",
-      "is_bonus": false
-    },
-    {
-      "ac_codes": [
-        "NOUML"
-      ],
-      "title": "Missing UML Diagram",
-      "analyser_id": "asset_analyser",
-      "course": "ipp",
-      "prompt_instruction": "No UML Class Diagram is present in the document. The provided diagrams are not UML Class Diagrams.",
-      "is_bonus": false
+      "prompt_instruction": "Claims to have implemented the NVP extension, yet the documentation is missing or insufficient."
     },
     {
       "ac_codes": [
@@ -343,8 +295,7 @@
       "title": "UML Diagram Quality",
       "analyser_id": "asset_analyser",
       "course": "ipp",
-      "prompt_instruction": "The UML Class Diagram is syntactically incorrect, uses the wrong diagram type, was auto-generated from an IDE without curation, is missing significant classes or methods, or fails to convey how classes interact.",
-      "is_bonus": false
+      "prompt_instruction": "The UML Class Diagram is syntactically incorrect, uses the wrong diagram type, was auto-generated from an IDE without curation, is missing significant classes or methods, or fails to convey how classes interact."
     },
     {
       "ac_codes": [
@@ -353,8 +304,7 @@
       "title": "UML Diagram Own Classes",
       "analyser_id": "asset_analyser",
       "course": "ipp",
-      "prompt_instruction": "The diagram does not visually distinguish the student's own classes from framework or library classes (e.g. ipp-core AbstractInterpreter).",
-      "is_bonus": false
+      "prompt_instruction": "The diagram does not visually distinguish the student's own classes from framework or library classes (e.g. ipp-core AbstractInterpreter)."
     },
     {
       "ac_codes": [
@@ -363,8 +313,7 @@
       "title": "UML Diagram Background Contrast",
       "analyser_id": "asset_analyser",
       "course": "ipp",
-      "prompt_instruction": "The diagram has a dark background pasted into a document with a light background, making it visually inconsistent with the surrounding document.",
-      "is_bonus": false
+      "prompt_instruction": "The diagram has a dark background pasted into a document with a light background, making it visually inconsistent with the surrounding document."
     }
   ]
 }
