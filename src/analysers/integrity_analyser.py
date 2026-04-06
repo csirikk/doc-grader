@@ -4,8 +4,6 @@ Responsible for AC:
 - 'COPY': Significant overlap with the official assignment specification,
   indicating text was copied or closely paraphrased rather than written
   independently.
-
-TODO: add llm mode?
 """
 
 from __future__ import annotations
