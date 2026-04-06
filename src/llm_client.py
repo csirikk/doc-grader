@@ -376,12 +376,22 @@ class LLMClient:
 
         findings_text = "\n\n".join(parts)
 
+        has_page_images = bool(doc.docling_doc.pages)
+        doc_context_intro = "### ORIGINAL DOCUMENT CONTENT\n"
+        if has_page_images:
+            doc_context_intro += (
+                "The original PDF page images are attached below. "
+                "For visual or typography-sensitive checks (for example spacing "
+                "before punctuation such as ' .' or ',') use the page images as "
+                "the source of truth. Do not rely only on extracted text for these "
+                "checks.\n"
+            )
+
         user_content: list[dict] = [
             {
                 "type": "text",
                 "text": (
-                    f"### FINDINGS TO EVALUATE\n{findings_text}\n\n"
-                    "### ORIGINAL DOCUMENT CONTENT\n"
+                    f"### FINDINGS TO EVALUATE\n{findings_text}\n\n{doc_context_intro}"
                 ),
             }
         ]
