@@ -147,8 +147,14 @@ class BaseLLMAnalyser(BaseAnalyser):
         params: dict[str, Any] | None = None,
     ) -> list[Finding]:
         """Convert vision model findings into standard Findings. Bypasses the judge."""
+        known_codes: set[str] = {code for r in rules for code in r.ac_codes}
         findings: list[Finding] = []
         for f in vision_findings:
+            if f.ac_code not in known_codes:
+                logger.warning(
+                    "Ignoring vision finding with unknown AC code %r", f.ac_code
+                )
+                continue
             finding = self._make_finding(
                 doc=doc,
                 ac_code=f.ac_code,
@@ -175,9 +181,16 @@ class BaseLLMAnalyser(BaseAnalyser):
 
         Subclasses may override for custom post-processing logic.
         """
-        return [
-            self._convert_llm_finding_to_finding(doc, f, rules) for f in llm_findings
-        ]
+        known_codes: set[str] = {code for r in rules for code in r.ac_codes}
+        findings: list[Finding] = []
+        for f in llm_findings:
+            if f.ac_code not in known_codes:
+                logger.warning(
+                    "Ignoring LLM finding with unknown AC code %r", f.ac_code
+                )
+                continue
+            findings.append(self._convert_llm_finding_to_finding(doc, f, rules))
+        return findings
 
     def analyse(self, doc: Document, params: dict | None = None) -> list[Finding]:
         raise NotImplementedError("LLM analysers are orchestrated via _run_analysers.")
