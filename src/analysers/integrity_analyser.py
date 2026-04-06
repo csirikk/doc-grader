@@ -21,7 +21,7 @@ from pydantic import Field
 
 from ..schemas.base import StrictModel
 from ..schemas.finding import Anchor, FineRef, ModelEval, Stat
-from .base_analyser import BaseAnalyser
+from .base_analyser import BaseLLMAnalyser
 
 if TYPE_CHECKING:
     import numpy as np
@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 
     from ..schemas.finding import Finding
     from ..schemas.ir import Document
+    from ..schemas.llm import LLMFinding, LLMRule, Rulebook
 
 logger = logging.getLogger(__name__)
 
@@ -464,7 +465,7 @@ def _compute_scores(
 # -- IntegrityAnalyser ------------------------------------------------------
 
 
-class IntegrityAnalyser(BaseAnalyser):
+class IntegrityAnalyser(BaseLLMAnalyser):
     """Detect text copied from the official spec using sentence embeddings.
 
     AC code: COPY
@@ -473,7 +474,30 @@ class IntegrityAnalyser(BaseAnalyser):
     analyser_id: ClassVar[str] = "integrity_analyser"
     name: ClassVar[str] = "Integrity Analyser"
 
-    def analyse(
+    def get_rules(
+        self,
+        rulebook: Rulebook,
+        params: dict[str, Any] | None = None,
+    ) -> list[LLMRule]:
+        rules = super().get_rules(rulebook, params)
+        if (params or {}).get("copy_engine", "local") == "local":
+            rules = [r for r in rules if "COPY" not in r.ac_codes]
+        return rules
+
+    def process_llm_findings(
+        self,
+        doc: Document,
+        llm_findings: list[LLMFinding],
+        rules: list[LLMRule],
+        params: dict[str, Any] | None = None,
+    ) -> list[Finding]:
+        findings = super().process_llm_findings(doc, llm_findings, rules, params)
+        if (params or {}).get("copy_engine", "local") == "local":
+            local_findings = self._run_local_analysis(doc, params)
+            findings.extend(local_findings)
+        return findings
+
+    def _run_local_analysis(
         self, doc: Document, params: dict[str, Any] | None = None
     ) -> list[Finding]:
         """Run the integrity pipeline and return COPY findings if warranted."""

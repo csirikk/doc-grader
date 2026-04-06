@@ -41,8 +41,9 @@
             "analyser_id": "integrity_analyser",
             "enabled": true,
             "params": {
-                "spec_path": "data/ipp-ifj-zadani/ipp25spec.pdf",
-                "min_chunk_len": 40
+                "spec_path": "data/ipp/spec/ipp2425spec.pdf",
+                "min_chunk_len": 40,
+                "copy_engine": "local"
             }
         },
         {

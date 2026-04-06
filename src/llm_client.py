@@ -58,6 +58,7 @@ class LLMClient:
         rules: list[LLMRule],
         rulebook: Rulebook,
         model: str | None = None,
+        params: dict | None = None,
     ) -> list[LLMFinding]:
         """Extract document text, call the grader model, and return findings."""
         from .schemas.llm import GraderModelResponse
@@ -74,6 +75,32 @@ class LLMClient:
             logger.debug("No text to analyse or no rules provided. Skipping LLM call.")
             return []
         system_prompt = self._build_grader_model_prompt(rules, rulebook)
+
+        has_copy_rule = any("COPY" in r.ac_codes for r in rules)
+        if has_copy_rule and params and params.get("spec_path"):
+            from pathlib import Path
+
+            from .parsers.parser import DocumentParser
+
+            spec_path = Path(params["spec_path"])
+            try:
+                spec_parse = DocumentParser().parse(spec_path)
+                if spec_parse.ir is not None:
+                    spec_text = "".join(
+                        item.text + "\n"
+                        for item in spec_parse.ir.text_items.values()
+                        if item.text
+                    )
+                    system_prompt += (
+                        "\n\n### ASSIGNMENT SPECIFICATION"
+                        " (For COPY rule comparison)\n" + spec_text
+                    )&
+                    logger.debug(
+                        "Appended spec text (%d chars) to grader prompt",
+                        len(spec_text),
+                    )
+            except Exception as exc:
+                logger.warning("Could not load spec for COPY rule comparison: %s", exc)
         logger.debug(
             f"Sending request to {self.model}. SYSTEM PROMPT:\n{system_prompt}"
         )
