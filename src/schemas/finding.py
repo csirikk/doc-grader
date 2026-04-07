@@ -38,7 +38,6 @@ class AnalyserInfo(StrictModel):
     params: dict[str, Any] | None = None
 
 
-# TODO: add helper to transform to docling_item anchor
 class Anchor(StrictModel):
     """Evidence: Canonical pointer into a DoclingDocument."""
 
