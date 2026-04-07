@@ -54,51 +54,64 @@ def _inject_html_highlights(
 
     for r in ranges:
         snippet = r.get("snippet")
-        if not snippet:
+        target_ref: str = (r.get("target") or {}).get("$ref") or ""
+
+        # Picture anchors: locate the Nth <img> tag by cref index.
+        pic_match = re.search(r"/pictures/(\d+)$", target_ref)
+        if pic_match:
+            pic_idx = int(pic_match.group(1))
+            img_matches = list(re.finditer(r"<img\b[^>]*>", html_body))
+            if pic_idx >= len(img_matches):
+                continue
+            img_m = img_matches[pic_idx]
+            start_idx = img_m.start()
+            end_idx = img_m.end()
+        elif snippet:
+            # Text-based matching: strip image syntax and formatting.
+            snippet = re.sub(r"!\[.*?\]\(.*?\)", "", snippet)
+            snippet = snippet.strip("*_`# \n")
+            words = snippet.split()
+            if not words:
+                continue
+
+            # Match words, ignore HTML tags and spaces
+            pattern = r"(?:<[^>]+>|\s)*".join(re.escape(w) for w in words)
+
+            try:
+                match = re.search(pattern, html_body[search_cursor:])
+                if match:
+                    start_idx = search_cursor + match.start()
+                    end_idx = search_cursor + match.end()
+                else:
+                    match = re.search(pattern, html_body)
+                    if not match:
+                        continue
+                    start_idx = match.start()
+                    end_idx = match.end()
+                    if start_idx < search_cursor:
+                        continue
+            except Exception:
+                continue
+        else:
             continue
 
-        # Strip links and formatting
-        snippet = re.sub(r"!\[.*?\]\(.*?\)", "", snippet)
-        snippet = snippet.strip("*_`# \n")
-        words = snippet.split()
-        if not words:
-            continue
+        if active_id:
+            span_open = f'<span data-finding-id="{active_id}" data-active="true" class="finding-mark">'
+        else:
+            span_open = '<span class="finding-mark">'
+        span_close = "</span>"
 
-        # Match words, ignore HTML tags and spaces
-        pattern = r"(?:<[^>]+>|\s)*".join(re.escape(w) for w in words)
-
-        try:
-            match = re.search(pattern, html_body[search_cursor:])
-            if match:
-                start_idx = search_cursor + match.start()
-                end_idx = search_cursor + match.end()
-            else:
-                match = re.search(pattern, html_body)
-                if not match:
-                    continue
-                start_idx = match.start()
-                end_idx = match.end()
-                if start_idx < search_cursor:
-                    continue
-
-            if active_id:
-                span_open = f'<span data-finding-id="{active_id}" data-active="true" class="finding-mark">'
-            else:
-                span_open = '<span class="finding-mark">'
-            span_close = "</span>"
-
-            html_body = (
-                html_body[:start_idx]
-                + span_open
-                + html_body[start_idx:end_idx]
-                + span_close
-                + html_body[end_idx:]
-            )
+        html_body = (
+            html_body[:start_idx]
+            + span_open
+            + html_body[start_idx:end_idx]
+            + span_close
+            + html_body[end_idx:]
+        )
+        if not pic_match:
             search_cursor = (
                 start_idx + len(span_open) + (end_idx - start_idx) + len(span_close)
             )
-        except Exception:
-            pass
 
     return html_body
 
@@ -114,8 +127,9 @@ def render_markdown(path: Path, selected_finding: dict | None) -> None:
         active_id = selected_finding.get("finding_id", "").replace(":", "-")
         for anchor in selected_finding.get("anchors", []):
             snippet = anchor.get("snippet")
-            if snippet:
-                ranges.append({"snippet": snippet})
+            target = anchor.get("target")
+            if snippet or target:
+                ranges.append({"snippet": snippet, "target": target})
 
     html_body = marko.Markdown().convert(text)
 
@@ -142,6 +156,10 @@ def render_markdown(path: Path, selected_finding: dict | None) -> None:
             }
             .markdown-surface img { 
                 max-width: 100%;
+                border-radius: 4px;
+            }
+            .finding-mark img {
+                outline: 3px solid rgba(255, 140, 0, 0.85);
                 border-radius: 4px;
             }
         </style>
