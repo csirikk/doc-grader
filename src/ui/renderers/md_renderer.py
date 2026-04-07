@@ -1,4 +1,3 @@
-# TODO: fix formatting when inline html, see data/ipp/ipp2425/parser/REDACTED_STUDENT
 from __future__ import annotations
 
 import base64
@@ -119,6 +118,7 @@ def _inject_html_highlights(
 def render_markdown(path: Path, selected_finding: dict | None) -> None:
     """Render a Markdown document with optional highlights."""
     text = path.read_text(encoding="utf-8")
+    text = text.replace("<", "&lt;").replace(">", "&gt;")  # strip inline html
 
     # highlight data
     active_id = None
