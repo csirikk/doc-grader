@@ -271,6 +271,8 @@ def main(argv: list[str] | None = None) -> int:
 
     for doc_path, student_id in discover_cases(args.inputs):
         reset_id_counters()
+        if llm_client:
+            llm_client.reset_usage()
         path = doc_path
         file_outdir = base_outdir / student_id
         rule_engine = RuleEngine()
@@ -358,6 +360,9 @@ def main(argv: list[str] | None = None) -> int:
         for finding in final_findings:
             log_json(logger, f"Finding: {finding.title}", finding)
             logger.info("\n%s\n", format_finding_short(finding))
+
+        if llm_client:
+            log_json(logger, "LLM token usage", llm_client.get_usage_summary())
 
     if args.csv_out:
         csv_path = Path(args.csv_out)

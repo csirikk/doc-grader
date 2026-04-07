@@ -1,8 +1,8 @@
-from __future__ import annotations  # TODO: add better token usage tracking
+from __future__ import annotations
 
 import logging
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict
 
 from openai import OpenAI
 
@@ -15,6 +15,37 @@ if TYPE_CHECKING:
         LLMRule,
         Rulebook,
     )
+
+# Pricing table: (input_usd_per_1m, cached_usd_per_1m, output_usd_per_1m)
+# Sources: https://developers.openai.com/api/docs/pricing and microsoft (as of 4/7/2026)
+_MODEL_PRICING: list[tuple[str, tuple[float, float, float]]] = [
+    ("gpt-5.4-nano", (0.20, 0.02, 1.25)),
+    ("gpt-5.4-mini", (0.75, 0.075, 4.50)),
+    ("gpt-5.4", (2.50, 0.25, 15.00)),
+    ("gpt-5", (15.25, 0.125, 10.00)),
+    ("gpt-5-mini", (0.25, 0.0025, 2.00)),
+    ("gpt-4-04-14", (2.00, 8.00, 0.50)),  # azure
+]
+
+_USD_TO_EUR: float = 0.92
+
+
+def _lookup_pricing(model: str) -> tuple[float, float, float] | None:
+    """Return (input, cached_input, output) rates in USD per 1M tokens, or None."""
+    lower = model.lower()
+    for prefix, rates in _MODEL_PRICING:
+        if prefix in lower:
+            return rates
+    return None
+
+
+class _UsageEntry(TypedDict):
+    calls: int
+    prompt_tokens: int
+    completion_tokens: int
+    cached_tokens: int
+    cost_eur: float | None
+
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +70,75 @@ class LLMClient:
         self.temperature = temperature
         self.max_completion_tokens = max_completion_tokens
         self._client = OpenAI(api_key=os.environ.get(api_key_env))
+        self._usage_by_model: dict[str, _UsageEntry] = {}
+
+    def reset_usage(self) -> None:
+        """Clear per-document usage accumulators."""
+        self._usage_by_model = {}
+
+    def _record_usage(self, model: str, usage: object | None) -> None:
+        """Accumulate token counts and cost from a single API response."""
+        if usage is None:
+            return
+        prompt = getattr(usage, "prompt_tokens", 0) or 0
+        completion = getattr(usage, "completion_tokens", 0) or 0
+        details = getattr(usage, "prompt_tokens_details", None)
+        cached = (getattr(details, "cached_tokens", 0) or 0) if details else 0
+
+        rates = _lookup_pricing(model)
+        billable_input = max(prompt - cached, 0)
+        if rates is not None:
+            in_rate, cached_rate, out_rate = rates
+            call_cost_usd = (
+                billable_input * in_rate + cached * cached_rate + completion * out_rate
+            ) / 1_000_000.0
+            call_cost_eur: float | None = round(call_cost_usd * _USD_TO_EUR, 6)
+        else:
+            call_cost_eur = None
+
+        entry: _UsageEntry = self._usage_by_model.setdefault(
+            model,
+            _UsageEntry(
+                calls=0,
+                prompt_tokens=0,
+                completion_tokens=0,
+                cached_tokens=0,
+                cost_eur=0.0,
+            ),
+        )
+        entry["calls"] += 1
+        entry["prompt_tokens"] += prompt
+        entry["completion_tokens"] += completion
+        entry["cached_tokens"] += cached
+        if call_cost_eur is None or entry["cost_eur"] is None:
+            entry["cost_eur"] = None
+        else:
+            entry["cost_eur"] = round(entry["cost_eur"] + call_cost_eur, 6)
+
+    def get_usage_summary(self) -> dict:
+        """Return accumulated token usage and cost for the current document."""
+        total_prompt: int = sum(
+            (e["prompt_tokens"] for e in self._usage_by_model.values()), 0
+        )
+        total_completion: int = sum(
+            (e["completion_tokens"] for e in self._usage_by_model.values()), 0
+        )
+        total_cached: int = sum(
+            (e["cached_tokens"] for e in self._usage_by_model.values()), 0
+        )
+        costs = [e["cost_eur"] for e in self._usage_by_model.values()]
+        total_cost: float | None = (
+            None
+            if any(c is None for c in costs)
+            else round(sum(c for c in costs if c is not None), 6)
+        )
+        return {
+            "by_model": self._usage_by_model,
+            "total_prompt_tokens": total_prompt,
+            "total_completion_tokens": total_completion,
+            "total_cached_tokens": total_cached,
+            "total_cost_eur": total_cost,
+        }
 
     @staticmethod
     def _encode_pil(pil_image) -> str:
@@ -131,6 +231,7 @@ class LLMClient:
             logger.error(f"LLM API call or processing failed: {e}")
             return []
 
+        self._record_usage(model or self.model, response.usage)
         parsed_response = response.choices[0].message.parsed
         if parsed_response is None:
             logger.error("LLM returned unparseable response.")
@@ -250,6 +351,7 @@ class LLMClient:
             logger.error(f"Vision LLM API call failed: {e}")
             return combined
 
+        self._record_usage(model or self.model, response.usage)
         parsed_response = response.choices[0].message.parsed
         if parsed_response is None:
             logger.error("Vision LLM returned unparseable response.")
@@ -315,6 +417,7 @@ class LLMClient:
                 logger.error("Azure classifier call failed for %s: %s", cref, e)
                 continue
 
+            self._record_usage(deployment, response.usage)
             label = (response.choices[0].message.content or "").strip()
             logger.info("Azure classified [%s] as %r", cref, label)
 
@@ -379,6 +482,7 @@ class LLMClient:
             logger.exception("Judge model LLM call failed.")
             return None
 
+        self._record_usage(model or self.model, response.usage)
         parsed_response = response.choices[0].message.parsed
         if parsed_response is None:
             logger.error("Judge LLM returned unparseable response.")
