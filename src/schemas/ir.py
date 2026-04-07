@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from docling_core.types.doc.document import (
@@ -11,6 +12,8 @@ from docling_core.types.doc.document import (
 from pydantic import Field
 
 from .base import StrictModel
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentRef(StrictModel):
@@ -67,3 +70,44 @@ class Document(StrictModel):
             "Detected dominant language of the document as a BCP-47 code. (en, cs, sk)"
         ),
     )
+
+    def get_picture_pil(self, idx: int, item: Any) -> Any:
+        """Get a PictureItem as a PIL image."""
+        from pathlib import Path
+        from urllib.parse import unquote
+
+        from PIL import Image
+
+        if item.image is not None and item.image.pil_image is not None:
+            return item.image.pil_image
+
+        img_path_str: str | None = None
+        if item.image is not None and getattr(item.image, "uri", None):
+            img_path_str = str(item.image.uri)
+        elif getattr(item, "uri", None):
+            img_path_str = str(item.uri)
+
+        if (
+            img_path_str is None
+            and self.md_image_uris
+            and idx < len(self.md_image_uris)
+        ):
+            img_path_str = self.md_image_uris[idx]
+
+        if not img_path_str:
+            return None
+
+        if img_path_str.startswith("file://"):
+            img_path_str = img_path_str[7:]
+        img_path_str = unquote(img_path_str)
+
+        source_dir = Path(self.doc_ref.source_path).parent
+        img_path = (source_dir / img_path_str).resolve()
+
+        if not img_path.exists() or not img_path.is_file():
+            return None
+        try:
+            return Image.open(img_path)
+        except Exception as exc:
+            logger.warning("Failed to load local image %s: %s", img_path, exc)
+            return None
