@@ -70,6 +70,7 @@ def _run_analysers(
     llm_analysers: dict[str, BaseLLMAnalyser] = {}
     llm_params: dict[str, Any] = {}
     llm_models: dict[str, str | None] = {}
+    llm_temperatures: dict[str, float | None] = {}
 
     for analyser_cfg in config.analysers:
         if not analyser_cfg.enabled:
@@ -95,6 +96,7 @@ def _run_analysers(
                 llm_analysers[analyser_cfg.analyser_id] = analyser_instance
                 llm_params[analyser_cfg.analyser_id] = analyser_params
                 llm_models[analyser_cfg.analyser_id] = analyser_cfg.model
+                llm_temperatures[analyser_cfg.analyser_id] = analyser_cfg.temperature
             else:
                 result = analyser_instance.analyse(ir, params=analyser_params)
                 if result:
@@ -106,6 +108,7 @@ def _run_analysers(
         for analyser_id, instance in llm_analysers.items():
             params = llm_params.get(analyser_id)
             model = llm_models.get(analyser_id)
+            temperature = llm_temperatures.get(analyser_id)
             rules = instance.get_rules(rulebook, params=params)
             try:
                 if isinstance(instance, AssetAnalyser):
@@ -113,7 +116,12 @@ def _run_analysers(
                     if not rules or not llm_client:
                         continue
                     vision_findings = llm_client.analyse_assets(
-                        ir, rules, rulebook, model=model, params=params
+                        ir,
+                        rules,
+                        rulebook,
+                        model=model,
+                        temperature=temperature,
+                        params=params,
                     )
                     result = instance.process_assets(ir, vision_findings, rules, params)
                 else:
@@ -122,7 +130,12 @@ def _run_analysers(
                     # (e.g. IntegrityAnalyser with copy_engine="local") still run.
                     llm_findings: list = (
                         llm_client.analyse_document(
-                            ir, rules, rulebook, model=model, params=params
+                            ir,
+                            rules,
+                            rulebook,
+                            model=model,
+                            temperature=temperature,
+                            params=params,
                         )
                         if rules and llm_client
                         else []
@@ -301,7 +314,11 @@ def main(argv: list[str] | None = None) -> int:
             if judge_batch:
                 logger.info("Running judge model on %d findings...", len(judge_batch))
                 judge_response = llm_client.judge_findings(
-                    judge_batch, ir_doc, rulebook
+                    judge_batch,
+                    ir_doc,
+                    rulebook,
+                    model=config.judge_model,
+                    temperature=config.judge_temperature,
                 )
                 if judge_response:
                     rule_engine.apply_judge_response(judge_batch, judge_response)

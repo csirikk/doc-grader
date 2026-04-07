@@ -21,6 +21,10 @@ class AnalyserConfig(StrictModel):
         default=None,
         description="Override the LLM model for this analyser.",
     )
+    temperature: float | None = Field(
+        default=None,
+        description="Override the LLM temperature for this analyser.",
+    )
     params: dict[str, Any] = Field(
         default_factory=dict, description="Analyser-specific parameters"
     )
@@ -39,6 +43,16 @@ class AppConfig(StrictModel):
         description=(
             "Whether to run the LLM judge on findings from non-LLM analysers."
         ),
+    )
+    judge_model: str | None = Field(
+        default=None,
+        description=(
+            "LLM model to use for the judge. Defaults to the LLMClient default."
+        ),
+    )
+    judge_temperature: float = Field(
+        default=0.0,
+        description="Temperature for the judge model.",
     )
     analysers: list[AnalyserConfig] = Field(
         default_factory=list, description="List of analyser configurations"

@@ -66,6 +66,7 @@ class LLMClient:
         rules: list[LLMRule],
         rulebook: Rulebook,
         model: str | None = None,
+        temperature: float | None = None,
         params: dict | None = None,
     ) -> list[LLMFinding]:
         """Extract document text, call the grader model, and return findings."""
@@ -116,7 +117,9 @@ class LLMClient:
         try:
             response = self._client.beta.chat.completions.parse(
                 model=model or self.model,
-                temperature=self.temperature,
+                temperature=(
+                    temperature if temperature is not None else self.temperature
+                ),
                 max_completion_tokens=self.max_completion_tokens,
                 response_format=GraderModelResponse,
                 messages=[
@@ -139,11 +142,14 @@ class LLMClient:
         return parsed_response.findings
 
     def _build_vision_grader_prompt(
-        self, rules: list[LLMRule], rulebook: Rulebook
+        self, rules: list[LLMRule], rulebook: Rulebook, doc: Document
     ) -> str:
         # NOUML: absence of a diagram cannot be judged from an image
         # BADUML: handled by the Azure binary classifier
+        # BW: requires a document background to judge contrast, skip for markdown
         _excluded = {"NOUML", "BADUML"}
+        if not doc.docling_doc.pages:
+            _excluded.add("BW")
         rules_text = ""
         for r in rules:
             if any(code in _excluded for code in r.ac_codes):
@@ -160,6 +166,7 @@ class LLMClient:
         rules: list[LLMRule],
         rulebook: Rulebook,
         model: str | None = None,
+        temperature: float | None = None,
         params: dict | None = None,
     ) -> list:
         """Run the Azure binary classifier and the OpenAI vision LLM.
@@ -221,7 +228,7 @@ class LLMClient:
             }
         )
 
-        system_prompt = self._build_vision_grader_prompt(rules, rulebook)
+        system_prompt = self._build_vision_grader_prompt(rules, rulebook, doc)
         logger.debug(f"Sending {n_images} picture(s) to vision model.")
 
         messages: list = [
@@ -232,7 +239,9 @@ class LLMClient:
         try:
             response = self._client.beta.chat.completions.parse(
                 model=model or self.model,
-                temperature=self.temperature,
+                temperature=(
+                    temperature if temperature is not None else self.temperature
+                ),
                 max_completion_tokens=self.max_completion_tokens,
                 response_format=VisionModelResponse,
                 messages=messages,
@@ -332,6 +341,8 @@ class LLMClient:
         findings: list[Finding],
         doc: Document,
         rulebook: Rulebook,
+        model: str | None = None,
+        temperature: float | None = None,
     ) -> JudgeModelResponse | None:
         """Run the judge model and return its response."""
         from .schemas.llm import JudgeModelResponse
@@ -357,8 +368,10 @@ class LLMClient:
 
         try:
             response = self._client.beta.chat.completions.parse(
-                model=self.model,
-                temperature=self.temperature,
+                model=model or self.model,
+                temperature=temperature
+                if temperature is not None
+                else self.temperature,
                 response_format=JudgeModelResponse,
                 messages=messages,
             )
