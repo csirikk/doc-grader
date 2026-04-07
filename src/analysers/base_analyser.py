@@ -146,7 +146,7 @@ class BaseLLMAnalyser(BaseAnalyser):
         rules: list[LLMRule],
         params: dict[str, Any] | None = None,
     ) -> list[Finding]:
-        """Convert vision model findings into standard Findings. Bypasses the judge."""
+        """Convert vision model findings into standard Findings."""
         known_codes: set[str] = {code for r in rules for code in r.ac_codes}
         findings: list[Finding] = []
         for f in vision_findings:
@@ -160,7 +160,7 @@ class BaseLLMAnalyser(BaseAnalyser):
                 ac_code=f.ac_code,
                 title=self._title_for_ac_code(rules, f.ac_code),
                 summary=f.reason,
-                judge_status="not_to_be_judged",
+                judge_status="to_be_judged",
                 human_status="proposed",
                 evidence_item=doc.picture_items.get(f.item_cref),
                 snippet_override=None,

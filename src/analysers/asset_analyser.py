@@ -47,7 +47,7 @@ class AssetAnalyser(BaseLLMAnalyser):
                     ac_code="NOUML",
                     title=self._title_for_ac_code(rules, "NOUML"),
                     summary="No UML Class Diagram was found in the document.",
-                    judge_status="not_to_be_judged",
+                    judge_status="to_be_judged",
                     human_status="proposed",
                     evidence_item=None,
                     severity=1.0,
