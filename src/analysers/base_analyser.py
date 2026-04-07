@@ -163,7 +163,7 @@ class BaseLLMAnalyser(BaseAnalyser):
                 judge_status="to_be_judged",
                 human_status="proposed",
                 evidence_item=doc.picture_items.get(f.item_cref),
-                snippet_override=None,
+                snippet_override=f.reason,
                 severity=f.severity,
                 confidence=f.confidence,
             )

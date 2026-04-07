@@ -113,7 +113,7 @@ def _run_analysers(
                     if not rules or not llm_client:
                         continue
                     vision_findings = llm_client.analyse_assets(
-                        ir, rules, rulebook, model=model
+                        ir, rules, rulebook, model=model, params=params
                     )
                     result = instance.process_assets(ir, vision_findings, rules, params)
                 else:

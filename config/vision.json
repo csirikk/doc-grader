@@ -4,10 +4,9 @@
     "analysers": [
         {
             "analyser_id": "asset_analyser",
-            "enabled": true,
             "model": "gpt-4o",
             "params": {
-                "baduml_engine": "openai"
+                "classifier_model": "gpt-4-04-14"
             }
         }
     ]

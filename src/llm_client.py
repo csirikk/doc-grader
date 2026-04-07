@@ -18,6 +18,14 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_AZURE_BADUML_MODEL = "gpt-4-04-14"
+_AZURE_BADUML_SYSTEM = (
+    "You are an expert teaching assistant scoring student UML diagrams. "
+    "Analyse the provided image and classify it as 'GOODUML' if it presents a "
+    "readable, structurally valid diagram, or 'BADUML' if the diagram is poor, "
+    "illegible, or incorrect."
+)
+
 
 class LLMClient:
     def __init__(
@@ -133,9 +141,12 @@ class LLMClient:
     def _build_vision_grader_prompt(
         self, rules: list[LLMRule], rulebook: Rulebook
     ) -> str:
+        # NOUML: absence of a diagram cannot be judged from an image
+        # BADUML: handled by the Azure binary classifier
+        _excluded = {"NOUML", "BADUML"}
         rules_text = ""
         for r in rules:
-            if "NOUML" in r.ac_codes:
+            if any(code in _excluded for code in r.ac_codes):
                 continue
             codes_str = "/".join(r.ac_codes)
             rules_text += f"- {codes_str}: {r.prompt_instruction}\n"
@@ -149,13 +160,23 @@ class LLMClient:
         rules: list[LLMRule],
         rulebook: Rulebook,
         model: str | None = None,
+        params: dict | None = None,
     ) -> list:
-        """Encode all PictureItems (with page context) and call the vision model."""
+        """Run the Azure binary classifier and the OpenAI vision LLM.
+
+        The Azure fine-tuned classifier emits BADUML findings (visual/structural
+        quality). The OpenAI vision model emits SEMUML, OWNDIF, BW, and NOUML
+        findings (semantic completeness and other visual rules).
+        Both always execute, their results are merged and returned.
+        """
         from .schemas.llm import VisionModelResponse
 
         if not rules:
             logger.debug("No asset rules provided. Skipping vision LLM call.")
             return []
+
+        combined: list = []
+        combined.extend(self._analyse_assets_azure(doc, rules, params))
 
         user_content: list[dict] = []
         n_images = 0
@@ -191,7 +212,7 @@ class LLMClient:
 
         if n_images == 0:
             logger.debug("No picture images available. Skipping vision LLM call.")
-            return []
+            return combined
 
         user_content.append(
             {
@@ -218,17 +239,93 @@ class LLMClient:
             )
         except Exception as e:
             logger.error(f"Vision LLM API call failed: {e}")
-            return []
+            return combined
 
         parsed_response = response.choices[0].message.parsed
         if parsed_response is None:
             logger.error("Vision LLM returned unparseable response.")
-            return []
+            return combined
         logger.info(f"Vision LLM Reasoning Chain: {parsed_response.reasoning_chain}")
         logger.info(
             f"Successfully parsed {len(parsed_response.findings)} vision findings."
         )
-        return parsed_response.findings
+        combined.extend(parsed_response.findings)
+        return combined
+
+    def _analyse_assets_azure(
+        self,
+        doc: Document,
+        rules: list[LLMRule],
+        params: dict | None = None,
+    ) -> list:
+        """Binary BADUML classifier using the Azure fine-tuned vision model.
+
+        Sends each PictureItem individually to the fine-tuned model and returns
+        a VisionFinding for every image classified as BADUML.
+        """
+        from .schemas.llm import VisionFinding
+
+        azure_client = OpenAI(
+            base_url=os.environ.get("AZURE_OPENAI_ENDPOINT"),
+            api_key=os.environ.get("AZURE_OPENAI_API_KEY"),
+        )
+        deployment = (params or {}).get("classifier_model") or _AZURE_BADUML_MODEL
+        findings: list[VisionFinding] = []
+
+        for idx, (cref, item) in enumerate(doc.picture_items.items()):
+            pil_img = doc.get_picture_pil(idx, item)
+            if pil_img is None:
+                logger.warning(
+                    "No image available for %s, skipping Azure classification.", cref
+                )
+                continue
+
+            b64 = self._encode_pil(pil_img)
+            try:
+                response = azure_client.chat.completions.create(
+                    model=deployment,
+                    temperature=self.temperature,
+                    max_completion_tokens=self.max_completion_tokens,
+                    messages=[
+                        {"role": "system", "content": _AZURE_BADUML_SYSTEM},
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": "Score this diagram."},
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/png;base64,{b64}"
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                )
+            except Exception as e:
+                logger.error("Azure classifier call failed for %s: %s", cref, e)
+                continue
+
+            label = (response.choices[0].message.content or "").strip()
+            logger.info("Azure classified [%s] as %r", cref, label)
+
+            if "BADUML" in label.upper():
+                findings.append(
+                    VisionFinding(
+                        ac_code="BADUML",
+                        item_cref=cref,
+                        reason=("Classified as BADUML by fine-tuned classifier."),
+                        severity=1.0,
+                        confidence=1.0,
+                    )
+                )
+
+        logger.info(
+            "%d/%d images classified as BADUML by Azure model.",
+            len(findings),
+            len(doc.picture_items),
+        )
+        return findings
 
     def judge_findings(
         self,
@@ -294,13 +391,28 @@ class LLMClient:
         for f in findings:
             # Primary passage
             cref = f.anchors[0].target.cref if f.anchors else ""
-            text_item = doc.text_items.get(cref)
-            passage = getattr(text_item, "text", "") or "" if text_item else ""
-            section_path = doc.section_paths.get(cref, "") if text_item else ""
+            is_picture = cref.startswith("#/pictures/")
+            if is_picture:
+                picture_item = doc.picture_items.get(cref)
+                page_no = (
+                    picture_item.prov[0].page_no
+                    if picture_item and picture_item.prov
+                    else None
+                )
+                passage = f"(Visual finding, inspect the diagram {cref}" + (
+                    f" on page {page_no})" if page_no else ")"
+                )
+                section_path = f"Page {page_no}" if page_no else cref
+            else:
+                text_item = doc.text_items.get(cref)
+                passage = getattr(text_item, "text", "") or "" if text_item else ""
+                section_path = doc.section_paths.get(cref, "") if text_item else ""
 
             rule = ac_to_rule.get(f.ac_code)
             rule_def = (
-                rule.prompt_instruction if rule else "(rule definition unavailable)"
+                (rule.judge_instruction or rule.prompt_instruction)
+                if rule
+                else "(rule definition unavailable)"
             )
 
             anchor_lines: list[str] = []
@@ -384,5 +496,17 @@ class LLMClient:
                 logger.warning(
                     "Could not read source file %s for judge context: %s", source, e
                 )
+
+            for idx, (cref, item) in enumerate(doc.picture_items.items()):
+                pil_img = doc.get_picture_pil(idx, item)
+                if pil_img is not None:
+                    b64 = self._encode_pil(pil_img)
+                    user_content.append({"type": "text", "text": f"[Diagram {cref}]"})
+                    user_content.append(
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/png;base64,{b64}"},
+                        }
+                    )
 
         return user_content

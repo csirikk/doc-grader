@@ -42,7 +42,7 @@
     "You receive a set of flagged findings produced by a high-recall automated detector. Your job is to act as the final judge to eliminate false positives and refine true positives.",
     "",
     "### TASK",
-    "The full student document is attached. Consult it to verify the context of the flagged passages.",
+    "The full student document is attached. For PDF documents, page images follow. For non-PDF documents (e.g. Markdown), extracted diagram images are attached labelled [Diagram #/pictures/N]. Consult all attached images to verify visual findings.",
     "Evaluate each finding strictly against its specific AC Rule definition and the provided document context.",
     "If a finding is a true positive, you have full authority to rewrite the explanation for clarity and adjust the quoted text to be a more accurate anchor.",
     "Respond in English.",
@@ -53,14 +53,17 @@
     "3. Determine if the text actually violates the rule.",
     "4. If it DOES violate the rule:",
     "   - Check the explanation. If it is vague, write a clearer explanation.",
-    "   - Check the evidence anchor. Identify the most specific, exact substring from the document that proves the violation.",
+    "   - For text findings: identify the most specific, exact substring from the document that proves the violation.",
+    "   - For visual findings (SEMUML, BW, OWNDIF, NOUML): the evidence is the image, not a text passage. Verify by inspecting the diagram referenced in the attached page images. The 'passage' field will indicate the page number.",
+    "   - For BADUML specifically: You are FORBIDDEN from evaluating the visual quality, readability, or aesthetics of the diagram. The quality has already been definitively scored as 'bad' by a prior expert system. Your ONLY task is an image-type check. If the image is a UML Class Diagram (or an attempt at one), you MUST output 'approved'. You may ONLY output 'dismissed' if the image is completely unrelated to a UML Class Diagram (e.g., a sequence diagram, a UI screenshot, or a text block).",
     "   - Adjust the confidence score to reflect your certainty.",
     "   - Adjust the severity score to reflect the actual severity of the violation.",
     "",
     "### DECISION DEFINITIONS",
     "- 'approved': True Positive. The finding is accurate as originally written. No changes needed.",
     "- 'adjusted': True Positive (Modified). The violation is real, but you have rewritten the explanation to be clearer, updated the exact evidence quote, or recalibrated the confidence score.",
-    "- 'dismissed': False Positive. The text does not violate the AC Rule, or the flagged evidence is invalid."
+    "- 'dismissed': False Positive. The text does not violate the AC Rule, or the flagged evidence is invalid.",
+    ""
   ],
   "rules": [
     {
@@ -301,10 +304,20 @@
       "ac_codes": [
         "BADUML"
       ],
-      "title": "UML Diagram Quality",
+      "title": "UML Diagram Visual Quality",
       "analyser_id": "asset_analyser",
       "course": "ipp",
-      "prompt_instruction": "The UML Class Diagram is syntactically incorrect, uses the wrong diagram type, was auto-generated from an IDE without curation, is missing significant classes or methods, or fails to convey how classes interact."
+      "prompt_instruction": "The UML Class Diagram is so severely visually flawed that its structure cannot easily be understood.",
+      "judge_instruction": "CRITICAL INSTRUCTION: Do not evaluate the quality of this diagram. Assume the quality is definitively confirmed as BAD. Your only task is to verify if the image is a UML Class Diagram. If the image depicts classes, attributes, and methods (even poorly), you MUST approve the finding. ONLY dismiss this finding if the image is clearly not a UML Class Diagram (e.g., it is a flowchart, terminal screenshot, or block of text)."
+    },
+    {
+      "ac_codes": [
+        "SEMUML"
+      ],
+      "title": "UML Diagram Semantic Completeness",
+      "analyser_id": "asset_analyser",
+      "course": "ipp",
+      "prompt_instruction": "The UML Class Diagram is semantically incomplete: it is missing significant classes or methods from the implementation, or fails to convey how the classes interact with each other."
     },
     {
       "ac_codes": [

@@ -10,7 +10,16 @@ from .base import StrictModel
 class LLMRule(StrictModel):
     title: str = Field(..., description="Short rule title phrase")
     ac_codes: list[str] = Field(..., description="The assessment criterion codes")
-    prompt_instruction: str = Field(..., description="LLM prompt")
+    prompt_instruction: str = Field(
+        ..., description="Analyser prompt: describes what to flag and when."
+    )
+    judge_instruction: str | None = Field(
+        default=None,
+        description=(
+            "Judge prompt: describes when to approve, adjust, or dismiss a finding. "
+            "When absent the judge falls back to prompt_instruction."
+        ),
+    )
     analyser_id: str = Field(..., description="ID of the analyser this rule belongs to")
     course: Literal["ifj", "ipp", None] = Field(
         default=None, description="The course this rule applies to. None means both."

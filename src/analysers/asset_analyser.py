@@ -2,13 +2,15 @@
 
 Responsible for AC:
 - 'NOUML': No UML class diagram is present in the document.
-- 'BADUML': UML class diagram is syntactically incorrect, uses the wrong type,
-  is auto-generated without curation, or fails to convey class interactions.
+- 'BADUML': UML class diagram has broken notation, uses the wrong type, was
+  auto-generated without curation, or is so visually flawed it cannot be read.
+  Detected by the Azure fine-tuned binary classifier.
+- 'SEMUML': UML class diagram is semantically incomplete: missing significant
+  classes or methods, or fails to convey class interactions.
+  Detected by the OpenAI vision LLM.
 - 'OWNDIF': Diagram does not visually distinguish custom (student) classes from
   framework/library classes (e.g. ipp-core).
 - 'BW': Dark-background diagram pasted into a light-background document.
-
-todo: vision fine tune a binary image classifier for baduml?
 """
 
 from __future__ import annotations
