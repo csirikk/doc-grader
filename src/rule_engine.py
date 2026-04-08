@@ -70,6 +70,10 @@ class RuleEngine:
                     finding.severity = verdict.adjusted_severity
                 if verdict.adjusted_confidence is not None:
                     finding.confidence = verdict.adjusted_confidence
+                if verdict.adjusted_summary is not None:
+                    finding.summary = verdict.adjusted_summary
+                if verdict.adjusted_snippet is not None and finding.anchors:
+                    finding.anchors[0].snippet = verdict.adjusted_snippet
 
             after_state = {
                 "summary": finding.summary,
