@@ -201,6 +201,9 @@ class BaseLLMAnalyser(BaseAnalyser):
         known_codes: set[str] = {code for r in rules for code in r.ac_codes}
         findings: list[Finding] = []
         for f in llm_findings:
+            if f.ac_code == "FIL0":
+                logger.debug("Correcting hallucinated AC code 'FIL0' to 'FILO'")
+                f = f.model_copy(update={"ac_code": "FILO"})
             if f.ac_code not in known_codes:
                 logger.warning(
                     "Ignoring LLM finding with unknown AC code %r", f.ac_code
