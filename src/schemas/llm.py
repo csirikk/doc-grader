@@ -117,23 +117,31 @@ class JudgeVerdict(StrictModel):
         description=(
             "approved: violation confirmed; "
             "dismissed: false positive; "
-            "adjusted: real issue but severity/confidence miscalibrated"
+            "adjusted: real issue but text, snippet, severity, or confidence need correcting"
         ),
+    )
+    adjusted_summary: str | None = Field(
+        default=None,
+        description="The rewritten, clearer explanation of the violation (only set if decision is 'adjusted').",
+    )
+    adjusted_snippet: str | None = Field(
+        default=None,
+        description="The corrected exact, unedited substring from the document (only set if decision is 'adjusted').",
     )
     adjusted_severity: float | None = Field(
         default=None,
         ge=0.0,
         le=1.0,
-        description="Corrected severity (only set when decision is 'adjusted')",
+        description="Corrected severity (only set if decision is 'adjusted')",
     )
     adjusted_confidence: float | None = Field(
         default=None,
         ge=0.0,
         le=1.0,
-        description="Corrected confidence (only set when decision is 'adjusted')",
+        description="Corrected confidence (only set if decision is 'adjusted')",
     )
     rationale: str = Field(
-        ..., description="One-sentence justification for the decision"
+        ..., description="One-sentence justification for why this decision was made"
     )
 
 
