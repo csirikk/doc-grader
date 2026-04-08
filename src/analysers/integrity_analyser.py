@@ -472,6 +472,41 @@ class IntegrityAnalyser(BaseLLMAnalyser):
     analyser_id: ClassVar[str] = "integrity_analyser"
     name: ClassVar[str] = "Integrity Analyser"
 
+    def build_system_prompt(
+        self,
+        rules: list[LLMRule],
+        rulebook: Rulebook,
+        params: dict[str, Any] | None = None,
+    ) -> str:
+        """Extend the grader prompt with the assignment spec text for COPY checks."""
+        system_prompt = super().build_system_prompt(rules, rulebook, params)
+
+        has_copy_rule = any("COPY" in r.ac_codes for r in rules)
+        if has_copy_rule and (params or {}).get("spec_path"):
+            from ..parsers.parser import DocumentParser
+
+            spec_path = Path(params["spec_path"])  # type: ignore
+            try:
+                spec_parse = DocumentParser().parse(spec_path)
+                if spec_parse.ir is not None:
+                    spec_text = "".join(
+                        item.text + "\n"
+                        for item in spec_parse.ir.text_items.values()
+                        if item.text
+                    )
+                    system_prompt += (
+                        "\n\n### ASSIGNMENT SPECIFICATION"
+                        " (For COPY rule comparison)\n" + spec_text
+                    )
+                    logger.debug(
+                        "Appended spec text (%d chars) to grader prompt",
+                        len(spec_text),
+                    )
+            except Exception as exc:
+                logger.warning("Could not load spec for COPY rule comparison: %s", exc)
+
+        return system_prompt
+
     def get_rules(
         self,
         rulebook: Rulebook,

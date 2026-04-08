@@ -49,14 +49,6 @@ class _UsageEntry(TypedDict):
 
 logger = logging.getLogger(__name__)
 
-_AZURE_BADUML_MODEL = "gpt-4-04-14"
-_AZURE_BADUML_SYSTEM = (
-    "You are an expert teaching assistant scoring student UML diagrams. "
-    "Analyse the provided image and classify it as 'GOODUML' if it presents a "
-    "readable, structurally valid diagram, or 'BADUML' if the diagram is poor, "
-    "illegible, or incorrect."
-)
-
 
 class LLMClient:
     def __init__(
@@ -149,25 +141,12 @@ class LLMClient:
         pil_image.save(buf, format="PNG")
         return base64.b64encode(buf.getvalue()).decode("ascii")
 
-    def _build_grader_model_prompt(
-        self, rules: list[LLMRule], rulebook: Rulebook
-    ) -> str:
-        rules_text = ""
-        for r in rules:
-            codes_str = "/".join(r.ac_codes)
-            rules_text += f"- {codes_str}: {r.prompt_instruction}\n"
-
-        template = "\n".join(rulebook.grader_model_prompt_template)
-        return template.replace("{rules}", rules_text)
-
     def analyse_document(
         self,
         doc: Document,
-        rules: list[LLMRule],
-        rulebook: Rulebook,
+        system_prompt: str,
         model: str | None = None,
         temperature: float | None = None,
-        params: dict | None = None,
     ) -> list[LLMFinding]:
         """Extract document text, call the grader model, and return findings."""
         from .schemas.llm import GraderModelResponse
@@ -180,36 +159,11 @@ class LLMClient:
             section_prefix = f"[Section: {section}] " if section else ""
             text_chunk += f"[Ref: {cref}] {section_prefix}{item.text}\n\n"
 
-        if not text_chunk.strip() or not rules:
-            logger.debug("No text to analyse or no rules provided. Skipping LLM call.")
+        if not text_chunk.strip() or not system_prompt:
+            logger.debug(
+                "No text to analyse or no system prompt provided. Skipping LLM call."
+            )
             return []
-        system_prompt = self._build_grader_model_prompt(rules, rulebook)
-
-        has_copy_rule = any("COPY" in r.ac_codes for r in rules)
-        if has_copy_rule and params and params.get("spec_path"):
-            from pathlib import Path
-
-            from .parsers.parser import DocumentParser
-
-            spec_path = Path(params["spec_path"])
-            try:
-                spec_parse = DocumentParser().parse(spec_path)
-                if spec_parse.ir is not None:
-                    spec_text = "".join(
-                        item.text + "\n"
-                        for item in spec_parse.ir.text_items.values()
-                        if item.text
-                    )
-                    system_prompt += (
-                        "\n\n### ASSIGNMENT SPECIFICATION"
-                        " (For COPY rule comparison)\n" + spec_text
-                    )
-                    logger.debug(
-                        "Appended spec text (%d chars) to grader prompt",
-                        len(spec_text),
-                    )
-            except Exception as exc:
-                logger.warning("Could not load spec for COPY rule comparison: %s", exc)
         logger.debug(
             f"Sending request to {self.model}. SYSTEM PROMPT:\n{system_prompt}"
         )
@@ -242,49 +196,19 @@ class LLMClient:
         )
         return parsed_response.findings
 
-    def _build_vision_grader_prompt(
-        self, rules: list[LLMRule], rulebook: Rulebook, doc: Document
-    ) -> str:
-        # NOUML: absence of a diagram cannot be judged from an image
-        # BADUML: handled by the Azure binary classifier
-        # BW: requires a document background to judge contrast, skip for markdown
-        _excluded = {"NOUML", "BADUML"}
-        if not doc.docling_doc.pages:
-            _excluded.add("BW")
-        rules_text = ""
-        for r in rules:
-            if any(code in _excluded for code in r.ac_codes):
-                continue
-            codes_str = "/".join(r.ac_codes)
-            rules_text += f"- {codes_str}: {r.prompt_instruction}\n"
-
-        template = "\n".join(rulebook.vision_model_prompt_template)
-        return template.replace("{rules}", rules_text)
-
     def analyse_assets(
         self,
         doc: Document,
-        rules: list[LLMRule],
-        rulebook: Rulebook,
+        system_prompt: str,
         model: str | None = None,
         temperature: float | None = None,
-        params: dict | None = None,
     ) -> list:
-        """Run the Azure binary classifier and the OpenAI vision LLM.
+        """Run the OpenAI vision LLM on all pictures in the document.
 
-        The Azure fine-tuned classifier emits BADUML findings (visual/structural
-        quality). The OpenAI vision model emits SEMUML, OWNDIF, BW, and NOUML
-        findings (semantic completeness and other visual rules).
-        Both always execute, their results are merged and returned.
+        Returns raw VisionFinding-compatible objects as produced by the model.
+        For Azure-based binary classification use run_azure_vision_classifier.
         """
         from .schemas.llm import VisionModelResponse
-
-        if not rules:
-            logger.debug("No asset rules provided. Skipping vision LLM call.")
-            return []
-
-        combined: list = []
-        combined.extend(self._analyse_assets_azure(doc, rules, params))
 
         user_content: list[dict] = []
         n_images = 0
@@ -320,7 +244,7 @@ class LLMClient:
 
         if n_images == 0:
             logger.debug("No picture images available. Skipping vision LLM call.")
-            return combined
+            return []
 
         user_content.append(
             {
@@ -329,7 +253,6 @@ class LLMClient:
             }
         )
 
-        system_prompt = self._build_vision_grader_prompt(rules, rulebook, doc)
         logger.debug(f"Sending {n_images} picture(s) to vision model.")
 
         messages: list = [
@@ -349,39 +272,35 @@ class LLMClient:
             )
         except Exception as e:
             logger.error(f"Vision LLM API call failed: {e}")
-            return combined
+            return []
 
         self._record_usage(model or self.model, response.usage)
         parsed_response = response.choices[0].message.parsed
         if parsed_response is None:
             logger.error("Vision LLM returned unparseable response.")
-            return combined
+            return []
         logger.info(f"Vision LLM Reasoning Chain: {parsed_response.reasoning_chain}")
         logger.info(
             f"Successfully parsed {len(parsed_response.findings)} vision findings."
         )
-        combined.extend(parsed_response.findings)
-        return combined
+        return parsed_response.findings
 
-    def _analyse_assets_azure(
+    def run_azure_vision_classifier(
         self,
         doc: Document,
-        rules: list[LLMRule],
-        params: dict | None = None,
-    ) -> list:
-        """Binary BADUML classifier using the Azure fine-tuned vision model.
+        system_prompt: str,
+        model: str,
+    ) -> dict[str, str]:
+        """Send each picture in the document to the Azure vision model and return
+        the raw text label keyed by the picture cref.
 
-        Sends each PictureItem individually to the fine-tuned model and returns
-        a VisionFinding for every image classified as BADUML.
+        The caller is responsible for interpreting the returned strings.
         """
-        from .schemas.llm import VisionFinding
-
         azure_client = OpenAI(
             base_url=os.environ.get("AZURE_OPENAI_ENDPOINT"),
             api_key=os.environ.get("AZURE_OPENAI_API_KEY"),
         )
-        deployment = (params or {}).get("classifier_model") or _AZURE_BADUML_MODEL
-        findings: list[VisionFinding] = []
+        results: dict[str, str] = {}
 
         for idx, (cref, item) in enumerate(doc.picture_items.items()):
             pil_img = doc.get_picture_pil(idx, item)
@@ -394,11 +313,11 @@ class LLMClient:
             b64 = self._encode_pil(pil_img)
             try:
                 response = azure_client.chat.completions.create(
-                    model=deployment,
+                    model=model,
                     temperature=self.temperature,
                     max_completion_tokens=self.max_completion_tokens,
                     messages=[
-                        {"role": "system", "content": _AZURE_BADUML_SYSTEM},
+                        {"role": "system", "content": system_prompt},
                         {
                             "role": "user",
                             "content": [
@@ -417,27 +336,11 @@ class LLMClient:
                 logger.error("Azure classifier call failed for %s: %s", cref, e)
                 continue
 
-            self._record_usage(deployment, response.usage)
-            label = (response.choices[0].message.content or "").strip()
-            logger.info("Azure classified [%s] as %r", cref, label)
+            self._record_usage(model, response.usage)
+            results[cref] = (response.choices[0].message.content or "").strip()
+            logger.info("Azure classified [%s] as %r", cref, results[cref])
 
-            if "BADUML" in label.upper():
-                findings.append(
-                    VisionFinding(
-                        ac_code="BADUML",
-                        item_cref=cref,
-                        reason=("Classified as BADUML by fine-tuned classifier."),
-                        severity=1.0,
-                        confidence=1.0,
-                    )
-                )
-
-        logger.info(
-            "%d/%d images classified as BADUML by Azure model.",
-            len(findings),
-            len(doc.picture_items),
-        )
-        return findings
+        return results
 
     def judge_findings(
         self,

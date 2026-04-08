@@ -198,6 +198,23 @@ class BaseLLMAnalyser(BaseAnalyser):
             findings.append(self._convert_llm_finding_to_finding(doc, f, rules))
         return findings
 
+    def build_system_prompt(
+        self,
+        rules: list[LLMRule],
+        rulebook: Rulebook,
+        params: dict[str, Any] | None = None,
+    ) -> str:
+        """Build the grader system prompt from rules and the rulebook template.
+
+        Subclasses may override to inject extra context (e.g. a spec document).
+        """
+        rules_text = ""
+        for r in rules:
+            codes_str = "/".join(r.ac_codes)
+            rules_text += f"- {codes_str}: {r.prompt_instruction}\n"
+        template = "\n".join(rulebook.grader_model_prompt_template)
+        return template.replace("{rules}", rules_text)
+
     def execute_llm(
         self,
         llm_client: Any,
@@ -209,8 +226,9 @@ class BaseLLMAnalyser(BaseAnalyser):
         """Call the grader LLM and return raw findings. Subclasses may override."""
         model = (params or {}).get("model")
         temperature = (params or {}).get("temperature")
+        system_prompt = self.build_system_prompt(rules, rulebook, params)
         return llm_client.analyse_document(
-            doc, rules, rulebook, model=model, temperature=temperature, params=params
+            doc, system_prompt, model=model, temperature=temperature
         )
 
     def analyse(
