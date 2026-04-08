@@ -22,7 +22,7 @@ from .base_analyser import BaseLLMAnalyser
 if TYPE_CHECKING:
     from ..schemas.finding import Finding
     from ..schemas.ir import Document
-    from ..schemas.llm import LLMRule, VisionFinding
+    from ..schemas.llm import LLMRule, Rulebook
 
 
 class AssetAnalyser(BaseLLMAnalyser):
@@ -34,15 +34,33 @@ class AssetAnalyser(BaseLLMAnalyser):
     analyser_id: ClassVar[str] = "asset_analyser"
     name: ClassVar[str] = "Asset Analyser"
 
-    def process_assets(
+    def execute_llm(
+        self,
+        llm_client: Any,
+        doc: Document,
+        rules: list[LLMRule],
+        rulebook: Rulebook,
+        params: dict[str, Any] | None = None,
+    ) -> list[Any]:
+        model = (params or {}).get("model")
+        temperature = (params or {}).get("temperature")
+        return llm_client.analyse_assets(
+            doc, rules, rulebook, model=model, temperature=temperature, params=params
+        )
+
+    def analyse(
         self,
         doc: Document,
-        vision_findings: list[VisionFinding],
-        rules: list[LLMRule],
+        rulebook: Rulebook | None = None,
         params: dict[str, Any] | None = None,
+        llm_client: Any | None = None,
     ) -> list[Finding]:
-        pictures = list(doc.picture_items.values())
-        if not pictures:
+        if rulebook is None:
+            return []
+        rules = self.get_rules(rulebook, params)
+        if not rules:
+            return []
+        if not doc.picture_items:
             return [
                 self._make_finding(
                     doc=doc,
@@ -56,5 +74,7 @@ class AssetAnalyser(BaseLLMAnalyser):
                     confidence=1.0,
                 )
             ]
-
-        return self.process_vision_findings(doc, vision_findings, rules, params)
+        if not llm_client:
+            return []
+        raw = self.execute_llm(llm_client, doc, rules, rulebook, params)
+        return self.process_vision_findings(doc, raw, rules, params)

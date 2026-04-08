@@ -12,7 +12,7 @@ from .base_analyser import BaseLLMAnalyser
 if TYPE_CHECKING:
     from ..schemas.finding import Finding
     from ..schemas.ir import Document
-    from ..schemas.llm import LLMFinding, LLMRule, Rulebook
+    from ..schemas.llm import LLMRule, Rulebook
 
 logger = logging.getLogger(__name__)
 
@@ -87,23 +87,16 @@ class GrammarAnalyser(BaseLLMAnalyser):
             and (rule.language is None or rule.language == language)
         ]
 
-    def process_llm_findings(
+    def analyse(
         self,
         doc: Document,
-        llm_findings: list[LLMFinding],
-        rules: list[LLMRule],
+        rulebook: Rulebook | None = None,
         params: dict[str, Any] | None = None,
+        llm_client: Any | None = None,
     ) -> list[Finding]:
         if (params or {}).get("grammar_engine", "local") == "local":
             return self._run_local_analysis(doc)
-        return super().process_llm_findings(doc, llm_findings, rules, params)
-
-    def analyse(
-        self, doc: Document, params: dict[str, Any] | None = None
-    ) -> list[Finding]:
-        if (params or {}).get("grammar_engine", "local") != "local":
-            return []
-        return self._run_local_analysis(doc)
+        return super().analyse(doc, rulebook, params, llm_client)
 
     def _run_local_analysis(self, doc: Document) -> list[Finding]:
         if doc.language == "cs":

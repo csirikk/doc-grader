@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 
     from ..schemas.finding import Finding
     from ..schemas.ir import Document
-    from ..schemas.llm import LLMFinding, LLMRule, Rulebook
+    from ..schemas.llm import LLMRule, Rulebook
 
 logger = logging.getLogger(__name__)
 
@@ -482,17 +482,16 @@ class IntegrityAnalyser(BaseLLMAnalyser):
             rules = [r for r in rules if "COPY" not in r.ac_codes]
         return rules
 
-    def process_llm_findings(
+    def analyse(
         self,
         doc: Document,
-        llm_findings: list[LLMFinding],
-        rules: list[LLMRule],
+        rulebook: Rulebook | None = None,
         params: dict[str, Any] | None = None,
+        llm_client: Any | None = None,
     ) -> list[Finding]:
-        findings = super().process_llm_findings(doc, llm_findings, rules, params)
+        findings = list(super().analyse(doc, rulebook, params, llm_client))
         if (params or {}).get("copy_engine", "local") == "local":
-            local_findings = self._run_local_analysis(doc, params)
-            findings.extend(local_findings)
+            findings.extend(self._run_local_analysis(doc, params))
         return findings
 
     def _run_local_analysis(

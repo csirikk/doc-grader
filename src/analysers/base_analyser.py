@@ -96,14 +96,20 @@ class BaseAnalyser(ABC):
 
     @abstractmethod
     def analyse(
-        self, doc: Document, params: dict[str, Any] | None = None
+        self,
+        doc: Document,
+        rulebook: Rulebook | None = None,
+        params: dict[str, Any] | None = None,
+        llm_client: Any | None = None,
     ) -> list[Finding]:
         """
         Perform analysis on the document.
 
         Args:
             doc: The intermediate representation of the document.
+            rulebook: Rulebook for rule lookup. Required by LLM-backed analysers.
             params: Optional dictionary of configuration parameters.
+            llm_client: Optional LLM client. Required by LLM-backed analysers.
 
         Returns:
             A list of detected Findings.
@@ -192,8 +198,35 @@ class BaseLLMAnalyser(BaseAnalyser):
             findings.append(self._convert_llm_finding_to_finding(doc, f, rules))
         return findings
 
-    def analyse(self, doc: Document, params: dict | None = None) -> list[Finding]:
-        raise NotImplementedError("LLM analysers are orchestrated via _run_analysers.")
+    def execute_llm(
+        self,
+        llm_client: Any,
+        doc: Document,
+        rules: list[LLMRule],
+        rulebook: Rulebook,
+        params: dict[str, Any] | None = None,
+    ) -> list[Any]:
+        """Call the grader LLM and return raw findings. Subclasses may override."""
+        model = (params or {}).get("model")
+        temperature = (params or {}).get("temperature")
+        return llm_client.analyse_document(
+            doc, rules, rulebook, model=model, temperature=temperature, params=params
+        )
+
+    def analyse(
+        self,
+        doc: Document,
+        rulebook: Rulebook | None = None,
+        params: dict[str, Any] | None = None,
+        llm_client: Any | None = None,
+    ) -> list[Finding]:
+        if rulebook is None or not llm_client:
+            return []
+        rules = self.get_rules(rulebook, params)
+        if not rules:
+            return []
+        raw = self.execute_llm(llm_client, doc, rules, rulebook, params)
+        return self.process_llm_findings(doc, raw, rules, params)
 
     def _convert_llm_finding_to_finding(
         self,

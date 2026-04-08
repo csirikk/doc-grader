@@ -14,6 +14,7 @@ from .base_analyser import BaseAnalyser
 if TYPE_CHECKING:
     from ..schemas.finding import Finding
     from ..schemas.ir import Document
+    from ..schemas.llm import Rulebook
 
 logger = logging.getLogger(__name__)
 
@@ -206,7 +207,11 @@ class StructureAnalyser(BaseAnalyser):
         return []
 
     def analyse(
-        self, doc: Document, params: dict[str, Any] | None = None
+        self,
+        doc: Document,
+        rulebook: Rulebook | None = None,
+        params: dict[str, Any] | None = None,
+        llm_client: Any | None = None,
     ) -> list[Finding]:
         """Run all structure checks."""
         findings: list[Finding] = []

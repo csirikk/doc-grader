@@ -14,7 +14,6 @@ from dotenv import load_dotenv
 
 # Analysers
 from .analysers.asset_analyser import AssetAnalyser
-from .analysers.base_analyser import BaseLLMAnalyser
 from .analysers.grammar_analyser import GrammarAnalyser
 from .analysers.integrity_analyser import IntegrityAnalyser
 from .analysers.language_analyser import LanguageAnalyser
@@ -67,11 +66,6 @@ def _run_analysers(
 ) -> list[Finding]:
     findings: list[Finding] = []
 
-    llm_analysers: dict[str, BaseLLMAnalyser] = {}
-    llm_params: dict[str, Any] = {}
-    llm_models: dict[str, str | None] = {}
-    llm_temperatures: dict[str, float | None] = {}
-
     for analyser_cfg in config.analysers:
         if not analyser_cfg.enabled:
             continue
@@ -84,69 +78,23 @@ def _run_analysers(
             continue
 
         analyser_params = analyser_cfg.params.copy()
-        if "course" not in analyser_params:
-            analyser_params["course"] = config.course
-        if "language" not in analyser_params:
-            analyser_params["language"] = ir.language
+        analyser_params.setdefault("course", config.course)
+        analyser_params.setdefault("language", ir.language)
+        analyser_params["model"] = analyser_cfg.model
+        analyser_params["temperature"] = analyser_cfg.temperature
 
         try:
-            analyser_instance = analyser_class()
-
-            if isinstance(analyser_instance, BaseLLMAnalyser):
-                llm_analysers[analyser_cfg.analyser_id] = analyser_instance
-                llm_params[analyser_cfg.analyser_id] = analyser_params
-                llm_models[analyser_cfg.analyser_id] = analyser_cfg.model
-                llm_temperatures[analyser_cfg.analyser_id] = analyser_cfg.temperature
-            else:
-                result = analyser_instance.analyse(ir, params=analyser_params)
-                if result:
-                    findings.extend(result)
+            instance = analyser_class()
+            result = instance.analyse(
+                doc=ir,
+                rulebook=rulebook,
+                params=analyser_params,
+                llm_client=llm_client,
+            )
+            if result:
+                findings.extend(result)
         except Exception:
             logger.exception("Error running analyser %s", analyser_cfg.analyser_id)
-
-    if llm_analysers:
-        for analyser_id, instance in llm_analysers.items():
-            params = llm_params.get(analyser_id)
-            model = llm_models.get(analyser_id)
-            temperature = llm_temperatures.get(analyser_id)
-            rules = instance.get_rules(rulebook, params=params)
-            try:
-                if isinstance(instance, AssetAnalyser):
-                    # Vision analysis requires both rules and an LLM client.
-                    if not rules or not llm_client:
-                        continue
-                    vision_findings = llm_client.analyse_assets(
-                        ir,
-                        rules,
-                        rulebook,
-                        model=model,
-                        temperature=temperature,
-                        params=params,
-                    )
-                    result = instance.process_assets(ir, vision_findings, rules, params)
-                else:
-                    # Call the cloud grader only when rules exist and a client is
-                    # available; otherwise pass empty findings so local pipelines
-                    # (e.g. IntegrityAnalyser with copy_engine="local") still run.
-                    llm_findings: list = (
-                        llm_client.analyse_document(
-                            ir,
-                            rules,
-                            rulebook,
-                            model=model,
-                            temperature=temperature,
-                            params=params,
-                        )
-                        if rules and llm_client
-                        else []
-                    )
-                    result = instance.process_llm_findings(
-                        ir, llm_findings, rules, params
-                    )
-                if result:
-                    findings.extend(result)
-            except Exception:
-                logger.exception("Error running LLM analysis for %s", analyser_id)
 
     return findings
 
