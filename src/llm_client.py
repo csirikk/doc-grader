@@ -149,12 +149,17 @@ class LLMClient:
         temperature: float | None = None,
     ) -> list[LLMFinding]:
         """Extract document text, call the grader model, and return findings."""
+        from docling_core.types.doc.document import TextItem
+
         from .schemas.llm import GraderModelResponse
 
         logger.debug("analyse_document start")
 
         text_chunk = ""
-        for cref, item in doc.text_items.items():
+        for item, _ in doc.docling_doc.iterate_items():
+            if not isinstance(item, TextItem):
+                continue
+            cref = item.get_ref().cref
             section = doc.section_paths.get(cref, "")
             section_prefix = f"[Section: {section}] " if section else ""
             text_chunk += f"[Ref: {cref}] {section_prefix}{item.text}\n\n"
@@ -212,7 +217,8 @@ class LLMClient:
 
         user_content: list[dict] = []
         n_images = 0
-        for idx, (cref, item) in enumerate(doc.picture_items.items()):
+        for idx, item in enumerate(doc.docling_doc.pictures):
+            cref = item.get_ref().cref
             # Send the surrounding page image first so the model can judge
             # contrast against the document background (BW).
             if item.prov:
@@ -302,7 +308,8 @@ class LLMClient:
         )
         results: dict[str, str] = {}
 
-        for idx, (cref, item) in enumerate(doc.picture_items.items()):
+        for idx, item in enumerate(doc.docling_doc.pictures):
+            cref = item.get_ref().cref
             pil_img = doc.get_picture_pil(idx, item)
             if pil_img is None:
                 logger.warning(
@@ -412,8 +419,15 @@ class LLMClient:
             # Primary passage
             cref = f.anchors[0].target.cref if f.anchors else ""
             is_picture = cref.startswith("#/pictures/")
+            from docling_core.types.doc.document import RefItem
+
             if is_picture:
-                picture_item = doc.picture_items.get(cref)
+                try:
+                    picture_item = RefItem.model_validate({"$ref": cref}).resolve(
+                        doc=doc.docling_doc
+                    )
+                except Exception:
+                    picture_item = None
                 page_no = (
                     picture_item.prov[0].page_no
                     if picture_item and picture_item.prov
@@ -424,16 +438,22 @@ class LLMClient:
                 )
                 section_path = f"Page {page_no}" if page_no else cref
             else:
-                text_item = doc.text_items.get(cref)
+                try:
+                    text_item = RefItem.model_validate({"$ref": cref}).resolve(
+                        doc=doc.docling_doc
+                    )
+                except Exception:
+                    text_item = None
                 passage = getattr(text_item, "text", "") or "" if text_item else ""
                 section_path = doc.section_paths.get(cref, "") if text_item else ""
 
             rule = ac_to_rule.get(f.ac_code)
-            rule_def = (
-                (rule.judge_instruction or rule.prompt_instruction)
-                if rule
-                else "(rule definition unavailable)"
-            )
+            if rule:
+                rule_def = rule.prompt_instruction
+                if rule.judge_instruction:
+                    rule_def += f"\n[JUDGE OVERRIDE]: {rule.judge_instruction}"
+            else:
+                rule_def = "(rule definition unavailable)"
 
             anchor_lines: list[str] = []
             for i, anchor in enumerate(f.anchors, 1):
@@ -517,7 +537,8 @@ class LLMClient:
                     "Could not read source file %s for judge context: %s", source, e
                 )
 
-            for idx, (cref, item) in enumerate(doc.picture_items.items()):
+            for idx, item in enumerate(doc.docling_doc.pictures):
+                cref = item.get_ref().cref
                 pil_img = doc.get_picture_pil(idx, item)
                 if pil_img is not None:
                     b64 = self._encode_pil(pil_img)

@@ -44,16 +44,7 @@ class Document(StrictModel):
     total_chars: int = Field(default=0, description="Total detected characters")
     total_paragraphs: int = Field(default=0, description="Total detected paragraphs")
     total_headings: int = Field(default=0, description="Total detected headings")
-    text_items: dict[str, Any] = Field(
-        default_factory=dict,
-        exclude=True,
-        description="Map of cref to Docling TextItem",
-    )
-    picture_items: dict[str, Any] = Field(
-        default_factory=dict,
-        exclude=True,
-        description="Map of cref to Docling PictureItem",
-    )
+    total_pictures: int = Field(default=0, description="Total detected pictures")
     section_paths: dict[str, str] = Field(
         default_factory=dict,
         exclude=True,

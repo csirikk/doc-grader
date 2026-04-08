@@ -6,7 +6,7 @@ import io
 import logging
 import re
 import unicodedata
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import charset_normalizer
 from docling_core.types.doc.base import (
@@ -361,9 +361,8 @@ class DocumentParser:
             doc_ref.binary_hash = int(doc.origin.binary_hash)
             parse_meta.parsed_ok = True
 
-            words, chars, paras, headings = 0, 0, 0, 0
-            text_items: dict[str, TextItem] = {}
-            picture_items: dict[str, Any] = {}
+            words, chars, paras, headings, pictures = 0, 0, 0, 0, 0
+            combined_text_parts: list[str] = []
             section_paths: dict[str, str] = {}
             paragraph_labels = {DocItemLabel.TEXT, DocItemLabel.PARAGRAPH}
 
@@ -400,7 +399,7 @@ class DocumentParser:
 
                 if not isinstance(item, TextItem):  # does not add tables to text
                     if isinstance(item, PictureItem):
-                        picture_items[item.get_ref().cref] = item
+                        pictures += 1
                     continue
 
                 if isinstance(item, SectionHeaderItem):
@@ -419,11 +418,9 @@ class DocumentParser:
 
                     cref = item.get_ref().cref
                     section_paths[cref] = " > ".join(heading_stack)
-                    text_items[cref] = item
+                    combined_text_parts.append(item.text)
 
-            combined_text = " ".join(
-                item.text for item in text_items.values() if item.text
-            )
+            combined_text = " ".join(combined_text_parts)
             detected_language = _detect_language(combined_text)
             logger.debug("Detected document language: %r", detected_language)
 
@@ -434,8 +431,7 @@ class DocumentParser:
                 total_chars=chars,
                 total_paragraphs=paras,
                 total_headings=headings,
-                text_items=text_items,
-                picture_items=picture_items,
+                total_pictures=pictures,
                 section_paths=section_paths,
                 md_image_uris=md_image_uris,
                 language=detected_language,

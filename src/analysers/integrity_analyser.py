@@ -343,11 +343,16 @@ def _extract_chunks(doc: Document, min_chunk_len: int) -> list[TextUnit]:
 
 def _extract_sentences(doc: Document, min_len: int) -> list[TextUnit]:
     """Extract sentences from all text items using stanza SBD."""
+    from docling_core.types.doc.document import TextItem
+
     units: list[TextUnit] = []
     effective_min = max(min_len, MIN_SENTENCE_LEN)
-    for cref, item in doc.text_items.items():
+    for item, _ in doc.docling_doc.iterate_items():
+        if not isinstance(item, TextItem):
+            continue
         if not item.text or not item.text.strip():
             continue
+        cref = item.get_ref().cref
         for sent in _split_sentences(item.text):
             cleaned = _clean_and_filter(sent, effective_min)
             if cleaned is not None:
@@ -489,10 +494,14 @@ class IntegrityAnalyser(BaseLLMAnalyser):
             try:
                 spec_parse = DocumentParser().parse(spec_path)
                 if spec_parse.ir is not None:
+                    from docling_core.types.doc.document import (
+                        TextItem,
+                    )
+
                     spec_text = "".join(
                         item.text + "\n"
-                        for item in spec_parse.ir.text_items.values()
-                        if item.text
+                        for item, _ in spec_parse.ir.docling_doc.iterate_items()
+                        if isinstance(item, TextItem) and item.text
                     )
                     system_prompt += (
                         "\n\n### ASSIGNMENT SPECIFICATION"
@@ -809,7 +818,14 @@ class IntegrityAnalyser(BaseLLMAnalyser):
                 cref = entry.get("student_cref")
                 if not cref or cref in seen_crefs:
                     continue
-                item = doc.text_items.get(cref)
+                from docling_core.types.doc.document import RefItem
+
+                try:
+                    item = RefItem.model_validate({"$ref": cref}).resolve(
+                        doc=doc.docling_doc
+                    )
+                except Exception:
+                    item = None
                 if item is None:
                     continue
                 seen_crefs.add(cref)

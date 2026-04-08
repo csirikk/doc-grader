@@ -155,12 +155,23 @@ class BaseLLMAnalyser(BaseAnalyser):
         """Convert vision model findings into standard Findings."""
         known_codes: set[str] = {code for r in rules for code in r.ac_codes}
         findings: list[Finding] = []
+        from docling_core.types.doc.document import RefItem
+
         for f in vision_findings:
             if f.ac_code not in known_codes:
                 logger.warning(
                     "Ignoring vision finding with unknown AC code %r", f.ac_code
                 )
                 continue
+            try:
+                _ev = RefItem.model_validate({"$ref": f.item_cref}).resolve(
+                    doc=doc.docling_doc
+                )
+            except Exception:
+                logger.warning(
+                    "Failed to resolve vision finding item_cref %r", f.item_cref
+                )
+                _ev = None
             finding = self._make_finding(
                 doc=doc,
                 ac_code=f.ac_code,
@@ -168,7 +179,7 @@ class BaseLLMAnalyser(BaseAnalyser):
                 summary=f.reason,
                 judge_status="to_be_judged",
                 human_status="proposed",
-                evidence_item=doc.picture_items.get(f.item_cref),
+                evidence_item=_ev,
                 snippet_override=f.reason,
                 severity=f.severity,
                 confidence=f.confidence,
@@ -253,6 +264,15 @@ class BaseLLMAnalyser(BaseAnalyser):
         rules: list[LLMRule],
     ) -> Finding:
         """Convert an LLMFinding to a Finding."""
+        from docling_core.types.doc.document import RefItem
+
+        try:
+            _ev = RefItem.model_validate({"$ref": f.item_cref}).resolve(
+                doc=doc.docling_doc
+            )
+        except Exception:
+            logger.warning("Failed to resolve LLM finding item_cref %r", f.item_cref)
+            _ev = None
         return self._make_finding(
             doc=doc,
             ac_code=f.ac_code,
@@ -260,7 +280,7 @@ class BaseLLMAnalyser(BaseAnalyser):
             summary=f.reason,
             judge_status="to_be_judged",
             human_status="proposed",
-            evidence_item=doc.text_items.get(f.item_cref),
+            evidence_item=_ev,
             snippet_override=f.snippet,
             severity=f.severity,
             confidence=f.confidence,

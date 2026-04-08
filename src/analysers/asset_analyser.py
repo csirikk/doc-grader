@@ -130,7 +130,7 @@ class AssetAnalyser(BaseLLMAnalyser):
         rules = self.get_rules(rulebook, params)
         if not rules:
             return []
-        if not doc.picture_items:
+        if not doc.total_pictures:
             return [
                 self._make_finding(
                     doc=doc,

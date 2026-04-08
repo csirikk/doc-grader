@@ -162,9 +162,10 @@ class GrammarAnalyser(BaseLLMAnalyser):
             return []
 
         groups: dict[str, list[tuple[str, TextItem, str]]] = {}
-        for cref, item in doc.text_items.items():
+        for item, _ in doc.docling_doc.iterate_items():
             if not isinstance(item, TextItem):
                 continue
+            cref = item.get_ref().cref
             text = (item.text or "").strip()
             if not text:
                 continue
