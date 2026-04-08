@@ -27,6 +27,62 @@ _LT_SEVERITY: dict[str, float] = {
     "grammar": 0.4,
     "misspelling": 0.4,
 }
+
+# Single-token snippets that LanguageTool consistently flags as errors
+# Checked case-insensitively against the raw matched snippet before a finding is emitted
+_IGNORED_WORDS: frozenset[str] = frozenset(
+    {
+        # Programming language / compiler terminology
+        "arity",
+        "lexer",
+        "lexeme",
+        "parser",
+        "ast",
+        "dom",
+        "sys",
+        "py",
+        "params",
+        "expr",
+        "main",
+        "self",
+        "token",
+        "send",
+        "parse",
+        "lark",
+        "parglare",
+        "lalr",
+        "etree",
+        "minidom",
+        # Built-in values / keywords treated as prose
+        "nil",
+        "true",
+        "false",
+        "idx",
+        "login",
+        "pyreverse",
+        # Course-specific class and Lark parser token names
+        "xmlvisitor",
+        "xmlgenerator",
+        "backcolon",
+        "frontcolon",
+        "blockstat",
+        "blockpar",
+        "exprbase",
+        "exprsel",
+        "sourcecode",
+        # Python built-ins and common tools
+        "isinstance",
+        "argparse",
+        "powershell",
+        "vscode",
+        # British English spelling flagged by en-US LanguageTool
+        "analyser",
+        "analysers",
+        "analysing",
+        "analysed",
+    }
+)
+
 _CH_TITLE = "Grammar and Spelling"
 _ISSUE_TITLES: dict[str, str] = {
     "grammar": "Grammar Error",
@@ -179,6 +235,9 @@ class GrammarAnalyser(BaseLLMAnalyser):
             if severity is None:
                 continue
             snippet = text[match.offset : match.offset + match.error_length]
+            snippet_lower = snippet.lower()
+            if snippet_lower in _IGNORED_WORDS:
+                continue
             issues.append(
                 {
                     "message": _make_message(
