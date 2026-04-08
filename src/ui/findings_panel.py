@@ -39,14 +39,52 @@ def _severity_label(severity: float | None) -> str:
     return f"{severity:.2f}"
 
 
+def _render_judge(finding: dict) -> None:
+    """Render judge decision, rationale and field-level changes in the main body."""
+    meta: dict | None = finding.get("meta")
+    if not meta:
+        return
+    judge: dict | None = meta.get("judge")
+    if not judge:
+        return
+
+    with st.expander("Judge", expanded=False):
+        st.markdown(judge.get("rationale", ""))
+
+        if reasoning := judge.get("reasoning_chain"):
+            st.markdown(reasoning)
+
+        change: dict | None = judge.get("change")
+        if not change:
+            return
+
+        fields: list[str] = change.get("fields") or []
+        before: dict = change.get("before") or {}
+        after: dict = change.get("after") or {}
+        if not fields:
+            return
+
+        st.markdown("### Adjustments")
+        for field in fields:
+            b = before.get(field)
+            a = after.get(field)
+            st.markdown(f"#### {field}")
+            col_b, col_a = st.columns(2)
+            col_b.caption("Before")
+            col_b.markdown(str(b) if b is not None else "_n/a_")
+            col_a.caption("After")
+            col_a.markdown(str(a) if a is not None else "_n/a_")
+
+
 def _render_evidence(finding: dict) -> None:
-    """Render anchors, stats and model evals as structured evidence."""
+    """Render anchors, stats, model evals and miscellaneous meta."""
     anchors: list[dict] = finding.get("anchors") or []
     stats: list[dict] = finding.get("stats") or []
     model_evals: list[dict] = finding.get("model_evals") or []
     meta: dict | None = finding.get("meta")
+    other_meta = {k: v for k, v in meta.items() if k != "judge"} if meta else {}
 
-    has_evidence = anchors or stats or model_evals or meta
+    has_evidence = anchors or stats or model_evals or other_meta
     if not has_evidence:
         return
 
@@ -97,36 +135,9 @@ def _render_evidence(finding: dict) -> None:
                 score_str = f"{score:.3f}" if score is not None else "n/a"
                 st.text(f"{model}: {label} (score {score_str})")
 
-        if meta:
-            if judge := meta.get("judge"):
-                st.markdown("#### Judge")
-                decision = judge.get("decision", "")
-                colour = STATUS_COLOURS.get(
-                    "judged_approved"
-                    if decision in ("approved", "adjusted")
-                    else f"judged_{decision}"
-                    if decision
-                    else "judged_dismissed",
-                    "grey",
-                )
-                st.markdown(f":{colour}[{decision}]: {judge.get('rationale', '')}")
-                if reasoning := judge.get("reasoning_chain"):
-                    st.caption(reasoning)
-                if change := judge.get("change"):
-                    fields: list[str] = change.get("fields") or []
-                    before: dict = change.get("before") or {}
-                    after: dict = change.get("after") or {}
-                    if fields:
-                        st.caption("Judge changes")
-                        for field in fields:
-                            st.text(
-                                f"{field}: {before.get(field, 'n/a')} -> "
-                                f"{after.get(field, 'n/a')}"
-                            )
-
-            if rest := {k: v for k, v in meta.items() if k != "judge"}:
-                st.caption("Meta")
-                st.json(rest, expanded=False)
+        if other_meta:
+            st.caption("Meta")
+            st.json(other_meta, expanded=False)
 
 
 def _on_view_anchor(safe_fid: str):
@@ -209,4 +220,5 @@ def render_findings(findings: list[dict], out_dir: Path) -> None:
             if notes := finding.get("notes"):
                 st.caption(", ".join(notes))
 
+            _render_judge(finding)
             _render_evidence(finding)
