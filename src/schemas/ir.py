@@ -93,9 +93,10 @@ class Document(StrictModel):
         img_path_str = unquote(img_path_str)
 
         source_dir = Path(self.doc_ref.source_path).parent
-        img_path = (source_dir / img_path_str).resolve()
+        base_resolved = source_dir.resolve()
+        img_path = (base_resolved / img_path_str).resolve()
 
-        if not img_path.exists() or not img_path.is_file():
+        if not img_path.is_relative_to(base_resolved) or not img_path.is_file():
             return None
         try:
             return Image.open(img_path)

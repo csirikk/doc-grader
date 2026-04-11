@@ -183,10 +183,7 @@ def copy_markdown_images(
             continue
 
         candidate = (submission_root / Path(clean_uri)).resolve()
-
-        try:
-            relative_asset = candidate.relative_to(submission_root)
-        except ValueError:
+        if not candidate.is_relative_to(submission_root):
             continue
 
         if (

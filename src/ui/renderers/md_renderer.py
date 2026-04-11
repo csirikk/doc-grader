@@ -28,9 +28,9 @@ def _embed_html_images(html_body: str, base_dir: Path) -> str:
 
         try:
             clean_src = unquote(src_uri)
-            img_path = (base_dir / clean_src).resolve()
+            img_path = (base_resolved / clean_src).resolve()
 
-            if not img_path.is_file() or not img_path.is_relative_to(base_resolved):
+            if not img_path.is_relative_to(base_resolved) or not img_path.is_file():
                 return full_tag
 
             mime_type = mimetypes.guess_type(str(img_path))[0] or "image/png"
