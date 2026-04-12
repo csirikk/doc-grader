@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from .schemas.finding import Finding
 
 
-def configure_logging(level: int) -> None:
+def configure_logging(level: int = logging.INFO) -> None:
     logging.basicConfig(
         level=level,
         format="%(name)s: %(message)s",
