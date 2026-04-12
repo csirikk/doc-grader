@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import html
 import mimetypes
 import re
 from typing import TYPE_CHECKING
@@ -116,8 +117,7 @@ def _inject_html_highlights(
 
 def render_markdown(path: Path, selected_finding: dict | None) -> None:
     """Render a Markdown document with optional highlights."""
-    text = path.read_text(encoding="utf-8")
-    text = text.replace("<", "&lt;").replace(">", "&gt;")  # strip inline html
+    text = html.escape(path.read_text(encoding="utf-8"), quote=False)
 
     # highlight data
     active_id = None
