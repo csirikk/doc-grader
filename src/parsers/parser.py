@@ -141,6 +141,43 @@ def clean_pdf_text(text: str) -> str:
     return unicodedata.normalize("NFC", text)
 
 
+def _clean_md_image_src(src: str) -> str:
+    """Normalise a Markdown image source string for local resolution."""
+    from urllib.parse import unquote
+
+    cleaned = src.strip()
+    cleaned = unquote(cleaned)
+    cleaned = cleaned.replace("\\", "/")
+    return cleaned
+
+
+def extract_md_image_uris(text: str) -> list[str]:
+    """Extract ordered Markdown image URIs using markdown-it tokens."""
+    if not text:
+        logger.debug("Markdown image extraction skipped: empty input")
+        return []
+
+    from markdown_it import MarkdownIt
+
+    tokens = MarkdownIt("commonmark").parse(text)
+
+    uris: list[str] = []
+    for token in tokens:
+        if token.type != "inline" or not token.children:
+            continue
+        for child in token.children:
+            if child.type != "image":
+                continue
+            src_attr = child.attrGet("src")
+            src = str(src_attr) if src_attr is not None else ""
+            cleaned = _clean_md_image_src(src)
+            if cleaned:
+                uris.append(cleaned)
+
+    logger.debug("Extracted %d markdown image URI(s)", len(uris))
+    return uris
+
+
 class DocumentParser:
     """Handles Docling conversion, hashing, and IR generation."""
 
@@ -218,6 +255,13 @@ class DocumentParser:
     ) -> ParseOutput:
         parse_meta.error = error_msg
         parse_meta.parsed_ok = False
+        logger.debug(
+            "Parser error output: code=%s title=%s reason=%s source=%s",
+            ac_code,
+            title,
+            error_msg,
+            doc_ref.source_path,
+        )
 
         finding = self._make_finding(
             doc_ref,
@@ -246,11 +290,13 @@ class DocumentParser:
     ) -> ParseOutput:
         """Parse the given document."""
         doc_ref = DocumentRef(source_path=str(path), student_id=student_id)
+        suffix = path.suffix.lower()
 
         parse_meta = ParseMeta(
             used_ocr=self.do_ocr,
             table_structure=self.do_table_structure,
         )
+        logger.debug("Parser start: path=%s suffix=%s", path, suffix)
 
         if not path.is_file():
             return self._create_error_output(
@@ -264,7 +310,7 @@ class DocumentParser:
                 config_hash,
             )
 
-        if path.suffix.lower() not in SUPPORTED_EXTENSIONS:
+        if suffix not in SUPPORTED_EXTENSIONS:
             return self._create_error_output(
                 doc_ref,
                 parse_meta,
@@ -277,8 +323,10 @@ class DocumentParser:
             )
 
         findings: list[Finding] = []
+        file_size = path.stat().st_size
+        logger.debug("Parser input size: %d bytes", file_size)
 
-        if path.stat().st_size == 0:
+        if file_size == 0:
             parse_meta.parsed_ok = True
             findings.append(
                 self._make_finding(
@@ -303,14 +351,15 @@ class DocumentParser:
             logger.debug("Parsing %s with Docling...", path)
             md_image_uris: list[str] = []
 
-            if path.suffix.lower() == ".md":
+            if suffix == ".md":
                 raw_bytes = path.read_bytes()
 
                 results = charset_normalizer.from_bytes(raw_bytes)
                 best_match = results.best()
                 encoding = best_match.encoding if best_match else "utf-8"
 
-                if encoding and encoding.lower() != "utf-8":
+                logger.debug("Markdown decode encoding: %s", encoding)
+                if encoding.lower() != "utf-8":
                     findings.append(
                         self._make_finding(
                             doc_ref,
@@ -325,15 +374,10 @@ class DocumentParser:
                     )
 
                 clean_text = raw_bytes.decode(encoding, errors="replace")
-
-                md_image_uris: list[str] = []
-                try:
-                    from urllib.parse import unquote
-
-                    matches = re.findall(r"!\[[^\]]*\]\(([^)]+)\)", clean_text)
-                    md_image_uris = [unquote(m) for m in matches]
-                except Exception as e:
-                    logger.debug("Could not extract markdown image URIs: %s", e)
+                md_image_uris = extract_md_image_uris(clean_text)
+                logger.debug(
+                    "Markdown extraction produced %d URI(s)", len(md_image_uris)
+                )
 
                 source = DocumentStream(
                     name=path.name,
@@ -342,8 +386,10 @@ class DocumentParser:
             else:
                 source = path
 
+            logger.debug("Docling conversion start")
             converted = self.converter.convert(source)
             doc = converted.document
+            logger.debug("Docling conversion complete")
 
             if doc.origin is None:
                 return self._create_error_output(
@@ -369,7 +415,7 @@ class DocumentParser:
             # heading_stack[i] has the heading text at depth i+1
             heading_stack: list[str] = []
 
-            is_pdf = path.suffix.lower() == ".pdf"
+            is_pdf = suffix == ".pdf"
             for item, _ in doc.iterate_items():
                 prov_items = getattr(item, "prov", None)
                 if prov_items:
@@ -445,7 +491,7 @@ class DocumentParser:
             )
 
         except Exception as e:
-            logger.error("Error parsing %s: %s", path, e)
+            logger.exception("Parser exception for %s", path)
             return self._create_error_output(
                 doc_ref,
                 parse_meta,
