@@ -24,6 +24,7 @@ dependencies:
     - docling
     - language-tool-python
     - marko
+    - markdown-it-py
     - openai
     - sentence-transformers
     - streamlit-pdf-viewer

@@ -10,6 +10,7 @@ dependencies = [
     "langdetect",
     "language-tool-python",
     "marko",
+    "markdown-it-py",
     "numpy",
     "openai",
     "pandas",
