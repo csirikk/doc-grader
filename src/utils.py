@@ -218,7 +218,13 @@ def write_csv(
 ) -> None:
     """Write row dicts to a CSV file. Uses CSV_COLUMNS if fieldnames is None."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    csv_columns = fieldnames or CSV_COLUMNS
+    if fieldnames:
+        csv_columns = fieldnames
+    elif rows:
+        csv_columns = list(rows[0].keys())
+    else:
+        csv_columns = CSV_COLUMNS
+
     with path.open("w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=csv_columns, extrasaction="ignore")
         writer.writeheader()
