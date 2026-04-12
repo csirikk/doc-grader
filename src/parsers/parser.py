@@ -221,10 +221,10 @@ class DocumentParser:
         ac_code: str,
         title: str,
         summary: str,
-        judge_status: JudgeStatus,
-        human_status: HumanStatus,
         run_id: str | None,
         config_hash: str | None,
+        judge_status: JudgeStatus = "not_to_be_judged",
+        human_status: HumanStatus = "proposed",
     ) -> Finding:
         return Finding(
             analyser=AnalyserInfo(
@@ -268,8 +268,6 @@ class DocumentParser:
             ac_code,
             title,
             summary,
-            "not_to_be_judged",
-            "proposed",
             run_id,
             config_hash,
         )
@@ -334,8 +332,6 @@ class DocumentParser:
                     "EMPTY_FILE",
                     "Empty Document",
                     "File is 0 bytes.",
-                    "not_to_be_judged",
-                    "proposed",
                     run_id,
                     config_hash,
                 )
@@ -366,8 +362,6 @@ class DocumentParser:
                             "DOCTYPE",
                             "Auto-detected Encoding",
                             f"Converted from {encoding} to UTF-8",
-                            "not_to_be_judged",
-                            "proposed",
                             run_id,
                             config_hash,
                         )
