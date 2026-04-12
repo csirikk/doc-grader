@@ -20,12 +20,13 @@ if TYPE_CHECKING:
 
 def configure_logging(level: int = logging.INFO) -> None:
     logging.basicConfig(
-        level=level,
+        level=logging.WARNING,  # default to WARNING to avoid noisy logs from deps
         format="%(name)s: %(message)s",
         datefmt="[%H:%M:%S]",
         handlers=[RichHandler(rich_tracebacks=True, markup=True)],
         force=True,
     )
+    logging.getLogger("src").setLevel(level)
 
 
 def _to_jsonable(x: Any) -> Any:
