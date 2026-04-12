@@ -1,8 +1,8 @@
 {
     "course": "ipp",
     "judge": true,
-    "judge_model": "gpt-5.4-mini",
-    "judge_temperature": 1.0,
+    "judge_model": "gpt-5.4",
+    "judge_temperature": 0.0,
     "analysers": [
         {
             "analyser_id": "structure_analyser",
@@ -17,14 +17,14 @@
             "analyser_id": "language_analyser",
             "enabled": true,
             "model": "gpt-5.4-nano",
-            "temperature": 1.0,
+            "temperature": 0.0,
             "params": {}
         },
         {
             "analyser_id": "asset_analyser",
             "enabled": true,
-            "model": "gpt-5-mini",
-            "temperature": 1.0,
+            "model": "gpt-5.4-nano",
+            "temperature": 0.0,
             "params": {
                 "classifier_model": "gpt-4-04-14"
             }
