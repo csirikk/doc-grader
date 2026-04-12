@@ -24,7 +24,7 @@ _MODEL_PRICING: list[tuple[str, tuple[float, float, float]]] = [
     ("gpt-5.4", (2.50, 0.25, 15.00)),
     ("gpt-5", (15.25, 0.125, 10.00)),
     ("gpt-5-mini", (0.25, 0.0025, 2.00)),
-    ("gpt-4-04-14", (2.00, 8.00, 0.50)),  # azure
+    ("gpt-4.1", (2.00, 0.50, 8.00)),  # fine-tuned baduml binary classifier base
 ]
 
 _USD_TO_EUR: float = 0.92
@@ -211,7 +211,6 @@ class LLMClient:
         """Run the OpenAI vision LLM on all pictures in the document.
 
         Returns raw VisionFinding-compatible objects as produced by the model.
-        For Azure-based binary classification use run_azure_vision_classifier.
         """
         from .schemas.llm import VisionModelResponse
 
@@ -291,21 +290,15 @@ class LLMClient:
         )
         return parsed_response.findings
 
-    def run_azure_vision_classifier(
+    def run_vision_classifier(
         self,
         doc: Document,
         system_prompt: str,
         model: str,
     ) -> dict[str, str]:
-        """Send each picture in the document to the Azure vision model and return
-        the raw text label keyed by the picture cref.
-
-        The caller is responsible for interpreting the returned strings.
+        """Send each picture in the document to the fine-tuned OpenAI vision model
+        and return the raw text label keyed by the picture cref.
         """
-        azure_client = OpenAI(
-            base_url=os.environ.get("AZURE_OPENAI_ENDPOINT"),
-            api_key=os.environ.get("AZURE_OPENAI_API_KEY"),
-        )
         results: dict[str, str] = {}
 
         for idx, item in enumerate(doc.docling_doc.pictures):
@@ -313,13 +306,13 @@ class LLMClient:
             pil_img = doc.get_picture_pil(idx, item)
             if pil_img is None:
                 logger.warning(
-                    "No image available for %s, skipping Azure classification.", cref
+                    "No image available for %s, skipping classification.", cref
                 )
                 continue
 
             b64 = self._encode_pil(pil_img)
             try:
-                response = azure_client.chat.completions.create(
+                response = self._client.beta.chat.completions.parse(
                     model=model,
                     temperature=self.temperature,
                     max_completion_tokens=self.max_completion_tokens,
@@ -340,12 +333,12 @@ class LLMClient:
                     ],
                 )
             except Exception as e:
-                logger.error("Azure classifier call failed for %s: %s", cref, e)
+                logger.error("Classifier call failed for %s: %s", cref, e)
                 continue
 
-            self._record_usage(model, response.usage)
+            self._record_usage(model or self.model, response.usage)
             results[cref] = (response.choices[0].message.content or "").strip()
-            logger.info("Azure classified [%s] as %r", cref, results[cref])
+            logger.info("Classified [%s] as %r", cref, results[cref])
 
         return results
 

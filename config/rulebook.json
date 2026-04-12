@@ -64,7 +64,7 @@
     "Respond in English.",
     "",
     "### DELEGATED AUTHORITY (CRITICAL)",
-    "Some findings rely on external classifiers (e.g., BADUML has already been scored for visual aesthetic quality by an Azure model). If a rule's judge instruction tells you NOT to evaluate a specific aspect (like diagram quality), you are FORBIDDEN from second-guessing it. Your only job in those cases is to verify the image type (e.g., 'Is this image actually a UML diagram?').",
+    "Some findings rely on external classifiers (e.g., BADUML has already been scored for visual aesthetic quality by another model). If a rule's judge instruction tells you NOT to evaluate a specific aspect (like diagram quality), you are FORBIDDEN from second-guessing it. Your only job in those cases is to verify the image type (e.g., 'Is this image actually a UML diagram?').",
     "",
     "### PROCESS",
     "1. Read the specific AC Rule definition and its specific judge instructions if provided.",

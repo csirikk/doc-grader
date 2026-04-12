@@ -4,10 +4,10 @@ Responsible for AC:
 - 'NOUML': No UML class diagram is present in the document.
 - 'BADUML': UML class diagram has broken notation, uses the wrong type, was
   auto-generated without curation, or is so visually flawed it cannot be read.
-  Detected by the Azure fine-tuned binary classifier.
+  Detected by the OpenAI fine-tuned binary classifier.
 - 'SEMUML': UML class diagram is semantically incomplete: missing significant
   classes or methods, or fails to convey class interactions.
-  Detected by the OpenAI vision LLM.
+  Detected by a generic OpenAI vision LLM.
 - 'OWNDIF': Diagram does not visually distinguish custom (student) classes from
   framework/library classes (e.g. ipp-core).
 - 'BW': Dark-background diagram pasted into a light-background document.
@@ -27,9 +27,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Azure fine-tuned binary classifier defaults
-_AZURE_BADUML_MODEL = "gpt-4-04-14"
-_AZURE_BADUML_SYSTEM = (
+# OpenAI fine-tuned binary classifier defaults
+_BADUML_MODEL = "ft:gpt-4.1-2025-04-14:personal:baduml-classifier-2:DTa4czXP"
+_BADUML_SYSTEM_PROMPT = (
     "You are an expert teaching assistant scoring student UML diagrams. "
     "Analyse the provided image and classify it as 'GOODUML' if it presents a "
     "readable, structurally valid diagram, or 'BADUML' if the diagram is poor, "
@@ -39,7 +39,7 @@ _AZURE_BADUML_SYSTEM = (
 
 class AssetAnalyser(BaseLLMAnalyser):
     """
-    Analyses visual assets (diagrams, figures) using an OpenAI vision model.
+    Analyses visual assets (diagrams, figures) using a generic OpenAI vision LLM.
     Each PictureItem in the document is sent as an image for evaluation.
     """
 
@@ -56,7 +56,7 @@ class AssetAnalyser(BaseLLMAnalyser):
         evaluated from images alone.
 
         - NOUML: absence of a diagram cannot be seen in an image.
-        - BADUML: handled by the Azure binary classifier, not the vision LLM.
+        - BADUML: handled by the fine-tuned binary classifier, not the vision LLM.
         - BW: excluded for markdown docs as it requires document background context
         """
         excluded: set[str] = {"NOUML", "BADUML"}
@@ -83,17 +83,15 @@ class AssetAnalyser(BaseLLMAnalyser):
 
         model = (params or {}).get("model")
         temperature = (params or {}).get("temperature")
-        azure_model = (params or {}).get("classifier_model") or _AZURE_BADUML_MODEL
+        ft_model = (params or {}).get("classifier_model") or _BADUML_MODEL
         vision_system_prompt = self.build_vision_system_prompt(rules, rulebook, doc)
-
-        # Azure binary classifier: returns raw label strings keyed by cref.
-        raw_labels = llm_client.run_azure_vision_classifier(
-            doc, _AZURE_BADUML_SYSTEM, azure_model
+        raw_labels = llm_client.run_vision_classifier(
+            doc, _BADUML_SYSTEM_PROMPT, ft_model
         )
         baduml_count = 0
         findings: list[VisionFinding] = []
         for cref, label in raw_labels.items():
-            logger.info("Azure classified [%s] as %r", cref, label)
+            logger.info("BADUML model classified [%s] as %r", cref, label)
             if "BADUML" in label.upper():
                 findings.append(
                     VisionFinding(
@@ -106,12 +104,12 @@ class AssetAnalyser(BaseLLMAnalyser):
                 )
                 baduml_count += 1
         logger.info(
-            "%d/%d images classified as BADUML by Azure model.",
+            "%d/%d images classified as BADUML by fine-tuned model.",
             baduml_count,
             len(raw_labels),
         )
 
-        # OpenAI vision model: semantic and other visual findings.
+        # Generic OpenAI vision model: semantic and other visual findings.
         vision_findings = llm_client.analyse_assets(
             doc, vision_system_prompt, model=model, temperature=temperature
         )
