@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import codecs
 import io
 import logging
 import re
@@ -355,7 +356,7 @@ class DocumentParser:
                 encoding = best_match.encoding if best_match else "utf-8"
 
                 logger.debug("Markdown decode encoding: %s", encoding)
-                if encoding.lower() != "utf-8":
+                if not codecs.lookup(encoding).name == "utf-8":
                     findings.append(
                         self._make_finding(
                             doc_ref,
