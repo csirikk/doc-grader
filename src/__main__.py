@@ -247,6 +247,13 @@ def main(argv: list[str] | None = None) -> int:
         write_json(file_outdir / "parser_findings.json", parser_findings)
 
         if ir_doc is None:
+            write_json(file_outdir / "raw_findings.json", parser_findings)
+            write_json(file_outdir / "findings.json", parser_findings)
+            logger.debug(
+                "Wrote raw_findings.json and findings.json (%d findings)",
+                len(parser_findings),
+            )
+            info["counts"]["n_findings"] = len(parser_findings)
             write_json(file_outdir / "info.json", info)
             logger.warning("Parsing failed for %s", path)
             exit_code = 1
@@ -256,6 +263,10 @@ def main(argv: list[str] | None = None) -> int:
         write_json(file_outdir / "ir.json", ir_doc)
 
         analyser_findings = _run_analysers(ir_doc, config, rulebook, llm_client)
+
+        if parser_findings:
+            analyser_findings = parser_findings + analyser_findings
+
         write_json(file_outdir / "raw_findings.json", analyser_findings)
         logger.debug("Wrote raw_findings.json (%d findings)", len(analyser_findings))
 
