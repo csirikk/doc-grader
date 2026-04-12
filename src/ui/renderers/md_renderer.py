@@ -8,7 +8,6 @@ from urllib.parse import unquote
 
 import marko
 import streamlit as st
-import streamlit.components.v1 as components
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -175,8 +174,7 @@ def render_markdown(path: Path, selected_finding: dict | None) -> None:
 
     # Inject scroll logic
     if active_id and ranges:
-        components.html(
-            f"""
+        js_scroll_script = f"""
             <script>
                 setTimeout(() => {{
                     try {{
@@ -191,5 +189,7 @@ def render_markdown(path: Path, selected_finding: dict | None) -> None:
                     }} catch (e) {{ console.error(e); }}
                 }}, 100);
             </script>
-            """,
-        )
+        """
+        import streamlit.components.v1 as components
+
+        components.html(js_scroll_script, height=0)
