@@ -91,13 +91,13 @@ class AssetAnalyser(BaseLLMAnalyser):
         baduml_count = 0
         findings: list[VisionFinding] = []
         for cref, label in raw_labels.items():
-            logger.info("BADUML model classified [%s] as %r", cref, label)
-            if "BADUML" in label.upper():
+            verdict = label.split("\n", 1)[0].strip()
+            if "BADUML" in verdict.upper():
                 findings.append(
                     VisionFinding(
                         ac_code="BADUML",
                         item_cref=cref,
-                        reason=f"Fine-tuned classifier returned: {label!r}",
+                        reason=label.strip(),
                         severity=1.0,
                         confidence=1.0,
                         model_name=ft_model,
