@@ -15,6 +15,7 @@ from ..schemas.finding import (
     FineRef,
     HumanStatus,
     JudgeStatus,
+    ModelEval,
 )
 from ..utils import next_id
 
@@ -184,6 +185,10 @@ class BaseLLMAnalyser(BaseAnalyser):
                 severity=f.severity,
                 confidence=f.confidence,
             )
+            if f.model_name:
+                finding.model_evals.append(
+                    ModelEval(model_name=f.model_name, label=f.ac_code)
+                )
             findings.append(finding)
         return findings
 

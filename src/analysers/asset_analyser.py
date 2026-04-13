@@ -28,12 +28,12 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # OpenAI fine-tuned binary classifier defaults
-_BADUML_MODEL = "ft:gpt-4.1-2025-04-14:personal:baduml-classifier-2:DTa4czXP"
+_BADUML_MODEL = "ft:gpt-4.1-2025-04-14:personal:baduml-classifier-gold:DU8txcxh"
 _BADUML_SYSTEM_PROMPT = (
-    "You are an expert teaching assistant scoring student UML diagrams. "
-    "Analyse the provided image and classify it as 'GOODUML' if it presents a "
-    "readable, structurally valid diagram, or 'BADUML' if the diagram is poor, "
-    "illegible, or incorrect."
+    "Classify this UML class diagram. "
+    "GOODUML: Correct, readable diagram with standard notation, "
+    "attributes, methods, and clear relationships. "
+    "BADUML: Missing details, unreadable, or uses non-standard notation."
 )
 
 
@@ -97,9 +97,10 @@ class AssetAnalyser(BaseLLMAnalyser):
                     VisionFinding(
                         ac_code="BADUML",
                         item_cref=cref,
-                        reason="Classified as BADUML by fine-tuned classifier.",
+                        reason=f"Fine-tuned classifier returned: {label!r}",
                         severity=1.0,
                         confidence=1.0,
+                        model_name=ft_model,
                     )
                 )
                 baduml_count += 1

@@ -91,6 +91,10 @@ class VisionFinding(StrictModel):
     reason: str
     severity: float = Field(..., ge=0.0, le=1.0)
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
+    model_name: str | None = Field(
+        default=None,
+        description="Name of the model that produced this finding, if known.",
+    )
 
 
 class VisionModelResponse(StrictModel):

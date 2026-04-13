@@ -321,11 +321,15 @@ class LLMClient:
                         {
                             "role": "user",
                             "content": [
-                                {"type": "text", "text": "Score this diagram."},
+                                {
+                                    "type": "text",
+                                    "text": "Analyze this diagram for UML compliance.",
+                                },
                                 {
                                     "type": "image_url",
                                     "image_url": {
-                                        "url": f"data:image/png;base64,{b64}"
+                                        "url": f"data:image/png;base64,{b64}",
+                                        "detail": "high",
                                     },
                                 },
                             ],
