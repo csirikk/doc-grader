@@ -44,7 +44,7 @@ def configure_logging(level: int = logging.INFO) -> None:
         handlers=[handler],
         force=True,
     )
-    logging.getLogger("src").setLevel(level)
+    logging.getLogger("doc_grader").setLevel(level)
 
 
 def _to_jsonable(x: Any) -> Any:
