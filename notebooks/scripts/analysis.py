@@ -9,9 +9,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from dataset_parser import DOC_CODES
 from langdetect import LangDetectException, detect
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from matplotlib.ticker import PercentFormatter
+
+from .dataset_parser import DOC_CODES
 
 # --- DATA ---
 
@@ -52,12 +55,16 @@ def load_clean_data(path: Path | None = None) -> pd.DataFrame:
     Rows for years/variants not in MAX_DOC_POINTS get NaN for both columns.
     """
     if path is None:
-        path = Path(__file__).parent.parent / "data" / "clean_ipp_data.csv"
+        path = Path(__file__).parent.parent.parent / "data" / "clean_ipp_data.csv"
 
     df = pd.read_csv(path)
 
     df["year"] = df["year"].astype(str)
     df["task_variant"] = df["task_variant"].astype(str)
+    df["year"] = df["year"].apply(
+        lambda y: "20" + y[:2] if len(y) == 4 and not y.startswith("20") else y
+    )
+
     years = sorted(df["year"].unique())
 
     return df.assign(
@@ -84,7 +91,7 @@ def build_project_df(df: pd.DataFrame) -> pd.DataFrame:
         has_comment=df["comment"].notna(),
     )
     return (
-        df_temp.groupby(["id", "year", "task_variant"], sort=False)
+        df_temp.groupby(["id", "year", "task_variant"], sort=False, observed=True)
         .agg(
             doc_points=("doc_points", "first"),
             max_doc_points=("max_doc_points", "first"),
@@ -157,7 +164,7 @@ _FIG_H: int = 6  # standard height
 _FIG_H_PER_ITEM: float = 0.4  # height per row for list charts
 
 
-def _save_or_show(fig: plt.Figure, save_path: Path | None) -> None:
+def _save_or_show(fig: Figure, save_path: Path | None) -> None:
     if save_path is not None:
         save_path.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(save_path)
@@ -198,7 +205,7 @@ def summarise_score_imbalance(proj: pd.DataFrame) -> None:
 
 def visualise_total_impact_distribution(
     proj: pd.DataFrame, save_path: Path | None = None
-) -> plt.Axes:
+) -> Axes:
     """Plot the distribution of total impact per project."""
     plot_data = proj.assign(
         total_impact_normalised=lambda d: d["total_impact"] / d["max_doc_points"]
@@ -280,7 +287,7 @@ def summarise_format_impact(format_impact_df: pd.DataFrame) -> pd.DataFrame:
 def visualise_format_impact(
     format_impact_df: pd.DataFrame,
     save_path: Path | None = None,
-) -> plt.Axes:
+) -> Axes:
     """
     Plot cumulative score distributions of Markdown vs PDF submissions.
     Expects the output of `analyse_format_impact`.
@@ -339,7 +346,7 @@ def summarise_zero_impact_warnings(warnings_df: pd.DataFrame) -> pd.DataFrame:
 
 def visualise_zero_impact_warnings(
     warnings_df: pd.DataFrame, save_path: Path | None = None
-) -> plt.Axes:
+) -> Axes:
     """
     Plot the ratio of zero-impact warnings vs actual penalties per code.
     Expects the pre-computed output of `analyse_zero_impact_warnings`.
@@ -380,7 +387,7 @@ def visualise_doc_type_distribution(
     df: pd.DataFrame,
     proj: pd.DataFrame | None = None,
     save_path: Path | None = None,
-) -> plt.Axes:
+) -> Axes:
     """Plot proportional PDF vs MD submission distribution per year."""
     data = _ensure_proj(df, proj).dropna(subset=["doc_type"]).sort_values("year")
 
@@ -408,7 +415,7 @@ def visualise_task_variant_distribution(
     df: pd.DataFrame,
     proj: pd.DataFrame | None = None,
     save_path: Path | None = None,
-) -> plt.Axes:
+) -> Axes:
     """Plot project counts per task variant per year."""
     data = _ensure_proj(df, proj).sort_values("year")
 
@@ -425,7 +432,7 @@ def visualise_task_variant_distribution(
 
 def visualise_code_frequency(
     df: pd.DataFrame, n_codes: int = 20, save_path: Path | None = None
-) -> plt.Axes:
+) -> Axes:
     """Plot the n_codes most frequently used codes by occurrence count."""
     codes = df["code"].value_counts().head(n_codes).index.tolist()[::-1]
     plot_data = df[df["code"].isin(codes)]
@@ -457,7 +464,7 @@ def visualise_impact_boxplots(
     n_codes: int = 15,
     exclude_shared: bool = True,
     save_path: Path | None = None,
-) -> plt.Axes:
+) -> Axes:
     """Plot impact distribution per code as overlaid strip and boxplots."""
     df = filter_to_normalised_years(df)
     filtered = filter_for_impact_stats(df, exclude_shared=exclude_shared)
@@ -516,7 +523,7 @@ def visualise_shared_vs_individual_impact(
     df: pd.DataFrame,
     n_codes: int = 15,
     save_path: Path | None = None,
-) -> plt.Axes:
+) -> Axes:
     """Dumbbell chart comparing mean impact with vs without shared penalties."""
     df = filter_to_normalised_years(df)
 
@@ -596,7 +603,9 @@ def visualise_code_usage_trends(
         all_codes = df["code"].unique().tolist()
         code_project_counts = pd.Series(
             {
-                c: proj["codes_list"].map(lambda cl, c=c: c in cl).sum()
+                c: proj["codes_list"]
+                .map(lambda cl, c=c: c in cl if isinstance(cl, list) else False)
+                .sum()
                 for c in all_codes
             }
         )
@@ -604,7 +613,12 @@ def visualise_code_usage_trends(
 
     # one binary column per code, then melt to long form for relplot
     binary = pd.DataFrame(
-        {code: proj["codes_list"].map(lambda cl: code in cl) for code in codes}
+        {
+            code: proj["codes_list"].map(
+                lambda cl, code=code: code in cl if isinstance(cl, list) else False
+            )
+            for code in codes
+        }
     )
     binary["year"] = proj["year"]
     binary["id"] = proj["id"]
@@ -694,7 +708,12 @@ def visualise_code_cooccurrence(
     codes = df["code"].value_counts().head(n_codes).index.tolist()
 
     binary = pd.DataFrame(
-        {code: proj["codes_list"].map(lambda cl: code in cl) for code in codes}
+        {
+            code: proj["codes_list"].map(
+                lambda cl, code=code: code in cl if isinstance(cl, list) else False
+            )
+            for code in codes
+        }
     )
 
     corr_matrix = binary.corr()
@@ -720,7 +739,7 @@ def visualise_code_points_correlation(
     n_codes: int = 20,
     proj: pd.DataFrame | None = None,
     save_path: Path | None = None,
-) -> plt.Axes:
+) -> Axes:
     """
     Correlation between code presence and documentation score (% of the maximum),
     normalised to remove cross year/variant max point differences.
@@ -729,7 +748,12 @@ def visualise_code_points_correlation(
     codes = df["code"].value_counts().head(n_codes).index.tolist()
 
     binary = pd.DataFrame(
-        {code: proj["codes_list"].map(lambda cl: code in cl) for code in codes}
+        {
+            code: proj["codes_list"].map(
+                lambda cl, code=code: code in cl if isinstance(cl, list) else False
+            )
+            for code in codes
+        }
     )
 
     correlations = binary.corrwith(proj["doc_score_pct"]).sort_values(
@@ -846,7 +870,7 @@ def summarise_comment_length(comment_length_df: pd.DataFrame) -> pd.DataFrame:
 
 def visualise_comment_length(
     comment_length_df: pd.DataFrame, save_path: Path | None = None
-) -> plt.Axes:
+) -> Axes:
     """
     Plot the distribution of comment lengths.
     Expects the pre-computed output of `analyse_comment_length`.
@@ -874,7 +898,7 @@ def summarise_language_distribution(language_df: pd.DataFrame) -> pd.Series:
 
 def visualise_language_distribution_overall(
     language_df: pd.DataFrame, save_path: Path | None = None
-) -> plt.Axes:
+) -> Axes:
     """Bar chart of comment language totals."""
     fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
     sns.countplot(
@@ -893,7 +917,7 @@ def visualise_language_distribution_overall(
 
 def visualise_language_distribution_by_year(
     language_df: pd.DataFrame, save_path: Path | None = None
-) -> plt.Axes:
+) -> Axes:
     """Stacked proportion chart of comment language per year."""
     fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
     sns.histplot(
@@ -965,7 +989,7 @@ def summarise_token_limits(token_df: pd.DataFrame) -> None:
 
 def visualise_token_limits(
     token_df: pd.DataFrame, save_path: Path | None = None
-) -> plt.Axes:
+) -> Axes:
     """Plot the distribution of document token lengths."""
     fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
     sns.histplot(
@@ -999,10 +1023,14 @@ def visualise_token_limits(
     ax.set_ylabel("Number of Documents")
 
     _seaborn_legend = ax.get_legend()
-    _seaborn_legend.remove()
 
-    format_handles = _seaborn_legend.legend_handles
-    format_labels = [t.get_text() for t in _seaborn_legend.get_texts()]
+    format_handles: list = []
+    format_labels: list[str] = []
+
+    if _seaborn_legend is not None:
+        _seaborn_legend.remove()
+        format_handles = _seaborn_legend.legend_handles
+        format_labels = [t.get_text() for t in _seaborn_legend.get_texts()]
 
     line_handles, line_labels = ax.get_legend_handles_labels()
     ax.legend(
