@@ -6,6 +6,7 @@ import csv
 import hashlib
 import json
 import logging
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -19,11 +20,28 @@ if TYPE_CHECKING:
 
 
 def configure_logging(level: int = logging.INFO) -> None:
+    """Configures logging, with a fallback for Jupyter notebooks."""
+
+    is_notebook = False
+    try:
+        from IPython.core.getipython import get_ipython
+
+        if get_ipython() is not None:
+            is_notebook = True
+    except ImportError:
+        pass
+
+    if is_notebook:
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
+    else:  # terminal
+        handler = RichHandler(rich_tracebacks=True, markup=True)
+
     logging.basicConfig(
         level=logging.WARNING,  # default to WARNING to avoid noisy logs from deps
         format="%(name)s: %(message)s",
         datefmt="[%H:%M:%S]",
-        handlers=[RichHandler(rich_tracebacks=True, markup=True)],
+        handlers=[handler],
         force=True,
     )
     logging.getLogger("src").setLevel(level)
