@@ -64,7 +64,7 @@ Final findings -> JSON + optional CSV
 
 ## 4. Modules
 
-### 4.1 Parser (`src/parsers/parser.py`)
+### 4.1 Parser (`doc_grader/parsers/parser.py`)
 
 `DocumentParser` wraps Docling's `DocumentConverter`. It accepts `.pdf` and `.md` and returns a `ParseOutput`:
 
@@ -73,12 +73,12 @@ Final findings -> JSON + optional CSV
 
 PDF pipeline options: OCR (`ces`/`eng`/`slk`), table structure extraction with cell matching, picture image generation, and full page image generation. Page images are sent alongside diagrams to the vision model for layout context.
 
-The parser builds two index maps over all text items:
+The parser builds a section-path map and collects Markdown image URIs. Text items remain accessible via the embedded `DoclingDocument`:
 
-- `text_items: dict[cref, TextItem]` - used to anchor findings to exact document nodes.
-- `section_paths: dict[cref, str]` - heading-path string for every text item (e.g. `"Introduction > Lexical Analysis"`), injected into the LLM prompt as `[Section: ...]` prefixes.
+- `section_paths: dict[cref, str]` - heading-path string for every text item (e.g. "Introduction > Lexical Analysis"), injected into the LLM prompt as `[Section: ...]` prefixes.
+- `md_image_uris: list[str]` - ordered image URIs extracted when the source is Markdown (used to resolve local images).
 
-### 4.2 Intermediate Representation (`src/schemas/ir.py`)
+### 4.2 Intermediate Representation (`doc_grader/schemas/ir.py`)
 
 `Document` is a Pydantic `StrictModel` wrapping a `DoclingDocument` with additional metadata:
 
@@ -87,13 +87,14 @@ Document
 + doc_ref: DocumentRef (source path, binary_hash, Docling origin)
 + docling_doc: DoclingDocument
 + total_words / total_chars / total_paragraphs / total_headings
-+ text_items: dict[cref -> TextItem]
++ total_pictures: int
++ md_image_uris: list[str]
 + section_paths: dict[cref -> str]
 ```
 
 `DoclingDocument` preserves the full typed-block structure (`SectionHeaderItem`, `TextItem`, `TableItem`, `PictureItem`) with provenance (page number, bounding box) on every node.
 
-### 4.3 Analysers (`src/analysers/`)
+### 4.3 Analysers (`doc_grader/analysers/`)
 
 All analysers implement `BaseAnalyser.analyse(doc, params) -> list[Finding]`.
 
@@ -112,19 +113,18 @@ Deterministic findings set `judge_status = "to_be_judged"` when they are meant t
 
 These analysers declare which rules they own via `get_rules(rulebook, params)` and post-process findings returned by `LLMClient`. Orchestration is in `_run_analysers()` in `__main__.py`.
 
-| Analyser          | AC codes (representative)                                                     | Notes                    |
-|-------------------|-------------------------------------------------------------------------------|--------------------------|
-| `TextAnalyser`    | `CH`, `ICH`, `TERM`, `LANG`                                                   | Proofreading, objective  |
-| `StyleAnalyser`   | `STYLE`, `HOV`                                                                | Editorial, subjective    |
-| `ContentAnalyser` | `CONTENT`, `SA`, `SAV`, `SeA`, `PSA`, `TS`, `GK`, `IR`, `JAK`, `NVPDOC`, `RP` | Section-level quality    |
-| `DesignAnalyser`  | `OOP`, `NOOOP`, `NOSRP`, `DP`, `BADDP`, `SINGLETON`, `EXT`, `EX`, `FILO`      | OOP/architecture quality |
-| `AssetAnalyser`   | `BADUML`, `OWNDIF`, `BW`                                                      | Vision model             |
+| Analyser             | AC codes (representative)                                      | Notes                                    |
+|----------------------|----------------------------------------------------------------|------------------------------------------|
+| `language_analyser`  | `CH`, `ICH`, `TERM`, `LANG`, `STYLE`, `CONTENT`, `OOP`, `FILO` | Prose, content and design ACs            |
+| `grammar_analyser`   | `CH`                                                           | LanguageTool local checks / LLM fallback |
+| `integrity_analyser` | `COPY`                                                         | Spec-similarity via embeddings           |
+| `asset_analyser`     | `BADUML`, `SEMUML`, `OWNDIF`, `BW`, `NOUML`                    | Vision + fine-tuned classifier           |
 
-`AssetAnalyser` uses a separate vision path, every `PictureItem` and its surrounding page image are base64-encoded and sent to `LLMClient.analyse_assets()`. Vision findings bypass the judge and are marked `judge_status = "not_to_be_judged"`.
+`AssetAnalyser` uses a separate vision path: page context images and each `PictureItem` are encoded and sent to the vision/classifier calls on `LLMClient`. Vision findings produced by the analyser are emitted as standard `Finding` objects (by default `judge_status = "to_be_judged"`) so they can be included in judge batches when a judge client is available.
 
-### 4.4 LLM Client (`src/llm_client.py`)
+### 4.4 LLM Client (`doc_grader/llm_client.py`)
 
-`LLMClient` wraps OpenAI via `instructor`, which enforces structured Pydantic-validated responses. Three model calls are made per document:
+`LLMClient` wraps the OpenAI Python client and uses structured response parsing into the Pydantic models defined in `doc_grader/schemas/llm.py`. When an `LLMClient` instance is available (the current CLI constructs it in `__main__.py` when `config.judge` is true) up to three distinct model interactions may occur per document:
 
 #### Grader model (`analyse_document`)
 
@@ -140,7 +140,7 @@ Each picture and its page context are sent as multipart image messages. Prompt c
 
 Receives the judgeable batch selected by `RuleEngine.prepare_judge_batch()`. Re-evaluates each finding against the source document and returns a structured judge response. The API client only handles the OpenAI call and response parsing; `RuleEngine` applies validation and verdicts.
 
-### 4.5 Rule Engine (`src/rule_engine.py`)
+### 4.5 Rule Engine (`doc_grader/rule_engine.py`)
 
 `RuleEngine` handles finding validation and filtering:
 
@@ -153,7 +153,7 @@ Receives the judgeable batch selected by `RuleEngine.prepare_judge_batch()`. Re-
 
 Returns `(final_findings, summary_dict)`. The summary (counts per drop reason, final count) is written to `info.json`.
 
-### 4.6 Finding Schema (`src/schemas/finding.py`)
+### 4.6 Finding Schema (`doc_grader/schemas/finding.py`)
 
 Every analyser produces `Finding` objects with the same schema:
 
@@ -182,9 +182,51 @@ Finding
 ```json
 {
   "course": "ipp",
+  "judge": true,
+  "judge_model": "gpt-5.4",
+  "judge_temperature": 0.0,
   "analysers": [
-    { "analyser_id": "structure_analyser", "enabled": true, "params": { "min_words": 486 } },
-    { "analyser_id": "asset_analyser",     "enabled": true, "model": "gpt-4o" }
+    {
+       "analyser_id": "structure_analyser",
+       "enabled": true,
+       "params": {
+              "min_words": 486,
+              "min_chars": 3422,
+              "min_struct": 7
+       }
+    },
+    {
+       "analyser_id": "language_analyser",
+       "enabled": true,
+       "model": "gpt-5.4-nano",
+       "temperature": 0.0,
+       "params": {}
+    },
+    {
+       "analyser_id": "asset_analyser",
+       "enabled": true,
+       "model": "gpt-5.4-nano",
+       "temperature": 0.0,
+       "params": {
+              "classifier_model": "ft:gpt-4.1-2025-04-14:personal:baduml-classifier-gold:DU8txcxh"
+       }
+    },
+    {
+       "analyser_id": "integrity_analyser",
+       "enabled": true,
+       "params": {
+              "spec_path": "data/ipp/spec/ipp2425spec.pdf",
+              "min_chunk_len": 40,
+              "copy_engine": "local"
+       }
+    },
+    {
+       "analyser_id": "grammar_analyser",
+       "enabled": true,
+       "params": {
+              "grammar_engine": "local"
+       }
+    }
   ]
 }
 ```
@@ -201,7 +243,7 @@ Each analyser entry can override the OpenAI model and pass arbitrary `params`. T
 ## 5. CLI
 
 ```txt
-python -m src [options] <input> [<input> ...]
+doc-grader [options] <input> [<input> ...]
 
 Options:
   -d, --debug         Enable debug logging
