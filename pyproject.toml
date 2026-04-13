@@ -1,6 +1,6 @@
 [project]
 name = "doc-grader"
-version = "0.5"
+version = "0.9"
 description = "A tool to assist with grading student project documentation for the IFJ & IPP courses at BUT FIT."
 readme = "README.md"
 requires-python = ">=3.14"
@@ -27,7 +27,7 @@ dependencies = [
 ]
 
 [project.scripts]
-doc-grader = "src.__main__:main"
+doc-grader = "doc_grader.__main__:main"
 
 [tool.ruff]
 line-length = 88
@@ -51,11 +51,9 @@ fixable = ["ALL"]
 quote-style = "double"
 indent-style = "space"
 
-[tool.setuptools]
-package-dir = {"" = "src"}
-
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["."]
+include = ["doc_grader*"]
 namespaces = true
 
 [project.optional-dependencies]
