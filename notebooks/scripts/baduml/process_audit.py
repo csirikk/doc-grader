@@ -14,13 +14,13 @@ import logging
 import shutil
 from pathlib import Path
 
-from models import (
+from doc_grader.utils import write_csv
+
+from .models import (
     StudentImageRecord,
     load_manifest,
     save_manifest,
 )
-
-from doc_grader.utils import write_csv
 
 logger = logging.getLogger("__name__")
 

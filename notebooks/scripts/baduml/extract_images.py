@@ -16,10 +16,11 @@ from typing import TYPE_CHECKING
 from urllib.parse import unquote
 
 import pandas as pd
-from models import StudentImageRecord
 from PIL import Image
 
 from doc_grader.parsers.parser import DocumentParser
+
+from .models import StudentImageRecord
 
 if TYPE_CHECKING:
     from pathlib import Path
