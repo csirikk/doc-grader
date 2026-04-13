@@ -2,7 +2,7 @@
 
 Reads grading data from clean_ipp_data.csv, locates each student's submitted
 documents, extracts images (from PDFs and Markdown files via the docling IR),
-resizes and deduplicates images, and returns a list of StudentImageRecord objects.
+resizes and deduplicates images, and writes manifest.jsonl.
 """
 
 from __future__ import annotations
@@ -10,10 +10,9 @@ from __future__ import annotations
 import base64
 import hashlib
 import io
-import json
 import logging
+import shutil
 import sys
-from dataclasses import asdict, dataclass
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -24,8 +23,8 @@ if str(PROJECT_ROOT) not in sys.path:
 import pandas as pd
 from PIL import Image
 
+from notebooks.baduml.models import StudentImageRecord
 from src.parsers.parser import DocumentParser
-from src.utils import configure_logging
 
 MAX_IMAGE_DIM = 2048
 MIN_IMAGE_SIDE = 128
@@ -37,18 +36,7 @@ VARIANT_MAPPING: dict[str, list[str]] = {
     "py": ["python", "py"],
 }
 
-logger = logging.getLogger(__name__)
-
-
-@dataclass
-class StudentImageRecord:
-    student_id: str
-    image_path: str
-    image_file: str
-    label: str
-    cohort_year: str
-    task_variant: str
-    source_doc: str
+logger = logging.getLogger("__name__")
 
 
 def _is_ignored(path: Path) -> bool:
@@ -90,23 +78,22 @@ def _find_student_dir(
     return None, None
 
 
-def _save_image(img: Image.Image, path: Path, seen_hashes: set[str]) -> bytes | None:
-    """Encode img to PNG bytes; return None if it is a duplicate."""
+def _save_image(img: Image.Image, path: Path, seen_hashes: set[str]) -> bool:
+    """Encode img to PNG and write to disk. Returns True if saved, False if dupe."""
+    h = hashlib.sha1(img.tobytes()).hexdigest()
+    if h in seen_hashes:
+        return False
+    seen_hashes.add(h)
     buf = io.BytesIO()
     img.save(buf, format="PNG")
-    data = buf.getvalue()
-    h = _sha1(data)
-    if h in seen_hashes:
-        return None
-    seen_hashes.add(h)
-    path.write_bytes(data)
-    return data
+    path.write_bytes(buf.getvalue())
+    return True
 
 
 # --- Per-document extraction ---
 
 
-_RASTER_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".tiff"}
+_RASTER_EXTS = {".png", ".jpg", ".jpeg"}
 
 
 def _pil_from_picture(
@@ -209,13 +196,30 @@ def _extract_standalone_images(
         w, h = img.size
         if min(w, h) < MIN_IMAGE_SIDE:
             continue
-        img = _resize(img)
 
+        needs_resize = max(w, h) > MAX_IMAGE_DIM
         doc_token = _path_token(img_path.relative_to(submission_dir))
-        image_name = f"{student_id}_{assessment_variant}_{doc_token}.png"
-        image_path = output_dir / image_name
-        if _save_image(img, image_path, seen_hashes) is None:
-            continue
+
+        if not needs_resize:
+            hsh = hashlib.sha1(img.tobytes()).hexdigest()
+
+            if hsh in seen_hashes:
+                continue
+            seen_hashes.add(hsh)
+            image_name = (
+                f"{student_id}_{assessment_variant}_{doc_token}"
+                f"{img_path.suffix.lower()}"
+            )
+            image_path = output_dir / image_name
+            shutil.copy2(img_path, image_path)
+        else:
+            img = _resize(img)
+            image_name = f"{student_id}_{assessment_variant}_{doc_token}.png"
+            image_path = output_dir / image_name
+
+            # Using the updated _save_image logic which returns a boolean
+            if not _save_image(img, image_path, seen_hashes):
+                continue
 
         records.append(
             StudentImageRecord(
@@ -306,39 +310,6 @@ def extract_records(
     return records, success_ids
 
 
-def save_manifest(records: list[StudentImageRecord], path: Path) -> None:
-    """Serialize records to a JSONL manifest at `path`.
-
-    Each line is a JSON object produced from ``asdict(record)``. Uses
-    ensure_ascii=True to keep outputs ASCII-only.
-    """
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as fh:
-        for rec in records:
-            fh.write(json.dumps(asdict(rec), ensure_ascii=True) + "\n")
-    logger.info("Wrote %d records to manifest %s", len(records), path)
-
-
-def load_manifest(path: Path) -> list[StudentImageRecord]:
-    """Reads the JSONL and returns only records where the image still exists."""
-    records = []
-    if not path.exists():
-        logger.error("Manifest not found at %s", path)
-        return []
-
-    with path.open("r", encoding="utf-8") as f:
-        for line in f:
-            data = json.loads(line)
-            record = StudentImageRecord(**data)
-
-            if Path(record.image_path).is_file():
-                records.append(record)
-            else:
-                logger.debug("Skipping record: %s", record.image_file)
-
-    return records
-
-
 def run(*, csv_path: Path, ipp_dir: Path, output_dir: Path) -> list[StudentImageRecord]:
     df = pd.read_csv(csv_path)
     doc_parser = DocumentParser()
@@ -389,23 +360,3 @@ def run(*, csv_path: Path, ipp_dir: Path, output_dir: Path) -> list[StudentImage
     )
 
     return bad_records + good_records
-
-
-def main() -> int:
-    configure_logging(logging.INFO)
-    project_root = Path(__file__).resolve().parents[2]
-    data_dir = project_root / "data"
-
-    records = run(
-        csv_path=data_dir / "clean_ipp_data.csv",
-        ipp_dir=data_dir / "ipp",
-        output_dir=data_dir / "vision-training" / "images",
-    )
-    manifest_path = project_root / "data" / "vision-training" / "manifest.jsonl"
-    save_manifest(records, manifest_path)
-    logger.info("Total records extracted: %d", len(records))
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
