@@ -4,7 +4,7 @@ __pycache__/
 .vscode/
 .copilotignore
 .github/
-src/doc_grader.egg-info
+doc_grader.egg-info
 
 # Messing around in here
 test/
