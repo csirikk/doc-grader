@@ -1,8 +1,8 @@
-"""4. Split the gold manifest and format fine-tuning JSONL files.
+"""4. Split the audit manifest and format fine-tuning JSONL files.
 
-Takes gold_manifest.jsonl, splits records by student_id to avoid data leakage,
+Takes audit_manifest.jsonl, splits records by student_id to avoid data leakage,
 and writes one OpenAI vision fine-tuning JSONL per split (train, validation,
-test) to data/vision-training/gold_jsonl/.
+test) to data/vision-training/audit_jsonl/.
 """
 
 from __future__ import annotations

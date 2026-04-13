@@ -1,9 +1,9 @@
-"""3. Process OpenAI Batch audit results into a gold dataset.
+"""3. Process OpenAI Batch audit results into an audit dataset.
 
 Reads the Batch output JSONL and audit_id_mapping.json, copies audited images
-into data/vision-training/gold/{baduml,gooduml}/, writes conflicts.csv for
+into data/vision-training/audit/{baduml,gooduml}/, writes conflicts.csv for
 cases where the AI classification differs from the original source label, and
-produces gold_manifest.jsonl by filtering manifest.jsonl for the accepted images.
+produces audit_manifest.jsonl by filtering manifest.jsonl for the accepted images.
 INVALID classifications are skipped.
 """
 
@@ -62,9 +62,9 @@ def run(
     batch_results: Path,
     mapping_path: Path,
     manifest_path: Path,
-    gold_dir: Path,
+    audit_dir: Path,
     conflicts_csv: Path,
-    gold_manifest_path: Path,
+    audit_manifest_path: Path,
 ) -> int:
     if not batch_results.is_file():
         logger.error("Batch results file missing: %s", batch_results)
@@ -79,8 +79,8 @@ def run(
         id_mapping: dict[str, dict[str, str]] = json.load(fh)
     logger.info("Loaded %d entries from %s", len(id_mapping), mapping_path)
 
-    (gold_dir / "gooduml").mkdir(parents=True, exist_ok=True)
-    (gold_dir / "baduml").mkdir(parents=True, exist_ok=True)
+    (audit_dir / "gooduml").mkdir(parents=True, exist_ok=True)
+    (audit_dir / "baduml").mkdir(parents=True, exist_ok=True)
 
     good_count = 0
     bad_count = 0
@@ -139,7 +139,7 @@ def run(
                 logger.warning("Source image missing on disk: %s", source_path)
                 continue
 
-            dest_dir = gold_dir / (
+            dest_dir = audit_dir / (
                 "gooduml" if classification == "GOODUML" else "baduml"
             )
             dest_path = _unique_dest(dest_dir / source_path.name)
@@ -175,21 +175,21 @@ def run(
         ],
     )
 
-    # Build gold_manifest.jsonl by filtering the raw manifest to audited images.
+    # Build audit_manifest.jsonl by filtering the raw manifest to audited images.
     manifest_records = load_manifest(manifest_path) if manifest_path.is_file() else []
     if not manifest_records:
         logger.warning(
-            "Raw manifest not found or empty at %s; gold manifest will be empty",
+            "Raw manifest not found or empty at %s; audit manifest will be empty",
             manifest_path,
         )
 
-    gold_records: list[StudentImageRecord] = []
+    audit_records: list[StudentImageRecord] = []
     for rec in manifest_records:
         result = source_to_result.get(rec.image_path)
         if result is None:
             continue
         analysis, classification, dest_path = result
-        gold_records.append(
+        audit_records.append(
             StudentImageRecord(
                 student_id=rec.student_id,
                 image_path=str(dest_path),
@@ -201,16 +201,16 @@ def run(
                 analysis=analysis,
             )
         )
-    save_manifest(gold_records, gold_manifest_path)
+    save_manifest(audit_records, audit_manifest_path)
 
     logger.info("Processed: %d", processed)
-    logger.info("Gold GOODUML: %d", good_count)
-    logger.info("Gold BADUML: %d", bad_count)
+    logger.info("Audit GOODUML: %d", good_count)
+    logger.info("Audit BADUML: %d", bad_count)
     logger.info("Discarded INVALID: %d", invalid_count)
     logger.info("Unresolved: %d", unresolved_count)
     logger.info("Parse failures: %d", parse_failures)
     logger.info("Conflicts: %d -> %s", len(conflicts), conflicts_csv)
     logger.info(
-        "Gold manifest: %d records -> %s", len(gold_records), gold_manifest_path
+        "Audit manifest: %d records -> %s", len(audit_records), audit_manifest_path
     )
     return 0
