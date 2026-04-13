@@ -5,9 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import streamlit as st
-
-from src.ui.renderers.md_renderer import render_markdown
-from src.ui.renderers.pdf_renderer import render_pdf
+from renderers.md_renderer import render_markdown
+from renderers.pdf_renderer import render_pdf
 
 
 def render_document(

@@ -1,23 +1,18 @@
 from __future__ import annotations
 
 import logging
-import sys
 from pathlib import Path
-
-from unsloth import FastVisionModel
-from unsloth.trainer import UnslothVisionDataCollator
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.append(str(PROJECT_ROOT))
 
 import torch
 from datasets import Dataset
 from PIL import Image
 from trl import SFTConfig, SFTTrainer
+from unsloth import FastVisionModel
+from unsloth.trainer import UnslothVisionDataCollator
 
 Image.MAX_IMAGE_PIXELS = None
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MODEL_NAME = "unsloth/Qwen2-VL-2B-Instruct"
 BASE_DIR = PROJECT_ROOT / "data" / "vision-training"
 MAX_IMAGE_SIZE = (2048, 2048)

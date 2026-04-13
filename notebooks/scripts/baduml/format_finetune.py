@@ -11,17 +11,12 @@ import base64
 import json
 import logging
 import random
-import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from notebooks.baduml.models import StudentImageRecord
-
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.append(str(PROJECT_ROOT))
+    from models import StudentImageRecord
 
 
 logger = logging.getLogger("__name__")

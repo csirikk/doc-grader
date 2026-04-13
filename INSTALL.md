@@ -31,6 +31,13 @@ Activate the environment:
 conda activate doc-grader
 ```
 
+After activating the environment, install the project in editable mode so
+local changes are picked up by notebooks and scripts:
+
+```bash
+pip install -e .
+```
+
 ### B: Pip
 
 Recommended if you already have Python 3.14 and Java installed. This uses standard Python tools and is more lightweight, but requires you to manage system-level dependencies manually.
@@ -45,7 +52,7 @@ source .venv/bin/activate
 Install the package and its dependencies:
 
 ```bash
-pip install .
+pip install -e .
 ```
 
 ## 3. External Dependencies

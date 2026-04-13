@@ -5,8 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import streamlit as st
-
-from src.ui.utils import (
+from utils import (
     FILTER_OPTIONS,
     STATUS_COLOURS,
 )

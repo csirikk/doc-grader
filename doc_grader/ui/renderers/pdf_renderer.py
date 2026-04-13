@@ -4,8 +4,7 @@ from typing import TYPE_CHECKING
 
 import streamlit as st
 from streamlit_pdf_viewer import pdf_viewer
-
-from src.ui.utils import STATUS_COLOURS
+from utils import STATUS_COLOURS
 
 if TYPE_CHECKING:
     from pathlib import Path

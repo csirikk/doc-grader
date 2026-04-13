@@ -6,24 +6,19 @@ Launch with:
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
-# Ensure project root is on sys.path when launched directly via streamlit run.
-_PROJECT_ROOT = Path(__file__).parent.parent.parent
-if str(_PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(_PROJECT_ROOT))
-
-import streamlit as st  # noqa: E402
-
-from src.ui.document_panel import render_document  # noqa: E402
-from src.ui.findings_panel import render_findings  # noqa: E402
-from src.ui.io import (  # noqa: E402
+import streamlit as st
+from document_panel import render_document
+from findings_panel import render_findings
+from inout import (
     available_stages,
     load_run,
     run_display_name,
     source_path_from_info,
 )
+
+_PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 st.set_page_config(
     page_title="doc-grader review",
@@ -31,6 +26,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+_PROJECT_ROOT = Path(__file__).parent.parent.parent
 _DEFAULT_OUT = _PROJECT_ROOT / "out"
 
 # AI generated css for scrolling fixes:

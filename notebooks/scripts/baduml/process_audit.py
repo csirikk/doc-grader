@@ -12,15 +12,15 @@ from __future__ import annotations
 import json
 import logging
 import shutil
-import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.append(str(PROJECT_ROOT))
+from models import (
+    StudentImageRecord,
+    load_manifest,
+    save_manifest,
+)
 
-from notebooks.baduml.models import StudentImageRecord, load_manifest, save_manifest
-from src.utils import write_csv
+from doc_grader.utils import write_csv
 
 logger = logging.getLogger("__name__")
 

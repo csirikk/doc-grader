@@ -12,19 +12,17 @@ import hashlib
 import io
 import logging
 import shutil
-import sys
-from pathlib import Path
+from typing import TYPE_CHECKING
 from urllib.parse import unquote
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.append(str(PROJECT_ROOT))
-
 import pandas as pd
+from models import StudentImageRecord
 from PIL import Image
 
-from notebooks.baduml.models import StudentImageRecord
-from src.parsers.parser import DocumentParser
+from doc_grader.parsers.parser import DocumentParser
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 MAX_IMAGE_DIM = 2048
 MIN_IMAGE_SIDE = 128

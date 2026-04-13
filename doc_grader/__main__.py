@@ -1,4 +1,7 @@
-"""CLI entry point."""
+"""CLI entry point.
+TODO: add sample dataset
+TODO: add lincesing
+"""
 
 from __future__ import annotations
 
