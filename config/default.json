@@ -26,7 +26,7 @@
             "model": "gpt-5.4-nano",
             "temperature": 0.0,
             "params": {
-                "classifier_model": "ft:gpt-4.1-2025-04-14:personal:baduml-classifier-2:DTa4czXP"
+                "classifier_model": "ft:gpt-4.1-2025-04-14:personal:baduml-classifier-gold:DU8txcxh"
             }
         },
         {
