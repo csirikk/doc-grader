@@ -99,6 +99,13 @@ class Document(StrictModel):
         if not img_path.is_relative_to(base_resolved) or not img_path.is_file():
             return None
         try:
+            if img_path.suffix.lower() == ".svg":
+                import io
+
+                import cairosvg
+
+                png_bytes = cairosvg.svg2png(url=str(img_path))
+                return Image.open(io.BytesIO(png_bytes))
             return Image.open(img_path)
         except Exception as exc:
             logger.warning("Failed to load local image %s: %s", img_path, exc)
