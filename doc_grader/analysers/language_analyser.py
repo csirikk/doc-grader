@@ -29,8 +29,6 @@ Responsible for AC:
 - 'FILO': Missing or insufficient design philosophy description.
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from .base_analyser import BaseLLMAnalyser

@@ -1,7 +1,5 @@
 """Right-column findings panel: list and review findings."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 import streamlit as st

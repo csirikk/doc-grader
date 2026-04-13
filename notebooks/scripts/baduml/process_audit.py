@@ -7,8 +7,6 @@ produces audit_manifest.jsonl by filtering manifest.jsonl for the accepted image
 INVALID classifications are skipped.
 """
 
-from __future__ import annotations
-
 import json
 import logging
 import shutil

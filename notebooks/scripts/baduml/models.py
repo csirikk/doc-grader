@@ -1,7 +1,5 @@
 """Shared data model and manifest I/O for the vision training pipeline."""
 
-from __future__ import annotations
-
 import json
 import logging
 from dataclasses import asdict, dataclass, field

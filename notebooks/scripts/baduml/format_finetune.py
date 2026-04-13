@@ -5,8 +5,6 @@ and writes one OpenAI vision fine-tuning JSONL per split (train, validation,
 test) to data/vision-training/audit_jsonl/.
 """
 
-from __future__ import annotations
-
 import base64
 import json
 import logging

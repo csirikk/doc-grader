@@ -6,8 +6,6 @@ estimated Batch API cost, and (optionally --dry-run) uploads the requests JSONL
 and submits a batch job.
 """
 
-from __future__ import annotations
-
 import base64
 import json
 import logging

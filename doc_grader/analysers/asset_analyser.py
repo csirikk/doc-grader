@@ -13,8 +13,6 @@ Responsible for AC:
 - 'BW': Dark-background diagram pasted into a light-background document.
 """
 
-from __future__ import annotations
-
 import logging
 from typing import TYPE_CHECKING, Any, ClassVar
 
