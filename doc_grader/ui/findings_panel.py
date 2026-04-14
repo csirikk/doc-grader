@@ -36,6 +36,19 @@ def _severity_label(severity: float | None) -> str:
     return f"{severity:.2f}"
 
 
+def _impact_label(impact: float | None) -> str:
+    if impact is None:
+        return "n/a"
+    return f"{impact:+.1f} pts"
+
+
+def _impact_title(impact: float | None) -> str:
+    """Compact impact string for use in the expander title."""
+    if impact is None:
+        return ""
+    return f"  {impact:+.2f}"
+
+
 def _render_judge(finding: dict) -> None:
     """Render judge decision, rationale and field-level changes in the main body."""
     meta: dict | None = finding.get("meta")
@@ -150,15 +163,21 @@ def render_findings(findings: list[dict], out_dir: Path) -> None:
         "Filter by judge status", FILTER_OPTIONS, key="findings_filter"
     )
     sort_by = sort_col.radio(
-        "Sort by descending",
-        ["Severity", "Confidence"],
+        "Sort by",
+        ["Impact", "Severity", "Confidence"],
         horizontal=True,
         key="findings_sort",
     )
 
     visible = [f for f in findings if status_filter in ("All", f["judge_status"])]
-    sort_key = sort_by.lower()
-    visible = sorted(visible, key=lambda x: x.get(sort_key) or 0.0, reverse=True)
+    if sort_by == "Impact":
+        visible = sorted(
+            visible,
+            key=lambda x: float(x["impact"]) if x.get("impact") is not None else 0.0,
+        )
+    else:
+        sort_key = sort_by.lower()
+        visible = sorted(visible, key=lambda x: x.get(sort_key) or 0.0, reverse=True)
 
     if not visible:
         st.info("No findings match the current filter.")
@@ -179,8 +198,9 @@ def render_findings(findings: list[dict], out_dir: Path) -> None:
         anchors: list[dict] = finding.get("anchors") or []
         has_anchors = bool(anchors)
 
+        impact = finding.get("impact")
         with st.expander(
-            f"[{fid}] {finding.get('title', '(untitled)')}",
+            f"[{fid}] {finding.get('title', '(untitled)')}{_impact_title(impact)}",
             expanded=is_active,
         ):
             # colour the expander
@@ -199,7 +219,8 @@ def render_findings(findings: list[dict], out_dir: Path) -> None:
                     f":{colour}[{judge_status}], "
                     f"human `{human_status}`, "
                     f"sev `{_severity_label(severity)}`, "
-                    f"conf `{_severity_label(confidence)}`"
+                    f"conf `{_severity_label(confidence)}`, "
+                    f"impact `{_impact_label(impact)}`"
                 )
 
             with header_r:
