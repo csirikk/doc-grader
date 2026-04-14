@@ -23,10 +23,12 @@ logger = logging.getLogger("__name__")
 _MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
 _SYSTEM_PROMPT = (
-    "You are a professional UML grading assistant. Analyse the diagram based on "
-    "syntax and structure, then classify it."
+    "Classify this UML class diagram. "
+    "GOODUML: Correct, readable diagram with standard notation, "
+    "attributes, methods, and clear relationships. "
+    "BADUML: Missing details, unreadable, or uses non-standard notation."
 )
-_USER_PROMPT = "Analyse this UML diagram."
+_USER_PROMPT = "Analyze this diagram for UML compliance."
 
 
 def split(
@@ -73,9 +75,7 @@ def _encode_image(path: Path) -> str:
 
 def _make_entry(image_ref: str, label: str, analysis: str) -> dict[str, object]:
     """Build a single OpenAI fine-tuning conversation entry."""
-    assistant_text = (
-        f"Analysis: {analysis} Classification: {label}" if analysis else label
-    )
+    assistant_text = label
     return {
         "messages": [
             {"role": "system", "content": _SYSTEM_PROMPT},
