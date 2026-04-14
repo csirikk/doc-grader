@@ -212,29 +212,48 @@ class LLMClient:
 
         user_content: list[dict] = []
         n_images = 0
-        for idx, item in enumerate(doc.docling_doc.pictures):
-            cref = item.get_ref().cref
-            # Send the surrounding page image first so the model can judge
-            # contrast against the document background (BW).
+
+        # Pre-compute required context pages
+        required_pages = {}
+        for item in doc.docling_doc.pictures:
             if item.prov:
                 page_no = item.prov[0].page_no
-                page = doc.docling_doc.pages.get(page_no)
-                if page and page.image and page.image.pil_image:
-                    b64 = self._encode_pil(page.image.pil_image)
-                    user_content.append(
-                        {"type": "text", "text": f"[Page context for {cref}]"}
-                    )
-                    user_content.append(
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": f"data:image/png;base64,{b64}"},
-                        }
-                    )
+                if page_no not in required_pages:
+                    page = doc.docling_doc.pages.get(page_no)
+                    if page and page.image and page.image.pil_image:
+                        required_pages[page_no] = page.image.pil_image
 
+        if required_pages:
+            user_content.append(
+                {
+                    "type": "text",
+                    "text": "### DOCUMENT PAGE CONTEXTS\n"
+                    "Use these pages to evaluate background contrast (BW rule).",
+                }
+            )
+            for page_no, pil_image in sorted(required_pages.items()):
+                b64 = self._encode_pil(pil_image)
+                user_content.append(
+                    {"type": "text", "text": f"[Context: Full Page {page_no}]"}
+                )
+                user_content.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/png;base64,{b64}"},
+                    }
+                )
+
+        user_content.append({"type": "text", "text": "### DIAGRAMS TO EVALUATE"})
+        for idx, item in enumerate(doc.docling_doc.pictures):
+            cref = item.get_ref().cref
             pil_img = doc.get_picture_pil(idx, item)
             if pil_img is not None:
                 b64 = self._encode_pil(pil_img)
-                user_content.append({"type": "text", "text": f"[Ref: {cref}]"})
+                page_ref = f" (on Page {item.prov[0].page_no})" if item.prov else ""
+
+                user_content.append(
+                    {"type": "text", "text": f"[Ref: {cref}]{page_ref}"}
+                )
                 user_content.append(
                     {
                         "type": "image_url",
@@ -291,11 +310,12 @@ class LLMClient:
         doc: Document,
         system_prompt: str,
         model: str,
-    ) -> dict[str, str]:
-        """Send each picture in the document to the fine-tuned OpenAI vision model
-        and return the raw text label keyed by the picture cref.
+    ) -> dict[str, dict[str, str]]:
+        """Send each picture in the document to the fine-tuned OpenAI vision model.
+
+        Returns a mapping {cref: {"label": <label>, "raw": <raw_response>}}.
         """
-        results: dict[str, str] = {}
+        results: dict[str, dict[str, str]] = {}
 
         for idx, item in enumerate(doc.docling_doc.pictures):
             cref = item.get_ref().cref
@@ -337,8 +357,19 @@ class LLMClient:
                 continue
 
             self._record_usage(model or self.model, response.usage)
-            results[cref] = (response.choices[0].message.content or "").strip()
-            logger.info("Classified [%s] as %r", cref, results[cref])
+            raw_content = (response.choices[0].message.content or "").strip()
+
+            u = raw_content.upper()
+            label = ""
+            if "BADUML" in u:
+                label = "BADUML"
+            elif "GOODUML" in u:
+                label = "GOODUML"
+            else:
+                label = "UNKNOWN"
+
+            results[cref] = {"label": label, "raw": raw_content}
+            logger.info("Classified %s as %r", cref, label)
 
         return results
 

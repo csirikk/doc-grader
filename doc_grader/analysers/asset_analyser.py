@@ -88,9 +88,11 @@ class AssetAnalyser(BaseLLMAnalyser):
         )
         baduml_count = 0
         findings: list[VisionFinding] = []
-        for cref, label in raw_labels.items():
-            verdict = label.split("\n", 1)[0].strip()
-            if "BADUML" in verdict.upper():
+        for cref, item in raw_labels.items():
+            label = (item.get("label") or "").strip().upper()
+            raw = (item.get("raw") or "").strip()
+
+            if "BADUML" in label or "BADUML" in raw.upper():
                 findings.append(
                     VisionFinding(
                         ac_code="BADUML",
@@ -99,7 +101,7 @@ class AssetAnalyser(BaseLLMAnalyser):
                             "The UML Class Diagram is visually flawed and "
                             " its structure cannot easily be understood."
                         ),
-                        raw_response=label.strip(),
+                        raw_response=raw,
                         severity=1.0,
                         confidence=1.0,
                         model_name=ft_model,
