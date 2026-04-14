@@ -1,6 +1,7 @@
-"""CLI entry point.
-TODO: add sample dataset
-TODO: add lincesing
+"""doc-grader: Intelligent Tool for Assessment of Student Project Documentations
+Matúš Csirik, 2026
+
+Licensed under the GNU General Public License v3.0 (GPL-3.0).
 """
 
 import argparse

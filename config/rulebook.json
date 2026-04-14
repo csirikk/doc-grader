@@ -354,7 +354,7 @@
       "title": "UML Diagram Own Classes",
       "analyser_id": "asset_analyser",
       "course": "ipp",
-      "prompt_instruction": "The diagram does not visually distinguish the student's own classes from framework or library classes (e.g. ipp-core AbstractInterpreter)."
+      "prompt_instruction": "The diagram does not visually distinguish the student's own classes from the provided template/framework classes (e.g., failing to use a different color like gray for ipp-core template classes)."
     },
     {
       "ac_codes": [

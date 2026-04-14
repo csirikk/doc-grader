@@ -72,3 +72,9 @@ Run the UI:
 ```bash
 streamlit run doc_grader/ui/app.py
 ```
+
+## License
+
+This project is licensed under the GNU General Public License v3.0 (GPL-3.0). See the [LICENSE](LICENSE) file for details.
+
+Because `doc-grader` relies on the [`language-tool-python`](https://github.com/jxmorris12/language_tool_python) library, it adpts its GPL-3.0 license.
