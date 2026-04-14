@@ -171,10 +171,19 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     llm_client = None
-    if config.judge:
+    from .analysers.base_analyser import BaseLLMAnalyser
+
+    need_llm = config.judge or any(
+        a_cfg.enabled
+        and (ANALYSER_LIST.get(a_cfg.analyser_id) is not None)
+        and issubclass(ANALYSER_LIST[a_cfg.analyser_id], BaseLLMAnalyser)
+        for a_cfg in config.analysers
+    )
+
+    if need_llm:
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
-            logger.error("An LLM Analyser is enabled but OPENAI_API_KEY is not set.")
+            logger.error("An LLM component is enabled but OPENAI_API_KEY is not set.")
             return 2
         llm_client = LLMClient()
         logger.info("LLMClient ready")
