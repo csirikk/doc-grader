@@ -26,6 +26,7 @@ from .utils import (
     compute_config_hash,
     configure_logging,
     findings_to_csv_rows,
+    findings_to_grader_row,
     format_finding_short,
     log_json,
     reset_id_counters,
@@ -135,8 +136,18 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         metavar="PATH",
         help=(
+            "If provided, write a grader-style CSV (one row per doc) to this path."
+            "Cols: points,comment,bonus_points,points_mentioned_in_comment,id,doc_type."
+            "Points and bonus left empty; comment is built from findings."
+        ),
+    )
+    arg_parser.add_argument(
+        "--clean-csv-out",
+        default=None,
+        metavar="PATH",
+        help=(
             "If provided, write all findings as a CSV to this path. "
-            "Columns match the clean_ipp_data.csv schema from dataset_parser.py, "
+            "Cols match the clean_ipp_data.csv schema from dataset_parser.py, "
             "enabling direct comparison with the ground-truth assessment dataset."
         ),
     )
@@ -173,7 +184,8 @@ def main(argv: list[str] | None = None) -> int:
 
     base_outdir = Path(args.out)
     exit_code = 0
-    csv_rows: list = []  # accumulated across all input documents for --csv-out
+    clean_csv_rows: list = []  # accumulated per-finding rows for --clean-csv-out
+    grader_rows: list = []  # one row per document for --csv-out
 
     from .parsers.parser import DocumentParser
 
@@ -256,6 +268,13 @@ def main(argv: list[str] | None = None) -> int:
             )
             info["counts"]["n_findings"] = len(parser_findings)
             write_json(file_outdir / "info.json", info)
+            clean_csv_rows.extend(
+                findings_to_csv_rows(path, parser_findings, student_id=student_id)
+            )
+            row = findings_to_grader_row(path, parser_findings)
+            row["id"] = student_id
+            grader_rows.append(row)
+
             logger.warning("Parsing failed for %s", path)
             exit_code = 1
             continue
@@ -310,7 +329,12 @@ def main(argv: list[str] | None = None) -> int:
         write_json(file_outdir / "findings.json", final_findings)
         logger.debug("Wrote findings.json (%d final findings)", len(final_findings))
 
-        csv_rows.extend(findings_to_csv_rows(path, final_findings))
+        clean_csv_rows.extend(
+            findings_to_csv_rows(path, final_findings, student_id=student_id)
+        )
+        row = findings_to_grader_row(path, analyser_findings)
+        row["id"] = student_id
+        grader_rows.append(row)
 
         info["counts"]["n_findings"] = len(final_findings)
         info.update(re_summary)
@@ -324,10 +348,30 @@ def main(argv: list[str] | None = None) -> int:
         if llm_client:
             log_json(logger, "LLM token usage", llm_client.get_usage_summary())
 
+    if args.clean_csv_out:
+        csv_path = Path(args.clean_csv_out)
+        # write per-finding clean dataset CSV (preserve canonical column order)
+        from .utils import CSV_COLUMNS
+
+        write_csv(csv_path, clean_csv_rows, fieldnames=CSV_COLUMNS)
+        logger.info(
+            "Clean CSV with %d finding rows written to %s",
+            len(clean_csv_rows),
+            csv_path,
+        )
+
     if args.csv_out:
         csv_path = Path(args.csv_out)
-        write_csv(csv_path, csv_rows)
-        logger.info("CSV with %d finding rows written to %s", len(csv_rows), csv_path)
+        grader_fieldnames = [
+            "points",
+            "comment",
+            "bonus_points",
+            "points_mentioned_in_comment",
+            "id",
+            "doc_type",
+        ]
+        write_csv(csv_path, grader_rows, fieldnames=grader_fieldnames)
+        logger.info("Grader CSV with %d rows written to %s", len(grader_rows), csv_path)
 
     return exit_code
 

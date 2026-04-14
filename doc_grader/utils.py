@@ -198,14 +198,21 @@ CSV_COLUMNS: list[str] = [
 ]
 
 
-def findings_to_csv_rows(path: Path, findings: list[Finding]) -> list[dict[str, Any]]:
-    """Convert a list of Findings for one document into CSV-ready row dicts."""
+def findings_to_csv_rows(
+    path: Path, findings: list[Finding], student_id: str | None = None
+) -> list[dict[str, Any]]:
+    """Convert a list of Findings for one document into CSV-ready row dicts.
+
+    If `student_id` is provided use it for the `id` column; otherwise fall
+    back to the document filename stem.
+    """
     doc_type = path.suffix.lstrip(".").lower() or None
+    id_value = student_id if student_id is not None else path.stem
     rows: list[dict[str, Any]] = []
     for f in findings:
         rows.append(
             {
-                "id": path.stem,
+                "id": id_value,
                 "year": None,
                 "task_variant": None,
                 "code": f.ac_code,
@@ -227,6 +234,28 @@ def findings_to_csv_rows(path: Path, findings: list[Finding]) -> list[dict[str, 
             }
         )
     return rows
+
+
+def findings_to_grader_row(path: Path, findings: list[Finding]) -> dict[str, Any]:
+    """Convert a document's findings into a single legacy grader style CSV row."""
+    doc_type = path.suffix.lstrip(".").lower() or None
+    parts: list[str] = []
+    for f in findings:
+        section = ""
+        if getattr(f, "anchors", None):
+            first_anchor = f.anchors[0] if f.anchors else None
+            section = first_anchor.section_path or "" if first_anchor else ""
+        parts.append(f"{f.ac_code} ({section}, {f.summary})")
+
+    comment = ", ".join(parts) if parts else ""
+    return {
+        "points": None,
+        "comment": comment,
+        "bonus_points": None,
+        "points_mentioned_in_comment": None,
+        "id": path.stem,
+        "doc_type": doc_type,
+    }
 
 
 def write_csv(
