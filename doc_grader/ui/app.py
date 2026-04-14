@@ -149,6 +149,14 @@ with st.sidebar:
         st.markdown(f"Parsed OK: `{parse_meta.get('parsed_ok', '-')}`")
         source = source_path_from_info(info)
         student_id = info.get("input", {}).get("student_id")
+
+        config_meta = info.get("config", {}) if info else {}
+        course = config_meta.get("course")
+        max_doc_points = config_meta.get("max_doc_points")
+        if course:
+            st.markdown(f"Course: `{course}`")
+        if max_doc_points is not None:
+            st.markdown(f"Max doc points: `{max_doc_points}`")
         if student_id:
             st.markdown(f"Student: `{student_id}`")
         elif source:

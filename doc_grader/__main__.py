@@ -262,6 +262,10 @@ def main(argv: list[str] | None = None) -> int:
         info = {
             "input": doc_ref.model_dump(mode="json", by_alias=True, exclude_none=True),
             "run": {"run_id": run_id, "config_hash": config_hash},
+            "config": {
+                "course": config.course,
+                "max_doc_points": config.max_doc_points,
+            },
             "parse": parse_output.parse_meta.model_dump(
                 mode="json", by_alias=True, exclude_none=True
             ),
