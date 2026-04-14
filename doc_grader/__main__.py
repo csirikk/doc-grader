@@ -341,7 +341,7 @@ def main(argv: list[str] | None = None) -> int:
         clean_csv_rows.extend(
             findings_to_csv_rows(path, final_findings, student_id=student_id)
         )
-        row = findings_to_grader_row(path, analyser_findings)
+        row = findings_to_grader_row(path, final_findings)
         row["id"] = student_id
         grader_rows.append(row)
 
