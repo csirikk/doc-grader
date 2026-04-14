@@ -3,6 +3,7 @@
     "judge": true,
     "judge_model": "gpt-5.4",
     "judge_temperature": 0.0,
+    "max_doc_points": 400,
     "analysers": [
         {
             "analyser_id": "structure_analyser",

@@ -130,6 +130,8 @@ def format_finding_short(finding: Finding) -> str:
         metrics.append(f"severity={finding.severity:.2f}")
     if finding.confidence is not None:
         metrics.append(f"confidence={finding.confidence:.2f}")
+    if finding.impact is not None:
+        metrics.append(f"impact={finding.impact:+.2f}pts")
     metrics.append(f"judge_status={finding.judge_status}")
     metrics.append(f"human_status={finding.human_status}")
     if metrics:
@@ -216,7 +218,7 @@ def findings_to_csv_rows(
                 "year": None,
                 "task_variant": None,
                 "code": f.ac_code,
-                "impact": None,
+                "impact": f.impact,
                 "impact_has_sign": False,
                 "impact_source": None,
                 "impact_shared": False,

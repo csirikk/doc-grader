@@ -87,8 +87,25 @@ class Finding(StrictModel):
     title: str
     summary: str
 
-    severity: float | None = Field(default=None, ge=0.0, le=1.0)
+    severity: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description=(
+            "Violation intensity: 1.0 = worst possible offense under this code, "
+            "0.0 = informational / barely noteworthy."
+        ),
+    )
     confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    impact: float | None = Field(
+        default=None,
+        description=(
+            "Estimated point deduction (negative) computed by the Scorer as "
+            "-(per_code_weight * severity * max_doc_points). "
+            "None when no calibration data is available for this code or when "
+            "the Scorer has not yet been run."
+        ),
+    )
 
     judge_status: JudgeStatus = Field(
         ..., description="Judge review lifecycle state for this finding"

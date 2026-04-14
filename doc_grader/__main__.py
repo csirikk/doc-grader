@@ -22,6 +22,7 @@ from .analysers.structure_analyser import StructureAnalyser
 from .llm_client import LLMClient
 from .rule_engine import RuleEngine
 from .schemas.config import AppConfig, load_app_config, load_rulebook
+from .scorer import Scorer
 from .utils import (
     compute_config_hash,
     configure_logging,
@@ -200,6 +201,7 @@ def main(argv: list[str] | None = None) -> int:
 
     logger.info("Initializing parser...")
     parser = DocumentParser()
+    scorer = Scorer()
 
     def discover_cases(inputs: list[str]) -> Iterator[tuple[Path, str]]:
         """Yields (doc_path, student_id) per target."""
@@ -331,10 +333,13 @@ def main(argv: list[str] | None = None) -> int:
                 judged_dismissed,
                 not_judged,
             )
+            # Note: judged_findings.json contains raw violation-intensity
+            # severity values -- calibrated severity only appears in findings.json.
             write_json(file_outdir / "judged_findings.json", analyser_findings)
             logger.debug("Wrote judged_findings.json")
 
         final_findings, re_summary = rule_engine.process(analyser_findings)
+        scorer.score(final_findings, max_doc_points=config.max_doc_points)
         write_json(file_outdir / "findings.json", final_findings)
         logger.debug("Wrote findings.json (%d final findings)", len(final_findings))
 

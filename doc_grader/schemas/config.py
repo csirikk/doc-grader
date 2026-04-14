@@ -54,6 +54,14 @@ class AppConfig(StrictModel):
         default=0.0,
         description="Temperature for the judge model.",
     )
+    max_doc_points: int | None = Field(
+        default=None,
+        description=(
+            "Maximum documentation points for this run. Used by the Scorer to "
+            "convert the normalised per-code weight into an absolute point "
+            "deduction. Set to None to skip absolute impact computation."
+        ),
+    )
     analysers: list[AnalyserConfig] = Field(
         default_factory=list, description="List of analyser configurations"
     )
