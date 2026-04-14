@@ -10,7 +10,7 @@ from notebooks.scripts.analysis import (
     filter_to_normalised_years,
     load_clean_data,
 )
-from notebooks.scripts.dataset_parser import DOC_CODES
+from notebooks.scripts.dataset_parser import DOC_CODES, normalise_code_alias
 
 
 def compute_weights(
@@ -24,8 +24,9 @@ def compute_weights(
     df = filter_to_normalised_years(df)
     df = filter_for_impact_stats(df, exclude_shared=True)
 
-    medians = df.groupby("code")["impact_normalised"].median().dropna()
-    medians = medians[medians.index.isin(map(str, DOC_CODES))]
+    df["code"] = df["code"].astype(str).apply(lambda s: normalise_code_alias(s.strip()))
+    legacy_codes = {str(c) for c in DOC_CODES}
+    df = df[df["code"].isin(legacy_codes)]
 
     rulebook_path = (
         Path(__file__).resolve().parent.parent.parent / "config" / "rulebook.json"
@@ -65,21 +66,19 @@ def compute_weights(
         "WHY": "JAK",
     }
 
-    # Aggregate medians from legacy codes into canonical codes.
-    aggregated: dict[str, list[float]] = {}
-    for code, med in medians.items():
-        code_str = str(code)
-        canon = LEGACY_TO_CANONICAL.get(code_str, code_str)
-        if canon not in allowed_rulebook_codes:
-            continue
-        aggregated.setdefault(canon, []).append(float(abs(med)))
+    # Map each event to its canonical code and compute canonical medians from
+    # event-level absolute normalized impacts.
+    df = df.assign(impact_normalised_abs=lambda d: d["impact_normalised"].abs())
+    df["canon"] = df["code"].apply(lambda c: LEGACY_TO_CANONICAL.get(str(c), str(c)))
+    df_mapped = df[df["canon"].isin(allowed_rulebook_codes)]
 
-    # Compute weights as the mean of aggregated absolute medians.
+    canonical_medians = (
+        df_mapped.groupby("canon")["impact_normalised_abs"].median().dropna()
+    )
+
     weights: dict[str, float] = {}
-    for canon, vals in aggregated.items():
-        if not vals:
-            continue
-        w = float(sum(vals) / len(vals))
+    for canon, med in canonical_medians.items():
+        w = float(med)
         weights[str(canon)] = round(min(max(w, 0.0), 1.0), 6)
 
     # Infer reasonable values for non-legacy canonical codes when possible.
@@ -115,6 +114,9 @@ def compute_weights(
         inferred = float(sum(candidate_vals) / len(candidate_vals))
         logger.info("Inferred weight for %s from %s to %s", code, candidates, inferred)
         weights[str(code)] = round(min(max(float(inferred), 0.0), 1.0), 6)
+
+    # Final safety: keep only codes present in the rulebook (allowed canonical codes).
+    weights = {k: v for k, v in weights.items() if k in allowed_rulebook_codes}
 
     ordered = dict(sorted(weights.items(), key=lambda kv: kv[1], reverse=True))
 
