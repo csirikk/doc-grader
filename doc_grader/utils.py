@@ -201,7 +201,10 @@ CSV_COLUMNS: list[str] = [
 
 
 def findings_to_csv_rows(
-    path: Path, findings: list[Finding], student_id: str | None = None
+    path: Path,
+    findings: list[Finding],
+    student_id: str | None = None,
+    max_doc_points: int | None = None,
 ) -> list[dict[str, Any]]:
     """Convert a list of Findings for one document into CSV-ready row dicts.
 
@@ -210,6 +213,10 @@ def findings_to_csv_rows(
     """
     doc_type = path.suffix.lstrip(".").lower() or None
     id_value = student_id if student_id is not None else path.stem
+    total_impact = sum(f.impact for f in findings if f.impact is not None)
+    doc_points = (
+        round(max_doc_points + total_impact, 2) if max_doc_points is not None else None
+    )
     rows: list[dict[str, Any]] = []
     for f in findings:
         rows.append(
@@ -225,7 +232,7 @@ def findings_to_csv_rows(
                 "comment": f.summary,
                 "raw_text": f.summary,
                 "source_file": path.name,
-                "doc_points": None,
+                "doc_points": doc_points,
                 "doc_type": doc_type,
                 "bonus_points": None,
                 "severity": f.severity,
@@ -238,9 +245,15 @@ def findings_to_csv_rows(
     return rows
 
 
-def findings_to_grader_row(path: Path, findings: list[Finding]) -> dict[str, Any]:
+def findings_to_grader_row(
+    path: Path, findings: list[Finding], max_doc_points: int | None = None
+) -> dict[str, Any]:
     """Convert a document's findings into a single legacy grader style CSV row."""
     doc_type = path.suffix.lstrip(".").lower() or None
+    total_impact = sum(f.impact for f in findings if f.impact is not None)
+    points = (
+        round(max_doc_points + total_impact, 2) if max_doc_points is not None else None
+    )
     parts: list[str] = []
     for f in findings:
         section = ""
@@ -251,7 +264,7 @@ def findings_to_grader_row(path: Path, findings: list[Finding]) -> dict[str, Any
 
     comment = ", ".join(parts) if parts else ""
     return {
-        "points": None,
+        "points": points,
         "comment": comment,
         "bonus_points": None,
         "points_mentioned_in_comment": None,

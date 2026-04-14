@@ -284,9 +284,16 @@ def main(argv: list[str] | None = None) -> int:
             info["counts"]["n_findings"] = len(parser_findings)
             write_json(file_outdir / "info.json", info)
             clean_csv_rows.extend(
-                findings_to_csv_rows(path, parser_findings, student_id=student_id)
+                findings_to_csv_rows(
+                    path,
+                    parser_findings,
+                    student_id=student_id,
+                    max_doc_points=config.max_doc_points,
+                )
             )
-            row = findings_to_grader_row(path, parser_findings)
+            row = findings_to_grader_row(
+                path, parser_findings, max_doc_points=config.max_doc_points
+            )
             row["id"] = student_id
             grader_rows.append(row)
 
@@ -348,9 +355,16 @@ def main(argv: list[str] | None = None) -> int:
         logger.debug("Wrote findings.json (%d final findings)", len(final_findings))
 
         clean_csv_rows.extend(
-            findings_to_csv_rows(path, final_findings, student_id=student_id)
+            findings_to_csv_rows(
+                path,
+                final_findings,
+                student_id=student_id,
+                max_doc_points=config.max_doc_points,
+            )
         )
-        row = findings_to_grader_row(path, final_findings)
+        row = findings_to_grader_row(
+            path, final_findings, max_doc_points=config.max_doc_points
+        )
         row["id"] = student_id
         grader_rows.append(row)
 
