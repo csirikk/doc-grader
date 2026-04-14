@@ -163,7 +163,7 @@ def render_findings(findings: list[dict], out_dir: Path) -> None:
         "Filter by judge status", FILTER_OPTIONS, key="findings_filter"
     )
     sort_by = sort_col.radio(
-        "Sort by",
+        "Sort by (Descending)",
         ["Impact", "Severity", "Confidence"],
         horizontal=True,
         key="findings_sort",
