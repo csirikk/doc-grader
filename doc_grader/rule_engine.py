@@ -96,19 +96,6 @@ class RuleEngine:
                 }
             finding.meta = {**(finding.meta or {}), "judge": judge_meta}
 
-            if verdict.decision == "approved" and not changed_fields:
-                logger.info(
-                    "Judge confirmed finding '%s' without content changes.",
-                    finding.finding_id,
-                )
-
-            logger.debug(
-                "RuleEngine: judge verdict for '%s': %s - %s",
-                finding.finding_id,
-                verdict.decision,
-                verdict.rationale,
-            )
-
     def process(self, findings: list[Finding]) -> tuple[list[Finding], dict]:
         """Filter and normalise findings. Returns (final_findings, summary_dict).
 
@@ -124,12 +111,10 @@ class RuleEngine:
         for f in findings:
             if f.judge_status == "judged_dismissed":
                 dropped_dismissed += 1
-                logger.debug("RuleEngine: dropped dismissed finding '%s'", f.finding_id)
                 continue
 
             if f.finding_id in seen_ids:
                 dropped_dupe += 1
-                logger.debug("Dropped duplicate finding '%s'", f.finding_id)
                 continue
 
             seen_ids.add(f.finding_id)

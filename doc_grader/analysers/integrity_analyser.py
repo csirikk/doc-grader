@@ -573,11 +573,6 @@ class IntegrityAnalyser(BaseLLMAnalyser):
 
         student_chunks = _extract_chunks(doc, min_chunk_len)
         student_sentences = _extract_sentences(doc, min_chunk_len)
-        logger.info(
-            "Student: %d chunks, %d sentences after filtering",
-            len(student_chunks),
-            len(student_sentences),
-        )
 
         if len(student_chunks) < MIN_USABLE_CHUNKS:
             logger.info(

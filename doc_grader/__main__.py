@@ -232,7 +232,7 @@ def main(argv: list[str] | None = None) -> int:
         parser_findings = parse_output.parser_findings
         ir_doc = parse_output.ir
 
-        log_json(logger, "Parse output", parse_output)
+        logging.debug("Parsing done")
 
         doc_ref = parse_output.doc_ref
 
@@ -316,9 +316,9 @@ def main(argv: list[str] | None = None) -> int:
         info.update(re_summary)
         write_json(file_outdir / "info.json", info)
 
-        log_json(logger, "IR Document", ir_doc)
+        # log_json(logger, "IR Document", ir_doc)
         for finding in final_findings:
-            log_json(logger, f"Finding: {finding.title}", finding)
+            # log_json(logger, f"Finding: {finding.title}", finding)
             logger.info("\n%s\n", format_finding_short(finding))
 
         if llm_client:

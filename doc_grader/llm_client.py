@@ -167,9 +167,7 @@ class LLMClient:
                 "No text to analyse or no system prompt provided. Skipping LLM call."
             )
             return []
-        logger.debug(
-            f"Sending request to {self.model}. SYSTEM PROMPT:\n{system_prompt}"
-        )
+        logger.debug(f"Sending request to {self.model}.")
 
         try:
             response = self._client.beta.chat.completions.parse(
@@ -365,8 +363,6 @@ class LLMClient:
                 ac_to_rule[code] = rule
 
         prompt_lines = rulebook.judge_model_prompt_template
-        logger.info("Sending %d findings to the judge model.", len(findings))
-
         user_message = self._build_judge_user_message(findings, doc, ac_to_rule)
 
         messages: list = [

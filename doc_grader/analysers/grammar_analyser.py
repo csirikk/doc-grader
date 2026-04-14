@@ -183,7 +183,6 @@ class GrammarAnalyser(BaseLLMAnalyser):
                 continue
 
             issues = self._check(combined, lt_lang)
-            logger.debug("section %r [%s]: %d issue(s)", section, lt_lang, len(issues))
 
             # Map each match offset back to its originating TextItem
             offset_map: list[tuple[int, int, TextItem]] = []

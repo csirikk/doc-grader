@@ -368,9 +368,6 @@ class DocumentParser:
 
                 clean_text = raw_bytes.decode(encoding, errors="replace")
                 md_image_uris = extract_md_image_uris(clean_text)
-                logger.debug(
-                    "Markdown extraction produced %d URI(s)", len(md_image_uris)
-                )
 
                 source = DocumentStream(
                     name=path.name,

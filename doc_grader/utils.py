@@ -1,4 +1,5 @@
-"""Utility helpers."""
+"""Utility helpers.
+TODO: validate csv out, ensure same as graders, not clean ipp data csv"""
 
 import csv
 import hashlib
