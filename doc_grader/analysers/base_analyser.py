@@ -185,7 +185,11 @@ class BaseLLMAnalyser(BaseAnalyser):
             )
             if f.model_name:
                 finding.model_evals.append(
-                    ModelEval(model_name=f.model_name, label=f.ac_code)
+                    ModelEval(
+                        model_name=f.model_name,
+                        label=f.ac_code,
+                        raw={"verdict": f.raw_response} if f.raw_response else None,
+                    )
                 )
             findings.append(finding)
         return findings
@@ -202,6 +206,7 @@ class BaseLLMAnalyser(BaseAnalyser):
         Subclasses may override for custom post-processing logic.
         """
         known_codes: set[str] = {code for r in rules for code in r.ac_codes}
+        model_name: str | None = (params or {}).get("model")
         findings: list[Finding] = []
         for f in llm_findings:
             if f.ac_code == "FIL0":
@@ -212,7 +217,12 @@ class BaseLLMAnalyser(BaseAnalyser):
                     "Ignoring LLM finding with unknown AC code %r", f.ac_code
                 )
                 continue
-            findings.append(self._convert_llm_finding_to_finding(doc, f, rules))
+            finding = self._convert_llm_finding_to_finding(doc, f, rules)
+            if model_name:
+                finding.model_evals.append(
+                    ModelEval(model_name=model_name, label=f.ac_code)
+                )
+            findings.append(finding)
         return findings
 
     def build_system_prompt(

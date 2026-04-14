@@ -87,6 +87,10 @@ class VisionFinding(StrictModel):
         description="Docling picture cref (e.g. '#/pictures/0')",
     )
     reason: str
+    raw_response: str | None = Field(
+        default=None,
+        description="Raw model output.",
+    )
     severity: float = Field(..., ge=0.0, le=1.0)
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
     model_name: str | None = Field(

@@ -144,6 +144,8 @@ def _render_evidence(finding: dict) -> None:
                 )
                 score_str = f"{score:.3f}" if score is not None else "n/a"
                 st.text(f"{model}: {label} (score {score_str})")
+                if raw := ev.get("raw"):
+                    st.json(raw, expanded=False)
 
         if other_meta:
             st.caption("Meta")
