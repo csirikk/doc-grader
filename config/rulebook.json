@@ -203,7 +203,7 @@
       "analyser_id": "language_analyser",
       "course": "ipp",
       "prompt_instruction": "Ignoring or poorly applying the Single Responsibility Principle, specifically describing a single class or method that handles multiple completely unrelated responsibilities.",
-      "is_legacy": false
+      "is_legacy": true
     },
     {
       "ac_codes": [
