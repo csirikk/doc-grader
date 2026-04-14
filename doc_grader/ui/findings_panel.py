@@ -46,7 +46,7 @@ def _impact_title(impact: float | None) -> str:
     """Compact impact string for use in the expander title."""
     if impact is None:
         return ""
-    return f"  {impact:+.2f}"
+    return f"  **{impact:+.2f}**"
 
 
 def _render_judge(finding: dict) -> None:
