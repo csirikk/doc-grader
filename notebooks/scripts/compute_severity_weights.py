@@ -4,13 +4,14 @@ import json
 import logging
 from pathlib import Path
 
-from doc_grader.utils import log_json, write_json
-from notebooks.scripts.analysis import (
+from analysis import (
     filter_for_impact_stats,
     filter_to_normalised_years,
     load_clean_data,
 )
-from notebooks.scripts.dataset_parser import DOC_CODES, normalise_code_alias
+from dataset_parser import DOC_CODES, normalise_code_alias
+
+from doc_grader.utils import log_json, write_json
 
 
 def compute_weights(
@@ -49,20 +50,15 @@ def compute_weights(
     LEGACY_TO_CANONICAL = {
         "BLOK": "SAZBA",
         "DOCTYPE": "SAZBA",
-        "DP": "BADDP",
-        "EX": "EXT",
         "FORM": "SAZBA",
         "FORMAT": "SAZBA",
         "HOW": "HOV",
         "MDLINES": "SAZBA",
         "MEZ": "SAZBA",
         "MISSING": "STRUCT",
-        "NV": "BADDP",
-        "NVPDOC": "EXT",
-        "OK": "ICH",
-        "OOP": "NOOOP",
+        "NVPDOC": "BADDP",
         "PRED": "SAZBA",
-        "SINGLETON": "NOSRP",
+        "SINGLETON": "BADDP",
         "SPACETAB": "SAZBA",
         "UML": "NOUML",
         "WHY": "JAK",
