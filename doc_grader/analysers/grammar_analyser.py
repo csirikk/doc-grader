@@ -136,7 +136,7 @@ class GrammarAnalyser(BaseLLMAnalyser):
         return [
             rule
             for rule in rulebook.rules
-            if "CH" in rule.ac_codes
+            if rule.ac_code == "CH"
             and (rule.course is None or rule.course == course)
             and (rule.language is None or rule.language == language)
         ]

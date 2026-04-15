@@ -484,7 +484,7 @@ class IntegrityAnalyser(BaseLLMAnalyser):
         """Extend the grader prompt with the assignment spec text for COPY checks."""
         system_prompt = super().build_system_prompt(rules, rulebook, params)
 
-        has_copy_rule = any("COPY" in r.ac_codes for r in rules)
+        has_copy_rule = any(r.ac_code == "COPY" for r in rules)
         if has_copy_rule and (params or {}).get("spec_path"):
             from ..parsers.parser import DocumentParser
 
@@ -521,7 +521,7 @@ class IntegrityAnalyser(BaseLLMAnalyser):
     ) -> list[LLMRule]:
         rules = super().get_rules(rulebook, params)
         if (params or {}).get("copy_engine", "local") == "local":
-            rules = [r for r in rules if "COPY" not in r.ac_codes]
+            rules = [r for r in rules if r.ac_code != "COPY"]
         return rules
 
     def analyse(

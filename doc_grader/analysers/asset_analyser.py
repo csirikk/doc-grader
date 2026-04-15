@@ -85,10 +85,9 @@ class AssetAnalyser(BaseLLMAnalyser):
             excluded.update({"BW", "SAZBA"})
         rules_text = ""
         for r in rules:
-            if any(code in excluded for code in r.ac_codes):
+            if r.ac_code in excluded:
                 continue
-            codes_str = "/".join(r.ac_codes)
-            rules_text += f"- {codes_str}: {r.prompt_instruction}\n"
+            rules_text += f"- {r.ac_code}: {r.prompt_instruction}\n"
         template = "\n".join(rulebook.vision_model_prompt_template)
         return template.replace("{rules}", rules_text)
 
@@ -253,7 +252,7 @@ class AssetAnalyser(BaseLLMAnalyser):
         if not rules:
             return []
 
-        sazba_rules = [r for r in rules if "SAZBA" in r.ac_codes]
+        sazba_rules = [r for r in rules if r.ac_code == "SAZBA"]
 
         # Markdown branch: deterministic SAZBA linting + vision LLM for diagrams
         if not doc.docling_doc.pages:

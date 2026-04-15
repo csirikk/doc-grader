@@ -121,27 +121,30 @@ class BaseLLMAnalyser(BaseAnalyser):
 
     @staticmethod
     def _title_for_ac_code(rules: list[LLMRule], ac_code: str) -> str:
-        ac_codes = ac_code.split("/")
-        for rule in rules:
-            if any(code in rule.ac_codes for code in ac_codes):
-                return rule.title
-        raise KeyError(f"No rule title found for AC code {ac_code!r}")
+        titles = {r.ac_code: r.title for r in rules}
+        title = titles.get(ac_code)
+        if title is None:
+            raise KeyError(f"No rule title found for AC code {ac_code!r}")
+        return title
 
     def get_rules(
         self, rulebook: Rulebook, params: dict[str, Any] | None = None
     ) -> list[LLMRule]:
-        """Return the rules this analyser owns, filtered by course and language.
+        """Return the rules this analyser owns, filtered by course, language, and
+        any disabled_codes set in params.
 
         Subclasses may override for custom rule selection logic.
         """
         course = params.get("course") if params else None
         language = params.get("language") if params else None
+        disabled: set[str] = set((params or {}).get("disabled_codes") or [])
         return [
             r
             for r in rulebook.rules
             if r.analyser_id == self.analyser_id
             and (r.course is None or r.course == course)
             and (r.language is None or r.language == language)
+            and r.ac_code not in disabled
         ]
 
     def process_vision_findings(
@@ -152,7 +155,7 @@ class BaseLLMAnalyser(BaseAnalyser):
         params: dict[str, Any] | None = None,
     ) -> list[Finding]:
         """Convert vision model findings into standard Findings."""
-        known_codes: set[str] = {code for r in rules for code in r.ac_codes}
+        known_codes: set[str] = {r.ac_code for r in rules}
         findings: list[Finding] = []
         from docling_core.types.doc.document import RefItem
 
@@ -205,7 +208,7 @@ class BaseLLMAnalyser(BaseAnalyser):
 
         Subclasses may override for custom post-processing logic.
         """
-        known_codes: set[str] = {code for r in rules for code in r.ac_codes}
+        known_codes: set[str] = {r.ac_code for r in rules}
         model_name: str | None = (params or {}).get("model")
         findings: list[Finding] = []
         for f in llm_findings:
@@ -237,8 +240,7 @@ class BaseLLMAnalyser(BaseAnalyser):
         """
         rules_text = ""
         for r in rules:
-            codes_str = "/".join(r.ac_codes)
-            rules_text += f"- {codes_str}: {r.prompt_instruction}\n"
+            rules_text += f"- {r.ac_code}: {r.prompt_instruction}\n"
         template = "\n".join(rulebook.grader_model_prompt_template)
         return template.replace("{rules}", rules_text)
 

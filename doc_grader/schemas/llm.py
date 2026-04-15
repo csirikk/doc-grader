@@ -1,13 +1,25 @@
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from .base import StrictModel
 
 
 class LLMRule(StrictModel):
     title: str = Field(..., description="Short rule title phrase")
-    ac_codes: list[str] = Field(..., description="The assessment criterion codes")
+    ac_code: str = Field(..., description="The assessment criterion code")
+    severity_weight: float = Field(
+        default=0.0,
+        ge=0.0,
+        description=(
+            "Calibrated per-code weight: fraction of max_doc_points deducted at "
+            "severity=1.0."
+        ),
+    )
+    is_legacy: bool = Field(
+        default=False,
+        description="Whether this rule corresponds to a legacy assessment code.",
+    )
     prompt_instruction: str = Field(
         ..., description="Analyser prompt: describes what to flag and when."
     )
@@ -25,10 +37,6 @@ class LLMRule(StrictModel):
     language: str | None = Field(
         default=None,
         description="Language code this rule applies to. None means all languages.",
-    )
-    is_legacy: bool = Field(
-        default=False,
-        description=("Whether this rule corresponds to a legacy code or it is new. "),
     )
 
 
@@ -52,6 +60,16 @@ class Rulebook(StrictModel):
     rules: list[LLMRule] = Field(
         default_factory=list, description="List of all available LLM rules"
     )
+    rules_by_code: dict[str, LLMRule] = Field(
+        default_factory=dict,
+        exclude=True,
+        description="Pre-built index for O(1) rule lookup by AC code.",
+    )
+
+    @model_validator(mode="after")
+    def _build_index(self) -> Self:
+        object.__setattr__(self, "rules_by_code", {r.ac_code: r for r in self.rules})
+        return self
 
 
 class LLMFinding(StrictModel):
@@ -127,16 +145,23 @@ class JudgeVerdict(StrictModel):
         description=(
             "approved: violation confirmed; "
             "dismissed: false positive; "
-            "adjusted: real issue but text, snippet, severity, or confidence need correcting"
+            "adjusted: real issue but text, snippet, severity, "
+            "or confidence need correcting"
         ),
     )
     adjusted_summary: str | None = Field(
         default=None,
-        description="The rewritten, clearer explanation of the violation (only set if decision is 'adjusted').",
+        description=(
+            "The rewritten, clearer explanation of the violation "
+            "(only set if decision is 'adjusted')."
+        ),
     )
     adjusted_snippet: str | None = Field(
         default=None,
-        description="The corrected exact, unedited substring from the document (only set if decision is 'adjusted').",
+        description=(
+            "The corrected exact, unedited substring from the document "
+            "(only set if decision is 'adjusted')."
+        ),
     )
     adjusted_severity: float | None = Field(
         default=None,

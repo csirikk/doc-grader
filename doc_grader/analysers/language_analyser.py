@@ -50,5 +50,5 @@ class LanguageAnalyser(BaseLLMAnalyser):
         language = params.get("language") if params else None
         if language != "cs":
             # CH is handled by grammar_analyser for non-Czech documents.
-            return [rule for rule in rules if "CH" not in rule.ac_codes]
+            return [rule for rule in rules if rule.ac_code != "CH"]
         return rules

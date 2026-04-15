@@ -60,51 +60,53 @@ class Document(StrictModel):
         ),
     )
 
-    def get_picture_pil(self, idx: int, item: Any) -> Any:
-        """Get a PictureItem as a PIL image."""
-        from pathlib import Path
-        from urllib.parse import unquote
 
-        from PIL import Image
+def get_picture_pil(doc: Document, idx: int, item: Any) -> Any:
+    """Resolve a Docling PictureItem to a PIL image.
 
-        if item.image is not None and item.image.pil_image is not None:
-            return item.image.pil_image
+    Tries in order: in-memory pil_image, URI on the item, Markdown image URI
+    list, and finally a local path relative to the document source directory.
+    Returns None when no image can be loaded.
+    """
+    from pathlib import Path
+    from urllib.parse import unquote
 
-        img_path_str: str | None = None
-        if item.image is not None and getattr(item.image, "uri", None):
-            img_path_str = str(item.image.uri)
-        elif getattr(item, "uri", None):
-            img_path_str = str(item.uri)
+    from PIL import Image
 
-        if (
-            img_path_str is None
-            and self.md_image_uris
-            and idx < len(self.md_image_uris)
-        ):
-            img_path_str = self.md_image_uris[idx]
+    if item.image is not None and item.image.pil_image is not None:
+        return item.image.pil_image
 
-        if not img_path_str:
-            return None
+    img_path_str: str | None = None
+    if item.image is not None and getattr(item.image, "uri", None):
+        img_path_str = str(item.image.uri)
+    elif getattr(item, "uri", None):
+        img_path_str = str(item.uri)
 
-        if img_path_str.startswith("file://"):
-            img_path_str = img_path_str[7:]
-        img_path_str = unquote(img_path_str)
+    if img_path_str is None and doc.md_image_uris and idx < len(doc.md_image_uris):
+        img_path_str = doc.md_image_uris[idx]
 
-        source_dir = Path(self.doc_ref.source_path).parent
-        base_resolved = source_dir.resolve()
-        img_path = (base_resolved / img_path_str).resolve()
+    if not img_path_str:
+        return None
 
-        if not img_path.is_relative_to(base_resolved) or not img_path.is_file():
-            return None
-        try:
-            if img_path.suffix.lower() == ".svg":
-                import io
+    if img_path_str.startswith("file://"):
+        img_path_str = img_path_str[7:]
+    img_path_str = unquote(img_path_str)
 
-                import cairosvg
+    source_dir = Path(doc.doc_ref.source_path).parent
+    base_resolved = source_dir.resolve()
+    img_path = (base_resolved / img_path_str).resolve()
 
-                png_bytes = cairosvg.svg2png(url=str(img_path))
-                return Image.open(io.BytesIO(png_bytes))
-            return Image.open(img_path)
-        except Exception as exc:
-            logger.warning("Failed to load local image %s: %s", img_path, exc)
-            return None
+    if not img_path.is_relative_to(base_resolved) or not img_path.is_file():
+        return None
+    try:
+        if img_path.suffix.lower() == ".svg":
+            import io
+
+            import cairosvg
+
+            png_bytes = cairosvg.svg2png(url=str(img_path))
+            return Image.open(io.BytesIO(png_bytes))
+        return Image.open(img_path)
+    except Exception as exc:
+        logger.warning("Failed to load local image %s: %s", img_path, exc)
+        return None

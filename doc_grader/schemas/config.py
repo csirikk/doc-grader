@@ -62,6 +62,13 @@ class AppConfig(StrictModel):
             "deduction. Set to None to skip absolute impact computation."
         ),
     )
+    disabled_codes: list[str] = Field(
+        default_factory=list,
+        description=(
+            "AC codes to suppress for this run. "
+            "Matching rules are excluded before any analyser runs."
+        ),
+    )
     rulebook_path: str | None = Field(
         default=None,
         description=(

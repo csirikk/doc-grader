@@ -1,15 +1,11 @@
 """Finding schema definition."""
 
-from datetime import datetime  # noqa: TC003
 from typing import Any, Literal
 
-from docling_core.types.doc.document import (
-    FineRef,  # noqa: TC002
-    ProvenanceItem,  # noqa: TC002
-)
+from docling_core.types.doc.document import FineRef, ProvenanceItem  # noqa: TC002
 from pydantic import Field
 
-from .base import StrictModel, utc_now
+from .base import StrictModel
 from .ir import DocumentRef  # noqa: TC001
 
 JudgeStatus = Literal[
@@ -41,10 +37,13 @@ class Anchor(StrictModel):
 
     target: FineRef
     snippet: str | None = None
-    prov: list[ProvenanceItem] = Field(default_factory=list)
     section_path: str | None = Field(
         default=None,
         description="Human-readable heading path to the item (e.g. '2.3 Parser').",
+    )
+    prov: list[ProvenanceItem] = Field(
+        default_factory=list,
+        description="Docling provenance items (page number + bounding box).",
     )
 
 
@@ -54,7 +53,6 @@ class Stat(StrictModel):
     name: str
     value: bool | int | float | str | None
     unit: str | None = None
-    notes: str | None = None
 
 
 class ModelEval(StrictModel):
@@ -71,11 +69,6 @@ class Finding(StrictModel):
     Represents a detected issue in a document, with context and evidence.
     Possibly becomes a concrete suggestion.
     """
-
-    created_at: datetime = Field(
-        default_factory=utc_now,
-        description="UTC timestamp for when the finding was created",
-    )
 
     # Context
     analyser: AnalyserInfo

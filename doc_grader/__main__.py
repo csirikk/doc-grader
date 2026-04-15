@@ -84,6 +84,7 @@ def _run_analysers(
         analyser_params = analyser_cfg.params.copy()
         analyser_params.setdefault("course", config.course)
         analyser_params.setdefault("language", ir.language)
+        analyser_params.setdefault("disabled_codes", config.disabled_codes)
         analyser_params["model"] = analyser_cfg.model
         analyser_params["temperature"] = analyser_cfg.temperature
 
@@ -356,7 +357,7 @@ def main(argv: list[str] | None = None) -> int:
             logger.debug("Wrote judged_findings.json")
 
         final_findings, re_summary = rule_engine.process(analyser_findings)
-        scorer.score(final_findings, max_doc_points=config.max_doc_points)
+        scorer.score(final_findings, rulebook, max_doc_points=config.max_doc_points)
         write_json(file_outdir / "findings.json", final_findings)
         logger.debug("Wrote findings.json (%d final findings)", len(final_findings))
 

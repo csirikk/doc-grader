@@ -14,6 +14,8 @@ if TYPE_CHECKING:
         Rulebook,
     )
 
+from .schemas.ir import get_picture_pil
+
 # Pricing table: (input_usd_per_1m, cached_usd_per_1m, output_usd_per_1m)
 # Sources: https://developers.openai.com/api/docs/pricing and microsoft (as of 4/7/2026)
 _MODEL_PRICING: list[tuple[str, tuple[float, float, float]]] = [
@@ -249,7 +251,7 @@ class LLMClient:
         user_content.append({"type": "text", "text": "### DIAGRAMS TO EVALUATE"})
         for idx, item in enumerate(doc.docling_doc.pictures):
             cref = item.get_ref().cref
-            pil_img = doc.get_picture_pil(idx, item)
+            pil_img = get_picture_pil(doc, idx, item)
             if pil_img is not None:
                 b64 = self._encode_pil(pil_img)
                 page_ref = f" (on Page {item.prov[0].page_no})" if item.prov else ""
@@ -400,7 +402,7 @@ class LLMClient:
 
         for idx, item in enumerate(doc.docling_doc.pictures):
             cref = item.get_ref().cref
-            pil_img = doc.get_picture_pil(idx, item)
+            pil_img = get_picture_pil(doc, idx, item)
             if pil_img is None:
                 logger.warning(
                     "No image available for %s, skipping classification.", cref
@@ -469,10 +471,7 @@ class LLMClient:
             logger.info("No findings passed to judge model.")
             return None
 
-        ac_to_rule: dict[str, LLMRule] = {}
-        for rule in rulebook.rules:
-            for code in rule.ac_codes:
-                ac_to_rule[code] = rule
+        ac_to_rule: dict[str, LLMRule] = {rule.ac_code: rule for rule in rulebook.rules}
 
         prompt_lines = rulebook.judge_model_prompt_template
         user_message = self._build_judge_user_message(findings, doc, ac_to_rule)
@@ -642,7 +641,7 @@ class LLMClient:
 
             for idx, item in enumerate(doc.docling_doc.pictures):
                 cref = item.get_ref().cref
-                pil_img = doc.get_picture_pil(idx, item)
+                pil_img = get_picture_pil(doc, idx, item)
                 if pil_img is not None:
                     b64 = self._encode_pil(pil_img)
                     user_content.append({"type": "text", "text": f"[Diagram {cref}]"})
