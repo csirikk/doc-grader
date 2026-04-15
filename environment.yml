@@ -25,6 +25,7 @@ dependencies:
     - language-tool-python
     - marko
     - markdown-it-py
+    - pymarkdownlnt
     - openai
     - sentence-transformers
     - streamlit-pdf-viewer

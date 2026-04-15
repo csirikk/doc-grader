@@ -12,6 +12,7 @@ dependencies = [
     "language-tool-python",
     "marko",
     "markdown-it-py",
+    "pymarkdownlnt",
     "numpy",
     "openai",
     "pandas",
