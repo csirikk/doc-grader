@@ -16,6 +16,7 @@ from notebooks.scripts.dataset_parser import DOC_CODES, normalise_code_alias
 def compute_weights(
     data_path: Path | None = None,
     write_path: Path | None = None,
+    rulebook_path: Path | None = None,
 ) -> dict[str, float]:
     """Compute canonical severity weights."""
     logger = logging.getLogger(__name__)
@@ -28,9 +29,10 @@ def compute_weights(
     legacy_codes = {str(c) for c in DOC_CODES}
     df = df[df["code"].isin(legacy_codes)]
 
-    rulebook_path = (
-        Path(__file__).resolve().parent.parent.parent / "config" / "rulebook.json"
-    )
+    if rulebook_path is None:
+        rulebook_path = (
+            Path(__file__).resolve().parent.parent.parent / "config" / "rulebook.json"
+        )
     try:
         with rulebook_path.open(encoding="utf-8") as fh:
             rulebook = json.load(fh)
