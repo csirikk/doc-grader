@@ -53,7 +53,7 @@ class LLMClient:
         self,
         model: str = "gpt-5.4-nano-2026-03-17",
         temperature: float = 0.0,
-        max_completion_tokens: int = 2048,
+        max_completion_tokens: int = 8192,
         api_key_env: str = "OPENAI_API_KEY",
     ) -> None:
         self.model = model
@@ -168,6 +168,10 @@ class LLMClient:
             )
             return []
         logger.debug(f"Sending request to {self.model}.")
+        messages: list = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": text_chunk},
+        ]
 
         try:
             response = self._client.beta.chat.completions.parse(
@@ -177,10 +181,7 @@ class LLMClient:
                 ),
                 max_completion_tokens=self.max_completion_tokens,
                 response_format=GraderModelResponse,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": text_chunk},
-                ],
+                messages=messages,
             )
         except Exception as e:
             logger.error(f"LLM API call or processing failed: {e}")
@@ -196,6 +197,29 @@ class LLMClient:
             f"Successfully parsed {len(parsed_response.findings)} findings from LLM."
         )
         return parsed_response.findings
+
+    def _build_page_context_content(self, doc: Document, header: str) -> list[dict]:
+        """Return user-content blocks for all document pages, ordered by page number."""
+        content: list[dict] = []
+        all_pages = {
+            page_no: page
+            for page_no, page in sorted(doc.docling_doc.pages.items())
+            if page and page.image and page.image.pil_image
+        }
+        if not all_pages:
+            return content
+        content.append({"type": "text", "text": header})
+        for page_no, page in all_pages.items():
+            assert page.image is not None and page.image.pil_image is not None
+            b64 = self._encode_pil(page.image.pil_image)
+            content.append({"type": "text", "text": f"[Context: Full Page {page_no}]"})
+            content.append(
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/png;base64,{b64}"},
+                }
+            )
+        return content
 
     def analyse_assets(
         self,
@@ -213,35 +237,14 @@ class LLMClient:
         user_content: list[dict] = []
         n_images = 0
 
-        # Pre-compute required context pages
-        required_pages = {}
-        for item in doc.docling_doc.pictures:
-            if item.prov:
-                page_no = item.prov[0].page_no
-                if page_no not in required_pages:
-                    page = doc.docling_doc.pages.get(page_no)
-                    if page and page.image and page.image.pil_image:
-                        required_pages[page_no] = page.image.pil_image
-
-        if required_pages:
-            user_content.append(
-                {
-                    "type": "text",
-                    "text": "### DOCUMENT PAGE CONTEXTS\n"
-                    "Use these pages to evaluate background contrast (BW rule).",
-                }
-            )
-            for page_no, pil_image in sorted(required_pages.items()):
-                b64 = self._encode_pil(pil_image)
-                user_content.append(
-                    {"type": "text", "text": f"[Context: Full Page {page_no}]"}
-                )
-                user_content.append(
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": f"data:image/png;base64,{b64}"},
-                    }
-                )
+        # Send all document pages as context
+        page_context = self._build_page_context_content(
+            doc,
+            "### DOCUMENT PAGE CONTEXTS\n"
+            "Use these pages to evaluate background contrast (BW rule) "
+            "and typography (SAZBA rule) across the full document.",
+        )
+        user_content.extend(page_context)
 
         user_content.append({"type": "text", "text": "### DIAGRAMS TO EVALUATE"})
         for idx, item in enumerate(doc.docling_doc.pictures):
@@ -302,6 +305,84 @@ class LLMClient:
         logger.info(f"Vision LLM Reasoning Chain: {parsed_response.reasoning_chain}")
         logger.info(
             f"Successfully parsed {len(parsed_response.findings)} vision findings."
+        )
+        return parsed_response.findings
+
+    def analyse_pages_only(
+        self,
+        doc: Document,
+        system_prompt: str,
+        model: str | None = None,
+        temperature: float | None = None,
+    ) -> list:
+        """Run the vision LLM on all document pages without any diagram images.
+
+        Used for PDFs that contain no pictures so that page-level rules such as
+        SAZBA can still be evaluated.  Each page is labelled with a referenceable
+        tag so the model can cite it in its findings.
+
+        Returns raw VisionFinding-compatible objects as produced by the model.
+        """
+        from .schemas.llm import VisionModelResponse
+
+        user_content: list[dict] = []
+        n_pages = 0
+
+        for page_no, page in sorted(doc.docling_doc.pages.items()):
+            if not (page and page.image and page.image.pil_image):
+                continue
+            b64 = self._encode_pil(page.image.pil_image)
+            user_content.append({"type": "text", "text": f"[Ref: #/pages/{page_no}]"})
+            user_content.append(
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/png;base64,{b64}"},
+                }
+            )
+            n_pages += 1
+
+        if not n_pages:
+            logger.debug("No page images available. Skipping pages-only vision call.")
+            return []
+
+        user_content.append(
+            {
+                "type": "text",
+                "text": "Analyse the pages above for typography violations.",
+            }
+        )
+
+        logger.debug(f"Sending {n_pages} pages to vision model")
+
+        messages: list = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content},
+        ]
+        try:
+            response = self._client.beta.chat.completions.parse(
+                model=model or self.model,
+                temperature=(
+                    temperature if temperature is not None else self.temperature
+                ),
+                max_completion_tokens=self.max_completion_tokens,
+                response_format=VisionModelResponse,
+                messages=messages,
+            )
+        except Exception as e:
+            logger.error(f"Pages-only vision LLM API call failed: {e}")
+            return []
+
+        self._record_usage(model or self.model, response.usage)
+        parsed_response = response.choices[0].message.parsed
+        if parsed_response is None:
+            logger.error("Pages-only vision LLM returned unparseable response.")
+            return []
+        logger.info(
+            f"Pages-only vision LLM reasoning: {parsed_response.reasoning_chain}"
+        )
+        logger.info(
+            "Successfully parsed "
+            f"{len(parsed_response.findings)} pages-only vision findings."
         )
         return parsed_response.findings
 

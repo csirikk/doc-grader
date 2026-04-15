@@ -130,7 +130,7 @@
         "STRUCT"
       ],
       "title": "Missing Document Structure",
-      "analyser_id": "structure_analyser",
+      "analyser_id": "language_analyser",
       "course": null,
       "prompt_instruction": "The document lacks basic organizational structure, specifically failing to use clear headings or sections to divide different topics (e.g., submitting a single unbroken wall of text).",
       "is_legacy": true
@@ -289,10 +289,10 @@
       "ac_codes": [
         "SAZBA"
       ],
-      "title": "Code Formatting and Layout",
-      "analyser_id": "structure_analyser",
+      "title": "Typography and Formatting",
+      "analyser_id": "asset_analyser",
       "course": null,
-      "prompt_instruction": "Variables, class names, or function identifiers in the text are written in standard font rather than being correctly formatted, for example with a monospace/fixed-width font or a markdown equivalent. Additionally, this flags inconsistent font sizing, inconsistent font types, or broken markdown rendering.",
+      "prompt_instruction": "Typography and formatting violations: (1) code identifiers such as variable names, function names, or class names appear in standard body font instead of a monospace/fixed-width font; (2) text paragraphs are not justified to block alignment, appearing left-aligned as 'prapor' (PDF only); (3) inconsistent font sizes or types within sections without semantic purpose; (4) incorrect spacing around brackets or punctuation, for example a space before a closing bracket or after an opening bracket; (5) non-syllabic prepositions or conjunctions left stranded at the end of a line (Czech and Slovak text only); (6) broken Markdown rendering artefacts visible in the PDF output, such as raw asterisks or backticks.",
       "is_legacy": true
     },
     {

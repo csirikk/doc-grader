@@ -11,9 +11,15 @@ Responsible for AC:
 - 'OWNDIF': Diagram does not visually distinguish custom (student) classes from
   framework/library classes (e.g. ipp-core).
 - 'BW': Dark-background diagram pasted into a light-background document.
+- 'SAZBA': Typography and formatting violations (monospace identifiers, block
+  justification, font consistency, spacing around brackets, etc.).
+  PDF: evaluated by the generic vision LLM seeing all document pages.
+  Markdown: evaluated deterministically via pymarkdownlnt and markdown-it-py.
 """
 
 import logging
+import re
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from .base_analyser import BaseLLMAnalyser
@@ -33,6 +39,22 @@ _BADUML_SYSTEM_PROMPT = (
     "attributes, methods, and clear relationships. "
     "BADUML: Missing details, unreadable, or uses non-standard notation."
 )
+
+# pymarkdownlnt rules targeted by the MD SAZBA check
+_SAZBA_LINT_RULES: frozenset[str] = frozenset({"md009", "md010"})
+
+# Regex for programming identifiers likely missing monospace formatting
+_IDENT_RE = re.compile(
+    r"\b(?:"
+    r"[a-z][a-zA-Z0-9]*[A-Z][a-zA-Z0-9]*"  # camelCase
+    r"|[a-zA-Z_][a-zA-Z0-9]*_[a-zA-Z][a-zA-Z0-9]*"  # snake_case
+    r"|[A-Z]{2,}(?:_[A-Z0-9]+)+"  # ALL_CAPS_CONST
+    r"|[a-z][a-zA-Z0-9_]*\(\)"  # function()
+    r")\b"
+)
+
+# Regex for incorrect spacing around brackets (MEZ)
+_MEZ_RE = re.compile(r"\( | \)")
 
 
 class AssetAnalyser(BaseLLMAnalyser):
@@ -55,11 +77,12 @@ class AssetAnalyser(BaseLLMAnalyser):
 
         - NOUML: absence of a diagram cannot be seen in an image.
         - BADUML: handled by the fine-tuned binary classifier, not the vision LLM.
-        - BW: excluded for markdown docs as it requires document background context
+        - BW: excluded for markdown docs as it requires document background context.
+        - SAZBA: excluded for markdown docs (handled deterministically).
         """
         excluded: set[str] = {"NOUML", "BADUML"}
         if not doc.docling_doc.pages:
-            excluded.add("BW")
+            excluded.update({"BW", "SAZBA"})
         rules_text = ""
         for r in rules:
             if any(code in excluded for code in r.ac_codes):
@@ -121,6 +144,102 @@ class AssetAnalyser(BaseLLMAnalyser):
         findings.extend(vision_findings)
         return findings
 
+    def _check_sazba_md(
+        self,
+        doc: Document,
+        sazba_rules: list[LLMRule],
+    ) -> list[Finding]:
+        """Deterministic SAZBA typography check for Markdown source files.
+
+        Runs pymarkdownlnt for MD009/MD010 lint rules and a markdown-it-py
+        token walk for unformatted identifiers (SAZBA) and spacing around
+        brackets (MEZ).  Emits at most one Finding aggregating all violations.
+        """
+        title = self._title_for_ac_code(sazba_rules, "SAZBA")
+        source_path = doc.doc_ref.source_path
+        if source_path is None:
+            logger.warning("No source path available for MD SAZBA check; skipping.")
+            return []
+
+        try:
+            content = Path(source_path).read_text(encoding="utf-8", errors="replace")
+        except OSError as exc:
+            logger.warning("Could not read MD source for SAZBA check: %s", exc)
+            return []
+
+        violations: list[str] = []
+
+        # --- pymarkdownlnt: MD009 (trailing spaces) and MD010 (hard tabs) ---
+        try:
+            from pymarkdown.api import PyMarkdownApi
+
+            scan_result = PyMarkdownApi().scan_string(content)
+            for failure in scan_result.scan_failures:
+                if failure.rule_id.lower() in _SAZBA_LINT_RULES:
+                    violations.append(
+                        f"Line {failure.line_number}: "
+                        f"[{failure.rule_id.upper()}] {failure.rule_description}"
+                    )
+        except Exception as exc:
+            logger.warning("pymarkdownlnt scan failed: %s", exc)
+
+        # --- markdown-it-py: identifier backtick and MEZ checks ---
+        try:
+            from markdown_it import MarkdownIt
+
+            md_parser = MarkdownIt("commonmark")
+            tokens = md_parser.parse(content)
+            for token in tokens:
+                if token.type != "inline" or not token.children:
+                    continue
+                line_no = (token.map[0] + 1) if token.map else None
+                for child in token.children:
+                    if child.type == "code_inline":
+                        continue  # already formatted with monospace
+                    if child.type != "text":
+                        continue
+                    text = child.content
+                    for m in _IDENT_RE.finditer(text):
+                        violations.append(
+                            f"Line {line_no or '?'}: [SAZBA] "
+                            f"Identifier '{m.group()}' should use monospace formatting"
+                        )
+                    if _MEZ_RE.search(text):
+                        violations.append(
+                            f"Line {line_no or '?'}: [MEZ] "
+                            f"Incorrect spacing around bracket"
+                        )
+        except Exception as exc:
+            logger.warning("markdown-it-py token walk failed: %s", exc)
+
+        if not violations:
+            return []
+
+        severity = min(len(violations) / max(doc.total_words, 1) * 100, 1.0)
+        severity = max(round(severity, 3), 0.1)
+
+        summary_lines = "\n".join(f"  - {v}" for v in violations[:20])
+        summary = (
+            f"{len(violations)} typography/formatting issue(s) found:\n{summary_lines}"
+        )
+        if len(violations) > 20:
+            summary += f"\n  ... and {len(violations) - 20} more"
+
+        return [
+            self._make_finding(
+                doc=doc,
+                ac_code="SAZBA",
+                title=title,
+                summary=summary,
+                judge_status="not_to_be_judged",
+                human_status="proposed",
+                evidence_item=None,
+                snippet_override=summary,
+                severity=severity,
+                confidence=1.0,
+            )
+        ]
+
     def analyse(
         self,
         doc: Document,
@@ -133,8 +252,37 @@ class AssetAnalyser(BaseLLMAnalyser):
         rules = self.get_rules(rulebook, params)
         if not rules:
             return []
+
+        sazba_rules = [r for r in rules if "SAZBA" in r.ac_codes]
+
+        # Markdown branch: deterministic SAZBA linting + vision LLM for diagrams
+        if not doc.docling_doc.pages:
+            findings: list[Finding] = []
+            if sazba_rules:
+                findings.extend(self._check_sazba_md(doc, sazba_rules))
+            if doc.total_pictures and llm_client:
+                raw = self.execute_llm(llm_client, doc, rules, rulebook, params)
+                findings.extend(self.process_vision_findings(doc, raw, rules, params))
+            return findings
+
+        # PDF branch
+        findings = []
+
         if not doc.total_pictures:
-            return [
+            # No diagrams: run SAZBA via a pages-only vision call, then emit NOUML
+            if sazba_rules and llm_client:
+                model = (params or {}).get("model")
+                temperature = (params or {}).get("temperature")
+                sazba_prompt = self.build_vision_system_prompt(
+                    sazba_rules, rulebook, doc
+                )
+                raw_sazba = llm_client.analyse_pages_only(
+                    doc, sazba_prompt, model=model, temperature=temperature
+                )
+                findings.extend(
+                    self.process_vision_findings(doc, raw_sazba, rules, params)
+                )
+            findings.append(
                 self._make_finding(
                     doc=doc,
                     ac_code="NOUML",
@@ -146,7 +294,9 @@ class AssetAnalyser(BaseLLMAnalyser):
                     severity=1.0,
                     confidence=1.0,
                 )
-            ]
+            )
+            return findings
+
         if not llm_client:
             return []
         raw = self.execute_llm(llm_client, doc, rules, rulebook, params)
