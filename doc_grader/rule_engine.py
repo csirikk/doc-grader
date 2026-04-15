@@ -17,10 +17,7 @@ class RuleEngine:
             if finding.judge_status != "to_be_judged":
                 continue
 
-            has_anchors = bool(finding.anchors)
-            has_stats = bool(finding.stats)
-            has_model_evals = bool(finding.model_evals)
-            if not has_anchors and not has_stats and not has_model_evals:
+            if not (finding.anchors or finding.stats or finding.model_evals):
                 logger.warning(
                     ("Skipping finding '%s' (%s): no anchors, stats, or model_evals"),
                     finding.finding_id,

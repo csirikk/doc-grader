@@ -1,5 +1,6 @@
 """IPP assessment analysis and visualisation."""
 
+import logging
 import re
 from pathlib import Path
 
@@ -7,12 +8,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from dataset_parser import DOC_CODES
 from langdetect import LangDetectException, detect
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.ticker import PercentFormatter
 
-from .dataset_parser import DOC_CODES
+logger = logging.getLogger(__name__)
 
 # --- DATA ---
 
@@ -166,7 +168,7 @@ def _save_or_show(fig: Figure, save_path: Path | None) -> None:
     if save_path is not None:
         save_path.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(save_path)
-        print(f"Saved figure to {save_path}")
+        logger.info("Saved figure to %s", save_path)
         plt.close(fig)
     else:
         plt.show()

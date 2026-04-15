@@ -109,15 +109,11 @@ class LLMClient:
 
     def get_usage_summary(self) -> dict:
         """Return accumulated token usage and cost for the current document."""
-        total_prompt: int = sum(
-            (e["prompt_tokens"] for e in self._usage_by_model.values()), 0
+        total_prompt = sum(e["prompt_tokens"] for e in self._usage_by_model.values())
+        total_completion = sum(
+            e["completion_tokens"] for e in self._usage_by_model.values()
         )
-        total_completion: int = sum(
-            (e["completion_tokens"] for e in self._usage_by_model.values()), 0
-        )
-        total_cached: int = sum(
-            (e["cached_tokens"] for e in self._usage_by_model.values()), 0
-        )
+        total_cached = sum(e["cached_tokens"] for e in self._usage_by_model.values())
         costs = [e["cost_eur"] for e in self._usage_by_model.values()]
         total_cost: float | None = (
             None
@@ -169,7 +165,7 @@ class LLMClient:
                 "No text to analyse or no system prompt provided. Skipping LLM call."
             )
             return []
-        logger.debug(f"Sending request to {self.model}.")
+        logger.debug("Sending request to %s.", self.model)
         messages: list = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": text_chunk},
@@ -186,7 +182,7 @@ class LLMClient:
                 messages=messages,
             )
         except Exception as e:
-            logger.error(f"LLM API call or processing failed: {e}")
+            logger.error("LLM API call or processing failed: %s", e)
             return []
 
         self._record_usage(model or self.model, response.usage)
@@ -194,26 +190,25 @@ class LLMClient:
         if parsed_response is None:
             logger.error("LLM returned unparseable response.")
             return []
-        logger.info(f"LLM Reasoning Chain: {parsed_response.reasoning_chain}")
+        logger.info("LLM Reasoning Chain: %s", parsed_response.reasoning_chain)
         logger.info(
-            f"Successfully parsed {len(parsed_response.findings)} findings from LLM."
+            "Successfully parsed %d findings from LLM.", len(parsed_response.findings)
         )
         return parsed_response.findings
 
     def _build_page_context_content(self, doc: Document, header: str) -> list[dict]:
         """Return user-content blocks for all document pages, ordered by page number."""
         content: list[dict] = []
-        all_pages = {
-            page_no: page
+        valid_pages = [
+            (page_no, page)
             for page_no, page in sorted(doc.docling_doc.pages.items())
             if page and page.image and page.image.pil_image
-        }
-        if not all_pages:
+        ]
+        if not valid_pages:
             return content
         content.append({"type": "text", "text": header})
-        for page_no, page in all_pages.items():
-            assert page.image is not None and page.image.pil_image is not None
-            b64 = self._encode_pil(page.image.pil_image)
+        for page_no, page in valid_pages:
+            b64 = self._encode_pil(page.image.pil_image)  # type: ignore[union-attr]
             content.append({"type": "text", "text": f"[Context: Full Page {page_no}]"})
             content.append(
                 {
@@ -278,7 +273,7 @@ class LLMClient:
             }
         )
 
-        logger.debug(f"Sending {n_images} picture(s) to vision model.")
+        logger.debug("Sending %d picture(s) to vision model.", n_images)
 
         messages: list = [
             {"role": "system", "content": system_prompt},
@@ -296,7 +291,7 @@ class LLMClient:
                 messages=messages,
             )
         except Exception as e:
-            logger.error(f"Vision LLM API call failed: {e}")
+            logger.error("Vision LLM API call failed: %s", e)
             return []
 
         self._record_usage(model or self.model, response.usage)
@@ -304,9 +299,9 @@ class LLMClient:
         if parsed_response is None:
             logger.error("Vision LLM returned unparseable response.")
             return []
-        logger.info(f"Vision LLM Reasoning Chain: {parsed_response.reasoning_chain}")
+        logger.info("Vision LLM Reasoning Chain: %s", parsed_response.reasoning_chain)
         logger.info(
-            f"Successfully parsed {len(parsed_response.findings)} vision findings."
+            "Successfully parsed %d vision findings.", len(parsed_response.findings)
         )
         return parsed_response.findings
 
@@ -354,7 +349,7 @@ class LLMClient:
             }
         )
 
-        logger.debug(f"Sending {n_pages} pages to vision model")
+        logger.debug("Sending %d pages to vision model", n_pages)
 
         messages: list = [
             {"role": "system", "content": system_prompt},
@@ -371,7 +366,7 @@ class LLMClient:
                 messages=messages,
             )
         except Exception as e:
-            logger.error(f"Pages-only vision LLM API call failed: {e}")
+            logger.error("Pages-only vision LLM API call failed: %s", e)
             return []
 
         self._record_usage(model or self.model, response.usage)
@@ -380,11 +375,11 @@ class LLMClient:
             logger.error("Pages-only vision LLM returned unparseable response.")
             return []
         logger.info(
-            f"Pages-only vision LLM reasoning: {parsed_response.reasoning_chain}"
+            "Pages-only vision LLM reasoning: %s", parsed_response.reasoning_chain
         )
         logger.info(
-            "Successfully parsed "
-            f"{len(parsed_response.findings)} pages-only vision findings."
+            "Successfully parsed %d pages-only vision findings.",
+            len(parsed_response.findings),
         )
         return parsed_response.findings
 
@@ -443,7 +438,6 @@ class LLMClient:
             raw_content = (response.choices[0].message.content or "").strip()
 
             u = raw_content.upper()
-            label = ""
             if "BADUML" in u:
                 label = "BADUML"
             elif "GOODUML" in u:
@@ -471,10 +465,10 @@ class LLMClient:
             logger.info("No findings passed to judge model.")
             return None
 
-        ac_to_rule: dict[str, LLMRule] = {rule.ac_code: rule for rule in rulebook.rules}
-
         prompt_lines = rulebook.judge_model_prompt_template
-        user_message = self._build_judge_user_message(findings, doc, ac_to_rule)
+        user_message = self._build_judge_user_message(
+            findings, doc, rulebook.rules_by_code
+        )
 
         messages: list = [
             {"role": "system", "content": "\n".join(prompt_lines)},

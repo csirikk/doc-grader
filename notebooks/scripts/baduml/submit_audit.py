@@ -20,7 +20,7 @@ from PIL import Image
 if TYPE_CHECKING:
     from pathlib import Path
 
-logger = logging.getLogger("__name__")
+logger = logging.getLogger(__name__)
 
 RUBRIC = """
 ### UML Class Diagram Validation Rubric: "BADUML" Criteria

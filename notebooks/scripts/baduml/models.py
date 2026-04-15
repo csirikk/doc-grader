@@ -5,7 +5,7 @@ import logging
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-logger = logging.getLogger("__name__")
+logger = logging.getLogger(__name__)
 
 
 @dataclass

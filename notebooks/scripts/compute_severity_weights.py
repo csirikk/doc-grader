@@ -44,7 +44,7 @@ def compute_weights(
     for r in rulebook.get("rules", []):
         if r.get("course") == "ifj":
             continue
-        for c in r.get("ac_codes") or []:
+        for c in [r.get("ac_code")] if r.get("ac_code") else []:
             allowed_rulebook_codes.add(str(c))
 
     LEGACY_TO_CANONICAL = {
@@ -85,7 +85,7 @@ def compute_weights(
         for r in rulebook.get("rules", []):
             if r.get("is_legacy", False):
                 continue
-            for c in r.get("ac_codes", []) or []:
+            for c in [r.get("ac_code")] if r.get("ac_code") else []:
                 if str(c) in allowed_rulebook_codes:
                     non_legacy_codes.add(str(c))
     except Exception:

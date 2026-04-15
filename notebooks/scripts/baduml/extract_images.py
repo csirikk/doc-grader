@@ -33,7 +33,7 @@ VARIANT_MAPPING: dict[str, list[str]] = {
     "py": ["python", "py"],
 }
 
-logger = logging.getLogger("__name__")
+logger = logging.getLogger(__name__)
 
 
 def _is_ignored(path: Path) -> bool:
@@ -148,7 +148,7 @@ def _extract_document_images(
 
         image_name = f"{student_id}_{assessment_variant}_{doc_token}_{i:03d}.png"
         image_path = output_dir / image_name
-        if _save_image(img, image_path, seen_hashes) is None:
+        if not _save_image(img, image_path, seen_hashes):
             continue
 
         records.append(

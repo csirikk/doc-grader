@@ -68,7 +68,7 @@ class Rulebook(StrictModel):
 
     @model_validator(mode="after")
     def _build_index(self) -> Self:
-        object.__setattr__(self, "rules_by_code", {r.ac_code: r for r in self.rules})
+        self.rules_by_code = {r.ac_code: r for r in self.rules}
         return self
 
 

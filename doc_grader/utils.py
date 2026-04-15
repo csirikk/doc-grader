@@ -134,8 +134,7 @@ def format_finding_short(finding: Finding) -> str:
         metrics.append(f"impact={finding.impact:+.2f}pts")
     metrics.append(f"judge_status={finding.judge_status}")
     metrics.append(f"human_status={finding.human_status}")
-    if metrics:
-        lines.append(f"{', '.join(metrics)}")
+    lines.append(", ".join(metrics))
 
     if finding.stats:
         stats_str = ", ".join(
@@ -256,10 +255,7 @@ def findings_to_grader_row(
     )
     parts: list[str] = []
     for f in findings:
-        section = ""
-        if getattr(f, "anchors", None):
-            first_anchor = f.anchors[0] if f.anchors else None
-            section = first_anchor.section_path or "" if first_anchor else ""
+        section = f.anchors[0].section_path or "" if f.anchors else ""
         parts.append(f"{f.ac_code} ({section}, {f.summary})")
 
     comment = ", ".join(parts) if parts else ""

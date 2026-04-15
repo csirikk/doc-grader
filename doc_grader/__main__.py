@@ -262,7 +262,7 @@ def main(argv: list[str] | None = None) -> int:
         parser_findings = parse_output.parser_findings
         ir_doc = parse_output.ir
 
-        logging.debug("Parsing done")
+        logger.debug("Parsing done")
 
         doc_ref = parse_output.doc_ref
 

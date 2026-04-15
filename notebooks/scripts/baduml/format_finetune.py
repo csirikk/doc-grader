@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from .models import StudentImageRecord
 
 
-logger = logging.getLogger("__name__")
+logger = logging.getLogger(__name__)
 
 # OpenAI limits images to 10 MB in fine-tuning data.
 _MAX_IMAGE_BYTES = 10 * 1024 * 1024
@@ -28,7 +28,7 @@ _SYSTEM_PROMPT = (
     "attributes, methods, and clear relationships. "
     "BADUML: Missing details, unreadable, or uses non-standard notation."
 )
-_USER_PROMPT = "Analyze this diagram for UML compliance."
+_USER_PROMPT = "Analyse this diagram for UML compliance."
 
 
 def split(
