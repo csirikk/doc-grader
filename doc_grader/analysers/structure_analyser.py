@@ -200,10 +200,6 @@ class StructureAnalyser(BaseAnalyser):
 
         return [finding]
 
-    def check_struct(self, doc: Document) -> list[Finding]:
-        """Detect missing required section headings (STRUCT / strukt.)."""
-        return []
-
     def analyse(
         self,
         doc: Document,
@@ -215,7 +211,6 @@ class StructureAnalyser(BaseAnalyser):
         findings: list[Finding] = []
 
         findings.extend(self.check_kaptxt(doc))
-        findings.extend(self.check_struct(doc))
 
         p = params or {}
         findings.extend(
