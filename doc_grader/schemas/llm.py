@@ -26,6 +26,10 @@ class LLMRule(StrictModel):
         default=None,
         description="Language code this rule applies to. None means all languages.",
     )
+    is_legacy: bool = Field(
+        default=False,
+        description=("Whether this rule corresponds to a legacy code or it is new. "),
+    )
 
 
 class Rulebook(StrictModel):
