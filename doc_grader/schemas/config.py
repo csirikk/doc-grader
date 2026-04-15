@@ -62,6 +62,13 @@ class AppConfig(StrictModel):
             "deduction. Set to None to skip absolute impact computation."
         ),
     )
+    rulebook_path: str | None = Field(
+        default=None,
+        description=(
+            "Path to the rulebook JSON file, relative to the project root. "
+            "Overrides the default config/rulebook2425.json when set."
+        ),
+    )
     analysers: list[AnalyserConfig] = Field(
         default_factory=list, description="List of analyser configurations"
     )

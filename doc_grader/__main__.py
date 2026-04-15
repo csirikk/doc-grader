@@ -163,10 +163,15 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         config = _load_app_config(args.config)
-        if not _RULEBOOK_PATH.exists():
-            logger.error("Rulebook file not found at %s", _RULEBOOK_PATH)
+        rulebook_path = (
+            _PROJECT_ROOT / config.rulebook_path
+            if config.rulebook_path
+            else _RULEBOOK_PATH
+        )
+        if not rulebook_path.exists():
+            logger.error("Rulebook file not found at %s", rulebook_path)
             return 2
-        rulebook = load_rulebook(_RULEBOOK_PATH)
+        rulebook = load_rulebook(rulebook_path)
 
     except Exception as e:
         logger.error("Failed to load config or rulebook: %s", e)
