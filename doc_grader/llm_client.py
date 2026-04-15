@@ -145,7 +145,7 @@ class LLMClient:
         temperature: float | None = None,
     ) -> list[LLMFinding]:
         """Extract document text, call the grader model, and return findings."""
-        from docling_core.types.doc.document import TextItem
+        from docling_core.types.doc.document import TableItem, TextItem
 
         from .schemas.llm import GraderModelResponse
 
@@ -153,12 +153,17 @@ class LLMClient:
 
         text_chunk = ""
         for item, _ in doc.docling_doc.iterate_items():
-            if not isinstance(item, TextItem):
+            if isinstance(item, TextItem):
+                text_content = item.text
+            elif isinstance(item, TableItem):
+                text_content = item.export_to_markdown()
+            else:
                 continue
+
             cref = item.get_ref().cref
             section = doc.section_paths.get(cref, "")
             section_prefix = f"[Section: {section}] " if section else ""
-            text_chunk += f"[Ref: {cref}] {section_prefix}{item.text}\n\n"
+            text_chunk += f"[Ref: {cref}] {section_prefix}{text_content}\n\n"
 
         if not text_chunk.strip() or not system_prompt:
             logger.debug(
