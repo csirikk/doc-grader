@@ -84,6 +84,14 @@
     "- 'adjusted': True Positive (Modified). The violation is real, but you have rewritten the explanation to be clearer, updated the exact evidence quote, or recalibrated the scores.",
     "- 'dismissed': False Positive. The student documentation definitely and clearly does not violate the AC Rule."
   ],
+  "vision_page_context_header": "### DOCUMENT PAGE CONTEXTS\nUse these pages to evaluate background contrast (BW rule) and typography (SAZBA rule) across the full document.",
+  "vision_diagrams_header": "### DIAGRAMS TO EVALUATE",
+  "vision_diagrams_footer": "Analyse the diagram(s) above for violations.",
+  "vision_pages_only_footer": "Analyse the pages above for typography violations.",
+  "classifier_system_prompt": "Classify this UML class diagram. GOODUML: Correct, readable diagram with standard notation, attributes, methods, and clear relationships. BADUML: Missing details, unreadable, or uses non-standard notation.",
+  "judge_findings_header": "### FINDINGS TO EVALUATE",
+  "judge_doc_context_header": "### ORIGINAL DOCUMENT CONTENT",
+  "judge_doc_context_pdf_note": "The original PDF page images are attached below. For visual or typography-sensitive checks (for example spacing before punctuation such as ' .' or ',') use the page images as the source of truth. Do not rely only on extracted text for these checks.",
   "rules": [
     {
       "title": "Specification Copying",

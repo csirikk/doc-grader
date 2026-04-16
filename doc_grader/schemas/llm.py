@@ -57,6 +57,33 @@ class Rulebook(StrictModel):
         ...,
         description="Judge model system prompt template.",
     )
+    vision_page_context_header: str = Field(
+        ..., description="Header injected before full-page context images."
+    )
+    vision_diagrams_header: str = Field(
+        ..., description="Header injected before extracted diagram images."
+    )
+    vision_diagrams_footer: str = Field(
+        ..., description="Footer appended after all diagram images."
+    )
+    vision_pages_only_footer: str = Field(
+        ..., description="Footer appended in pages-only vision model calls."
+    )
+    classifier_system_prompt: str = Field(
+        ..., description="System prompt for the fine-tuned BADUML binary classifier."
+    )
+    judge_findings_header: str = Field(
+        ..., description="Header for the findings block in judge model user messages."
+    )
+    judge_doc_context_header: str = Field(
+        ..., description="Header for the document context block in judge user messages."
+    )
+    judge_doc_context_pdf_note: str = Field(
+        ...,
+        description=(
+            "Note appended to the doc context header when PDF page images are attached."
+        ),
+    )
     rules: list[LLMRule] = Field(
         default_factory=list, description="List of all available LLM rules"
     )

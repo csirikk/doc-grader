@@ -32,14 +32,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# OpenAI fine-tuned binary classifier defaults
+# OpenAI fine-tuned binary classifier default model ID
 _BADUML_MODEL = "ft:gpt-4.1-2025-04-14:personal:baduml-classifier-gold:DU8txcxh"
-_BADUML_SYSTEM_PROMPT = (
-    "Classify this UML class diagram. "
-    "GOODUML: Correct, readable diagram with standard notation, "
-    "attributes, methods, and clear relationships. "
-    "BADUML: Missing details, unreadable, or uses non-standard notation."
-)
 
 # pymarkdownlnt rules targeted by the MD SAZBA check
 _SAZBA_LINT_RULES: frozenset[str] = frozenset({"md009", "md010"})
@@ -106,8 +100,8 @@ class AssetAnalyser(BaseLLMAnalyser):
         temperature = (params or {}).get("temperature")
         ft_model = (params or {}).get("classifier_model") or _BADUML_MODEL
         vision_system_prompt = self.build_vision_system_prompt(rules, rulebook, doc)
-        raw_labels = llm_client.run_vision_classifier(
-            doc, _BADUML_SYSTEM_PROMPT, ft_model
+        raw_labels, usage = llm_client.run_vision_classifier(
+            doc, rulebook.classifier_system_prompt, ft_model
         )
         baduml_count = 0
         findings: list[VisionFinding] = []

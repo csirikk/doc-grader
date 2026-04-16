@@ -10,7 +10,6 @@ if TYPE_CHECKING:
     from .schemas.llm import (
         JudgeModelResponse,
         LLMFinding,
-        LLMRule,
         Rulebook,
     )
 
@@ -215,7 +214,7 @@ class LLMClient:
         logger.info(
             "Successfully parsed %d findings from LLM.", len(parsed_response.findings)
         )
-        return parsed_response.findings
+        return parsed_response.findings, call_usage
 
     def _build_page_context_content(self, doc: Document, header: str) -> list[dict]:
         """Return user-content blocks for all document pages, ordered by page number."""
@@ -243,9 +242,10 @@ class LLMClient:
         self,
         doc: Document,
         system_prompt: str,
+        rulebook: Rulebook,
         model: str | None = None,
         temperature: float | None = None,
-    ) -> list:
+    ) -> tuple[list, dict[str, _UsageEntry]]:
         """Run the OpenAI vision LLM on all pictures in the document.
 
         Returns raw VisionFinding-compatible objects as produced by the model.
@@ -257,14 +257,11 @@ class LLMClient:
 
         # Send all document pages as context
         page_context = self._build_page_context_content(
-            doc,
-            "### DOCUMENT PAGE CONTEXTS\n"
-            "Use these pages to evaluate background contrast (BW rule) "
-            "and typography (SAZBA rule) across the full document.",
+            doc, rulebook.vision_page_context_header
         )
         user_content.extend(page_context)
 
-        user_content.append({"type": "text", "text": "### DIAGRAMS TO EVALUATE"})
+        user_content.append({"type": "text", "text": rulebook.vision_diagrams_header})
         for idx, item in enumerate(doc.docling_doc.pictures):
             cref = item.get_ref().cref
             pil_img = get_picture_pil(doc, idx, item)
@@ -285,14 +282,9 @@ class LLMClient:
 
         if n_images == 0:
             logger.debug("No picture images available. Skipping vision LLM call.")
-            return []
+            return [], {}
 
-        user_content.append(
-            {
-                "type": "text",
-                "text": "Analyse the diagram(s) above for violations.",
-            }
-        )
+        user_content.append({"type": "text", "text": rulebook.vision_diagrams_footer})
 
         logger.debug("Sending %d picture(s) to vision model.", n_images)
 
@@ -330,6 +322,7 @@ class LLMClient:
         self,
         doc: Document,
         system_prompt: str,
+        rulebook: Rulebook,
         model: str | None = None,
         temperature: float | None = None,
     ) -> tuple[list, dict[str, _UsageEntry]]:
@@ -363,12 +356,7 @@ class LLMClient:
             logger.debug("No page images available. Skipping pages-only vision call.")
             return [], {}
 
-        user_content.append(
-            {
-                "type": "text",
-                "text": "Analyse the pages above for typography violations.",
-            }
-        )
+        user_content.append({"type": "text", "text": rulebook.vision_pages_only_footer})
 
         logger.debug("Sending %d pages to vision model", n_pages)
 
@@ -491,9 +479,7 @@ class LLMClient:
             return None, {}
 
         prompt_lines = rulebook.judge_model_prompt_template
-        user_message = self._build_judge_user_message(
-            findings, doc, rulebook.rules_by_code
-        )
+        user_message = self._build_judge_user_message(findings, doc, rulebook)
 
         messages: list = [
             {"role": "system", "content": "\n".join(prompt_lines)},
@@ -526,7 +512,7 @@ class LLMClient:
         self,
         findings: list[Finding],
         doc: Document,
-        ac_to_rule: dict[str, LLMRule],
+        rulebook: Rulebook,
     ) -> str | list[dict]:
         """Construct the user message for the Judge from a list of findings.
 
@@ -568,7 +554,7 @@ class LLMClient:
                 passage = getattr(text_item, "text", "") or "" if text_item else ""
                 section_path = doc.section_paths.get(cref, "") if text_item else ""
 
-            rule = ac_to_rule.get(f.ac_code)
+            rule = rulebook.rules_by_code.get(f.ac_code)
             if rule:
                 rule_def = rule.prompt_instruction
                 if rule.judge_instruction:
@@ -615,21 +601,16 @@ class LLMClient:
         findings_text = "\n\n".join(parts)
 
         has_page_images = bool(doc.docling_doc.pages)
-        doc_context_intro = "### ORIGINAL DOCUMENT CONTENT\n"
+        doc_context_intro = f"{rulebook.judge_doc_context_header}\n"
         if has_page_images:
-            doc_context_intro += (
-                "The original PDF page images are attached below. "
-                "For visual or typography-sensitive checks (for example spacing "
-                "before punctuation such as ' .' or ',') use the page images as "
-                "the source of truth. Do not rely only on extracted text for these "
-                "checks.\n"
-            )
+            doc_context_intro += f"{rulebook.judge_doc_context_pdf_note}\n"
 
         user_content: list[dict] = [
             {
                 "type": "text",
                 "text": (
-                    f"### FINDINGS TO EVALUATE\n{findings_text}\n\n{doc_context_intro}"
+                    f"{rulebook.judge_findings_header}\n"
+                    f"{findings_text}\n\n{doc_context_intro}"
                 ),
             }
         ]
