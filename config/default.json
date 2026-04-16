@@ -15,7 +15,7 @@
             }
         },
         {
-            "analyser_id": "language_analyser",
+            "analyser_id": "content_analyser",
             "enabled": true,
             "model": "gpt-5.4-nano",
             "temperature": 0.0,

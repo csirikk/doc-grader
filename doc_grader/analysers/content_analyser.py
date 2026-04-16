@@ -1,4 +1,4 @@
-"""LLM-based language analyser. All prose-based LLM grading.
+"""LLM-based content analyser. All prose-based LLM grading.
 
 Responsible for AC:
 - 'CH': Spelling or grammar mistakes in Czech text.
@@ -37,11 +37,11 @@ if TYPE_CHECKING:
     from ..schemas.llm import LLMRule, Rulebook
 
 
-class LanguageAnalyser(BaseLLMAnalyser):
-    """LLM-based analyser for all prose-based rubric criteria."""
+class ContentAnalyser(BaseLLMAnalyser):
+    """LLM-based analyser for content- and prose-based rubric criteria."""
 
-    analyser_id: ClassVar[str] = "language_analyser"
-    name: ClassVar[str] = "Language Analyser"
+    analyser_id: ClassVar[str] = "content_analyser"
+    name: ClassVar[str] = "Content Analyser"
 
     def get_rules(
         self, rulebook: Rulebook, params: dict[str, Any] | None = None

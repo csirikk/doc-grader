@@ -2,7 +2,7 @@
     "judge": true,
     "analysers": [
         {
-            "analyser_id": "language_analyser",
+            "analyser_id": "content_analyser",
             "enabled": true,
             "params": {}
         }

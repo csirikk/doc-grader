@@ -124,7 +124,7 @@ class GrammarAnalyser(BaseLLMAnalyser):
 
         language = params.get("language")
         if language == "cs":
-            # Czech CH is handled by language_analyser.
+            # Czech CH is handled by content_analyser.
             return []
 
         course = params.get("course")

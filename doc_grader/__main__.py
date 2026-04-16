@@ -16,9 +16,9 @@ from dotenv import load_dotenv
 
 # Analysers
 from .analysers.asset_analyser import AssetAnalyser
+from .analysers.content_analyser import ContentAnalyser
 from .analysers.grammar_analyser import GrammarAnalyser
 from .analysers.integrity_analyser import IntegrityAnalyser
-from .analysers.language_analyser import LanguageAnalyser
 from .analysers.structure_analyser import StructureAnalyser
 from .llm_client import LLMClient, merge_usage, summarise_usage
 from .rule_engine import RuleEngine
@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 
 ANALYSER_LIST: dict[str, type[BaseAnalyser]] = {
     StructureAnalyser.analyser_id: StructureAnalyser,
-    LanguageAnalyser.analyser_id: LanguageAnalyser,
+    ContentAnalyser.analyser_id: ContentAnalyser,
     AssetAnalyser.analyser_id: AssetAnalyser,
     IntegrityAnalyser.analyser_id: IntegrityAnalyser,
     GrammarAnalyser.analyser_id: GrammarAnalyser,
