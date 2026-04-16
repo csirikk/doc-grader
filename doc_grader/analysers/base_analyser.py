@@ -4,7 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from docling_core.types.doc.document import TextItem
+from docling_core.types.doc.document import PageItem, TextItem
 
 from ..schemas.finding import (
     AnalyserInfo,
@@ -54,14 +54,21 @@ class BaseAnalyser(ABC):
 
         anchors: list[Anchor] = []
         if evidence_item is not None:
-            ref = evidence_item.get_ref().cref
-            snippet = (
-                snippet_override
-                if snippet_override is not None
-                else (
-                    evidence_item.text if isinstance(evidence_item, TextItem) else None
+            if isinstance(evidence_item, PageItem):
+                # Pages dont have stable crefs
+                ref = f"#/pages/{evidence_item.page_no}"
+                snippet = snippet_override
+            else:
+                ref = evidence_item.get_ref().cref
+                snippet = (
+                    snippet_override
+                    if snippet_override is not None
+                    else (
+                        evidence_item.text
+                        if isinstance(evidence_item, TextItem)
+                        else None
+                    )
                 )
-            )
             anchors.append(
                 Anchor(
                     target=FineRef.model_validate({"$ref": ref}),
