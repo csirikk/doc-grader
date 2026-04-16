@@ -100,7 +100,7 @@ def _run_analysers(
             if result:
                 findings.extend(result)
             analyser_usage = getattr(instance, "_accumulated_usage", None)
-            if analyser_usage:
+            if analyser_usage is not None:
                 accumulated_usage = merge_usage(accumulated_usage, analyser_usage)
         except Exception:
             logger.exception("Error running analyser %s", analyser_cfg.analyser_id)
@@ -293,6 +293,7 @@ def main(argv: list[str] | None = None) -> int:
                 len(parser_findings),
             )
             info["counts"]["n_findings"] = len(parser_findings)
+            info["usage"] = summarise_usage({})
             write_json(file_outdir / "info.json", info)
             clean_csv_rows.extend(
                 findings_to_csv_rows(
@@ -384,6 +385,7 @@ def main(argv: list[str] | None = None) -> int:
 
         info["counts"]["n_findings"] = len(final_findings)
         info.update(re_summary)
+        info["usage"] = summarise_usage(doc_usage)
         write_json(file_outdir / "info.json", info)
 
         # log_json(logger, "IR Document", ir_doc)
@@ -391,8 +393,7 @@ def main(argv: list[str] | None = None) -> int:
             # log_json(logger, f"Finding: {finding.title}", finding)
             logger.info("\n%s\n", format_finding_short(finding))
 
-        if llm_client:
-            log_json(logger, "LLM token usage", summarise_usage(doc_usage))
+        log_json(logger, "LLM token usage", info["usage"])
 
     if args.clean_csv_out:
         csv_path = Path(args.clean_csv_out)
