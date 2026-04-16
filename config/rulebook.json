@@ -86,395 +86,356 @@
   ],
   "rules": [
     {
-      "ac_codes": [
-        "COPY"
-      ],
       "title": "Specification Copying",
       "analyser_id": "integrity_analyser",
       "course": null,
       "prompt_instruction": "The document includes copied or closely paraphrased passages from the assignment specification.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "COPY",
+      "severity_weight": 0.1375
     },
     {
-      "ac_codes": [
-        "SHORT"
-      ],
       "title": "Too Short",
       "analyser_id": "structure_analyser",
       "course": null,
       "prompt_instruction": "The documentation fails to document the project due to its brevity or holds little substance.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "SHORT",
+      "severity_weight": 0.15
     },
     {
-      "ac_codes": [
-        "FLUFF"
-      ],
       "title": "Excessive Fluff or Length",
       "analyser_id": "structure_analyser",
       "course": null,
       "prompt_instruction": "The documentation contains excessive 'fluff' or filler text, is unnecessarily verbose, or blatantly ignores the recommended brevity (e.g., exceeding 2-3 pages of text).",
-      "is_legacy": false
+      "is_legacy": false,
+      "ac_code": "FLUFF",
+      "severity_weight": 0.0
     },
     {
-      "ac_codes": [
-        "KAPTXT"
-      ],
       "title": "Empty Section",
       "analyser_id": "structure_analyser",
       "course": null,
       "prompt_instruction": "Consecutive headings appear without meaningful explanatory text between them.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "KAPTXT",
+      "severity_weight": 0.0
     },
     {
-      "ac_codes": [
-        "STRUCT"
-      ],
       "title": "Missing Document Structure",
       "analyser_id": "language_analyser",
       "course": null,
       "prompt_instruction": "The document lacks basic organizational structure, specifically failing to use clear headings or sections to divide different topics (e.g., submitting a single unbroken wall of text).",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "STRUCT",
+      "severity_weight": 0.2
     },
     {
-      "ac_codes": [
-        "LANG"
-      ],
       "title": "Mixing Languages",
       "analyser_id": "language_analyser",
       "course": null,
       "prompt_instruction": "Unnatural mixing of languages (Czech, Slovak, English). English terms in Czech/Slovak text are penalised unless they are standard technical terminology or exact identifiers from the source code.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "LANG",
+      "severity_weight": 0.05
     },
     {
-      "ac_codes": [
-        "CH"
-      ],
       "title": "Grammar and Spelling",
       "analyser_id": "language_analyser",
       "course": null,
       "prompt_instruction": "Spelling and grammar mistakes, including punctuation errors.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "CH",
+      "severity_weight": 0.05
     },
     {
-      "ac_codes": [
-        "ICH"
-      ],
       "title": "First Person",
       "analyser_id": "language_analyser",
       "course": null,
       "prompt_instruction": "Explicit use of first-person singular pronouns or verb forms (e.g., 'já', 'implementoval jsem', 'I'). Program documentation should be passive or first-person plural.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "ICH",
+      "severity_weight": 0.0
     },
     {
-      "ac_codes": [
-        "TERM"
-      ],
       "title": "Terminology",
       "analyser_id": "language_analyser",
       "course": null,
       "prompt_instruction": "Problematic, inaccurate, or incorrect technical terminology.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "TERM",
+      "severity_weight": 0.05
     },
     {
-      "ac_codes": [
-        "STYLE"
-      ],
       "title": "Readability",
       "analyser_id": "language_analyser",
       "course": null,
       "prompt_instruction": "Sentences that exceed 40 words and fail to clearly articulate a single technical concept, making the technical logic difficult to follow.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "STYLE",
+      "severity_weight": 0.1
     },
     {
-      "ac_codes": [
-        "HOV"
-      ],
       "title": "Informal Language",
       "analyser_id": "language_analyser",
       "course": null,
       "prompt_instruction": "Informal, conversational, or slang language, including mangling English terms with Czech or Slovak suffixes (e.g., 'pushnout', 'symtable', 'list', 'array').",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "HOV",
+      "severity_weight": 0.1
     },
     {
-      "ac_codes": [
-        "NOSRP"
-      ],
       "title": "Single Responsibility Principle",
       "analyser_id": "language_analyser",
       "course": "ipp",
       "prompt_instruction": "Ignoring or poorly applying the Single Responsibility Principle, specifically describing a single class or method that handles multiple completely unrelated responsibilities.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "NOSRP",
+      "severity_weight": 0.0
     },
     {
-      "ac_codes": [
-        "NOOOP"
-      ],
       "title": "OOP Design Failure",
       "analyser_id": "language_analyser",
       "course": "ipp",
       "prompt_instruction": "The text indicates a failure to use the object-oriented paradigm properly, such as merely wrapping procedural functions into one or two monolithic classes.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "NOOOP",
+      "severity_weight": 0.0
     },
     {
-      "ac_codes": [
-        "BADDP"
-      ],
       "title": "Design Patterns Missing or Insufficient",
       "analyser_id": "language_analyser",
       "course": "ipp",
       "prompt_instruction": "The documentation is missing a clear description of the OOP design patterns used. It must explicitly name the patterns, explain where they are used, why they were chosen, and how they contribute to extensibility. Flag if this description is missing entirely, technically nonsensical, or fails to provide specific justifications.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "BADDP",
+      "severity_weight": 0.066667
     },
     {
-      "ac_codes": [
-        "DS"
-      ],
       "title": "Data Structures",
       "analyser_id": "language_analyser",
       "course": "ipp",
       "prompt_instruction": "The documentation is missing a clear description of the main internal data structures used in the project and the specific purpose or meaning of each.",
-      "is_legacy": false
+      "is_legacy": false,
+      "ac_code": "DS",
+      "severity_weight": 0.0
     },
     {
-      "ac_codes": [
-        "EXT"
-      ],
       "title": "Extensibility",
       "analyser_id": "language_analyser",
       "course": "ipp",
       "prompt_instruction": "Fails to provide concrete examples of how the architecture accommodates future changes, provides technically nonsensical expansion paths, or describes fewer than two specific extensions.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "EXT",
+      "severity_weight": 0.166667
     },
     {
-      "ac_codes": [
-        "AI"
-      ],
       "title": "Missing AI Documentation",
       "analyser_id": "language_analyser",
       "course": "ipp",
       "prompt_instruction": "The documentation is missing a section explicitly describing whether or how AI tools were used during the project.",
-      "is_legacy": false
+      "is_legacy": false,
+      "ac_code": "AI",
+      "severity_weight": 0.0
     },
     {
-      "ac_codes": [
-        "CITE"
-      ],
       "title": "Missing Citation",
       "analyser_id": "language_analyser",
       "course": "ipp",
       "prompt_instruction": "The document appears to use third-party algorithms, libraries, or external text sources without providing a citation.",
-      "is_legacy": false
+      "is_legacy": false,
+      "ac_code": "CITE",
+      "severity_weight": 0.0
     },
     {
-      "ac_codes": [
-        "FILO"
-      ],
       "title": "Overall Structure",
       "analyser_id": "language_analyser",
       "course": null,
       "prompt_instruction": "Missing or insufficient design philosophy, specifically failing to provide an abstract description of the program's overall structure and execution flow (what follows what).",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "FILO",
+      "severity_weight": 0.075
     },
     {
-      "ac_codes": [
-        "CONTENT"
-      ],
       "title": "Content Quality",
       "analyser_id": "language_analyser",
       "course": null,
       "prompt_instruction": "Inappropriate content, specifically: describing the chronological process of solving the project, expressing personal feelings, irrelevant thoughts, or unsupported subjective opinions.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "CONTENT",
+      "severity_weight": 0.05
     },
     {
-      "ac_codes": [
-        "SAZBA"
-      ],
       "title": "Typography and Formatting",
       "analyser_id": "asset_analyser",
       "course": null,
       "prompt_instruction": "Typography and formatting violations: (1) code identifiers such as variable names, function names, or class names appear in standard body font instead of a monospace/fixed-width font; (2) text paragraphs are not justified to block alignment, appearing left-aligned as 'prapor' (PDF only); (3) inconsistent font sizes or types within sections without semantic purpose; (4) incorrect spacing around brackets or punctuation, for example a space before a closing bracket or after an opening bracket; (5) non-syllabic prepositions or conjunctions left stranded at the end of a line (Czech and Slovak text only); (6) broken Markdown rendering artefacts visible in the PDF output, such as raw asterisks or backticks.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "SAZBA",
+      "severity_weight": 0.0
     },
     {
-      "ac_codes": [
-        "COVER"
-      ],
       "title": "Insufficient Cover Page",
       "analyser_id": "language_analyser",
       "course": "ifj",
       "prompt_instruction": "The cover page is missing required information, specifically: first and last name of all students, leader highlighted, point distribution, variant identificator.",
-      "is_legacy": false
+      "is_legacy": false,
+      "ac_code": "COVER",
+      "severity_weight": 0.0
     },
     {
-      "ac_codes": [
-        "KA"
-      ],
       "title": "Lexical Analysis",
       "analyser_id": "language_analyser",
       "course": "ifj",
       "prompt_instruction": "Missing or insufficient description of the lexical analysis, specifically lacking details about the finite automaton or failing to explain how comments and complex lexemes are handled.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "KA",
+      "severity_weight": 0.0
     },
     {
-      "ac_codes": [
-        "LLT"
-      ],
       "title": "LL Table",
       "analyser_id": "language_analyser",
       "course": "ifj",
       "prompt_instruction": "The documentation is missing the required top-down parser LL table, or the provided table is visibly flawed (e.g., ignoring FOLLOW sets for epsilon rules).",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "LLT",
+      "severity_weight": 0.0
     },
     {
-      "ac_codes": [
-        "PT"
-      ],
       "title": "Precedence Table",
       "analyser_id": "language_analyser",
       "course": "ifj",
       "prompt_instruction": "The documentation is missing the precedence table required for expression analysis, or the provided table is unreadable or visibly incorrect.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "PT",
+      "severity_weight": 0.0
     },
     {
-      "ac_codes": [
-        "SA"
-      ],
       "title": "Syntax Analysis",
       "analyser_id": "language_analyser",
       "course": "ifj",
       "prompt_instruction": "Missing, insufficient, or inaccurate description of syntax analysis (e.g., falsely claiming that recursive descent is implemented by having a function for every single grammar rule).",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "SA",
+      "severity_weight": 0.0
     },
     {
-      "ac_codes": [
-        "SAV"
-      ],
       "title": "Expression Syntax",
       "analyser_id": "language_analyser",
       "course": "ifj",
       "prompt_instruction": "Missing or insufficient description regarding the syntax analysis of expressions.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "SAV",
+      "severity_weight": 0.0
     },
     {
-      "ac_codes": [
-        "SéA"
-      ],
       "title": "Semantic Analysis",
       "analyser_id": "language_analyser",
       "course": "ifj",
       "prompt_instruction": "Missing or insufficiently specific description of semantic analysis, typically failing to clearly describe exactly what semantic properties and rules are being checked.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "SéA",
+      "severity_weight": 0.0
     },
     {
-      "ac_codes": [
-        "PSA"
-      ],
       "title": "Precedence Syntax",
       "analyser_id": "language_analyser",
       "course": "ifj",
       "prompt_instruction": "Missing or insufficient description of precedence syntax analysis.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "PSA",
+      "severity_weight": 0.0
     },
     {
-      "ac_codes": [
-        "TS"
-      ],
       "title": "Symbol Table",
       "analyser_id": "language_analyser",
       "course": "ifj",
       "prompt_instruction": "Missing or insufficient description of the symbol table implementation, specifically lacking details about its internal structure (e.g., whether there is one global table or multiple local tables).",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "TS",
+      "severity_weight": 0.0
     },
     {
-      "ac_codes": [
-        "GK"
-      ],
       "title": "Code Generation",
       "analyser_id": "language_analyser",
       "course": "ifj",
       "prompt_instruction": "Missing or insufficient description of code generation.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "GK",
+      "severity_weight": 0.0
     },
     {
-      "ac_codes": [
-        "RP"
-      ],
       "title": "Team Split",
       "analyser_id": "language_analyser",
       "course": "ifj",
       "prompt_instruction": "Missing description of the division of work among team members.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "RP",
+      "severity_weight": 0.0
     },
     {
-      "ac_codes": [
-        "IR"
-      ],
       "title": "Internal Representation",
       "analyser_id": "language_analyser",
       "course": "ipp",
       "prompt_instruction": "Missing or insufficient internal representation description (e.g., trivially stating that 'instructions are stored in an array' or 'assignments are stored in an AST' without deeper architectural explanation).",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "IR",
+      "severity_weight": 0.1
     },
     {
-      "ac_codes": [
-        "JAK"
-      ],
       "title": "Implementation Details",
       "analyser_id": "language_analyser",
       "course": "ipp",
       "prompt_instruction": "Technically insufficient description of the implementation (e.g., failing to mention if regular expressions, state machines, parser-generators or other techniques were used).",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "JAK",
+      "severity_weight": 0.1
     },
     {
-      "ac_codes": [
-        "BADUML"
-      ],
       "title": "UML Diagram Visual Quality",
       "analyser_id": "asset_analyser",
       "course": "ipp",
       "prompt_instruction": "The UML Class Diagram is so severely visually flawed that its structure cannot easily be understood.",
       "judge_instruction": "CRITICAL INSTRUCTION: Do not evaluate the quality of this diagram. Assume the quality is definitively confirmed as BAD. Your only task is to verify if the image is a UML Class Diagram. If the image depicts classes, attributes, and methods (even poorly), you MUST approve the finding. ONLY dismiss this finding if the image is clearly not a UML Class Diagram (e.g., it is a flowchart, terminal screenshot, or block of text).",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "BADUML",
+      "severity_weight": 0.1
     },
     {
-      "ac_codes": [
-        "SEMUML"
-      ],
       "title": "UML Diagram Semantic Completeness",
       "analyser_id": "asset_analyser",
       "course": "ipp",
       "prompt_instruction": "The UML Class Diagram appears semantically incomplete on its own. (e.g., it consists of isolated classes with no relationship lines, or the class boxes are completely empty (lacking both attributes and methods).",
-      "is_legacy": false
+      "is_legacy": false,
+      "ac_code": "SEMUML",
+      "severity_weight": 0.0
     },
     {
-      "ac_codes": [
-        "NOUML"
-      ],
       "title": "UML Diagram Missing",
       "analyser_id": "asset_analyser",
       "course": "ipp",
       "prompt_instruction": "The UML Class Diagram is missing.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "NOUML",
+      "severity_weight": 0.25
     },
     {
-      "ac_codes": [
-        "OWNDIF"
-      ],
       "title": "UML Diagram Own Classes",
       "analyser_id": "asset_analyser",
       "course": "ipp",
       "prompt_instruction": "The diagram does not visually distinguish the student's own classes from the provided template/framework classes (e.g., failing to use a different color like gray for ipp-core template classes).",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "OWNDIF",
+      "severity_weight": 0.0125
     },
     {
-      "ac_codes": [
-        "BW"
-      ],
       "title": "UML Diagram Background Contrast",
       "analyser_id": "asset_analyser",
       "course": "ipp",
       "prompt_instruction": "The diagram has a dark background pasted into a document with a light background, making it visually inconsistent with the surrounding document.",
-      "is_legacy": true
+      "is_legacy": true,
+      "ac_code": "BW",
+      "severity_weight": 0.0125
     }
   ]
 }
