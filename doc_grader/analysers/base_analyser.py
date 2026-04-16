@@ -258,8 +258,11 @@ class BaseLLMAnalyser(BaseAnalyser):
         rules: list[LLMRule],
         rulebook: Rulebook,
         params: dict[str, Any] | None = None,
-    ) -> list[Any]:
-        """Call the grader LLM and return raw findings. Subclasses may override."""
+    ) -> tuple[list[Any], dict]:
+        """Call the grader LLM and return (raw_findings, usage).
+
+        Subclasses may override.
+        """
         model = (params or {}).get("model")
         temperature = (params or {}).get("temperature")
         system_prompt = self.build_system_prompt(rules, rulebook, params)
@@ -274,12 +277,14 @@ class BaseLLMAnalyser(BaseAnalyser):
         params: dict[str, Any] | None = None,
         llm_client: Any | None = None,
     ) -> list[Finding]:
+        self._accumulated_usage: dict = {}
         if rulebook is None or not llm_client:
             return []
         rules = self.get_rules(rulebook, params)
         if not rules:
             return []
-        raw = self.execute_llm(llm_client, doc, rules, rulebook, params)
+        raw, usage = self.execute_llm(llm_client, doc, rules, rulebook, params)
+        self._accumulated_usage = usage
         return self.process_llm_findings(doc, raw, rules, params)
 
     def _convert_llm_finding_to_finding(

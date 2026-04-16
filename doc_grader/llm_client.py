@@ -50,6 +50,55 @@ class _UsageEntry(TypedDict):
 logger = logging.getLogger(__name__)
 
 
+def merge_usage(
+    a: dict[str, _UsageEntry], b: dict[str, _UsageEntry]
+) -> dict[str, _UsageEntry]:
+    """Return a new by-model usage dict that is the sum of *a* and *b*."""
+    result: dict[str, _UsageEntry] = dict(a)
+    for model, entry in b.items():
+        if model in result:
+            existing = result[model]
+            cost_a = existing["cost_eur"]
+            cost_b = entry["cost_eur"]
+            merged_cost: float | None = (
+                None
+                if (cost_a is None or cost_b is None)
+                else round(cost_a + cost_b, 6)
+            )
+            result[model] = _UsageEntry(
+                calls=existing["calls"] + entry["calls"],
+                prompt_tokens=existing["prompt_tokens"] + entry["prompt_tokens"],
+                completion_tokens=(
+                    existing["completion_tokens"] + entry["completion_tokens"]
+                ),
+                cached_tokens=existing["cached_tokens"] + entry["cached_tokens"],
+                cost_eur=merged_cost,
+            )
+        else:
+            result[model] = entry
+    return result
+
+
+def summarise_usage(by_model: dict[str, _UsageEntry]) -> dict:
+    """Compute aggregate totals from a by-model usage dict."""
+    total_prompt = sum(e["prompt_tokens"] for e in by_model.values())
+    total_completion = sum(e["completion_tokens"] for e in by_model.values())
+    total_cached = sum(e["cached_tokens"] for e in by_model.values())
+    costs = [e["cost_eur"] for e in by_model.values()]
+    total_cost: float | None = (
+        None
+        if any(c is None for c in costs)
+        else round(sum(c for c in costs if c is not None), 6)
+    )
+    return {
+        "by_model": dict(by_model),
+        "total_prompt_tokens": total_prompt,
+        "total_completion_tokens": total_completion,
+        "total_cached_tokens": total_cached,
+        "total_cost_eur": total_cost,
+    }
+
+
 class LLMClient:
     def __init__(
         self,
@@ -62,16 +111,13 @@ class LLMClient:
         self.temperature = temperature
         self.max_completion_tokens = max_completion_tokens
         self._client = OpenAI(api_key=os.environ.get(api_key_env))
-        self._usage_by_model: dict[str, _UsageEntry] = {}
 
-    def reset_usage(self) -> None:
-        """Clear per-document usage accumulators."""
-        self._usage_by_model = {}
-
-    def _record_usage(self, model: str, usage: object | None) -> None:
-        """Accumulate token counts and cost from a single API response."""
+    def _build_call_usage(
+        self, model: str, usage: object | None
+    ) -> dict[str, _UsageEntry]:
+        """Build a by-model usage dict for a single API response."""
         if usage is None:
-            return
+            return {}
         prompt = getattr(usage, "prompt_tokens", 0) or 0
         completion = getattr(usage, "completion_tokens", 0) or 0
         details = getattr(usage, "prompt_tokens_details", None)
@@ -88,44 +134,14 @@ class LLMClient:
         else:
             call_cost_eur = None
 
-        entry: _UsageEntry = self._usage_by_model.setdefault(
-            model,
-            _UsageEntry(
-                calls=0,
-                prompt_tokens=0,
-                completion_tokens=0,
-                cached_tokens=0,
-                cost_eur=0.0,
-            ),
-        )
-        entry["calls"] += 1
-        entry["prompt_tokens"] += prompt
-        entry["completion_tokens"] += completion
-        entry["cached_tokens"] += cached
-        if call_cost_eur is None or entry["cost_eur"] is None:
-            entry["cost_eur"] = None
-        else:
-            entry["cost_eur"] = round(entry["cost_eur"] + call_cost_eur, 6)
-
-    def get_usage_summary(self) -> dict:
-        """Return accumulated token usage and cost for the current document."""
-        total_prompt = sum(e["prompt_tokens"] for e in self._usage_by_model.values())
-        total_completion = sum(
-            e["completion_tokens"] for e in self._usage_by_model.values()
-        )
-        total_cached = sum(e["cached_tokens"] for e in self._usage_by_model.values())
-        costs = [e["cost_eur"] for e in self._usage_by_model.values()]
-        total_cost: float | None = (
-            None
-            if any(c is None for c in costs)
-            else round(sum(c for c in costs if c is not None), 6)
-        )
         return {
-            "by_model": self._usage_by_model,
-            "total_prompt_tokens": total_prompt,
-            "total_completion_tokens": total_completion,
-            "total_cached_tokens": total_cached,
-            "total_cost_eur": total_cost,
+            model: _UsageEntry(
+                calls=1,
+                prompt_tokens=prompt,
+                completion_tokens=completion,
+                cached_tokens=cached,
+                cost_eur=call_cost_eur,
+            )
         }
 
     @staticmethod
@@ -143,7 +159,7 @@ class LLMClient:
         system_prompt: str,
         model: str | None = None,
         temperature: float | None = None,
-    ) -> list[LLMFinding]:
+    ) -> tuple[list[LLMFinding], dict[str, _UsageEntry]]:
         """Extract document text, call the grader model, and return findings."""
         from docling_core.types.doc.document import TableItem, TextItem
 
@@ -169,7 +185,7 @@ class LLMClient:
             logger.debug(
                 "No text to analyse or no system prompt provided. Skipping LLM call."
             )
-            return []
+            return [], {}
         logger.debug("Sending request to %s.", self.model)
         messages: list = [
             {"role": "system", "content": system_prompt},
@@ -188,13 +204,13 @@ class LLMClient:
             )
         except Exception as e:
             logger.error("LLM API call or processing failed: %s", e)
-            return []
+            return [], {}
 
-        self._record_usage(model or self.model, response.usage)
+        call_usage = self._build_call_usage(model or self.model, response.usage)
         parsed_response = response.choices[0].message.parsed
         if parsed_response is None:
             logger.error("LLM returned unparseable response.")
-            return []
+            return [], call_usage
         logger.info("LLM Reasoning Chain: %s", parsed_response.reasoning_chain)
         logger.info(
             "Successfully parsed %d findings from LLM.", len(parsed_response.findings)
@@ -297,18 +313,18 @@ class LLMClient:
             )
         except Exception as e:
             logger.error("Vision LLM API call failed: %s", e)
-            return []
+            return [], {}
 
-        self._record_usage(model or self.model, response.usage)
+        call_usage = self._build_call_usage(model or self.model, response.usage)
         parsed_response = response.choices[0].message.parsed
         if parsed_response is None:
             logger.error("Vision LLM returned unparseable response.")
-            return []
+            return [], call_usage
         logger.info("Vision LLM Reasoning Chain: %s", parsed_response.reasoning_chain)
         logger.info(
             "Successfully parsed %d vision findings.", len(parsed_response.findings)
         )
-        return parsed_response.findings
+        return parsed_response.findings, call_usage
 
     def analyse_pages_only(
         self,
@@ -316,7 +332,7 @@ class LLMClient:
         system_prompt: str,
         model: str | None = None,
         temperature: float | None = None,
-    ) -> list:
+    ) -> tuple[list, dict[str, _UsageEntry]]:
         """Run the vision LLM on all document pages without any diagram images.
 
         Used for PDFs that contain no pictures so that page-level rules such as
@@ -345,7 +361,7 @@ class LLMClient:
 
         if not n_pages:
             logger.debug("No page images available. Skipping pages-only vision call.")
-            return []
+            return [], {}
 
         user_content.append(
             {
@@ -372,13 +388,13 @@ class LLMClient:
             )
         except Exception as e:
             logger.error("Pages-only vision LLM API call failed: %s", e)
-            return []
+            return [], {}
 
-        self._record_usage(model or self.model, response.usage)
+        call_usage = self._build_call_usage(model or self.model, response.usage)
         parsed_response = response.choices[0].message.parsed
         if parsed_response is None:
             logger.error("Pages-only vision LLM returned unparseable response.")
-            return []
+            return [], call_usage
         logger.info(
             "Pages-only vision LLM reasoning: %s", parsed_response.reasoning_chain
         )
@@ -386,19 +402,21 @@ class LLMClient:
             "Successfully parsed %d pages-only vision findings.",
             len(parsed_response.findings),
         )
-        return parsed_response.findings
+        return parsed_response.findings, call_usage
 
     def run_vision_classifier(
         self,
         doc: Document,
         system_prompt: str,
         model: str,
-    ) -> dict[str, dict[str, str]]:
+    ) -> tuple[dict[str, dict[str, str]], dict[str, _UsageEntry]]:
         """Send each picture in the document to the fine-tuned OpenAI vision model.
 
-        Returns a mapping {cref: {"label": <label>, "raw": <raw_response>}}.
+        Returns a mapping {cref: {"label": <label>, "raw": <raw_response>}} and
+        accumulated token usage for all per-image classifier calls.
         """
         results: dict[str, dict[str, str]] = {}
+        call_usage: dict[str, _UsageEntry] = {}
 
         for idx, item in enumerate(doc.docling_doc.pictures):
             cref = item.get_ref().cref
@@ -439,7 +457,9 @@ class LLMClient:
                 logger.error("Classifier call failed for %s: %s", cref, e)
                 continue
 
-            self._record_usage(model or self.model, response.usage)
+            call_usage = merge_usage(
+                call_usage, self._build_call_usage(model, response.usage)
+            )
             raw_content = (response.choices[0].message.content or "").strip()
 
             u = raw_content.upper()
@@ -453,7 +473,7 @@ class LLMClient:
             results[cref] = {"label": label, "raw": raw_content}
             logger.info("Classified %s as %r", cref, label)
 
-        return results
+        return results, call_usage
 
     def judge_findings(
         self,
@@ -462,13 +482,13 @@ class LLMClient:
         rulebook: Rulebook,
         model: str | None = None,
         temperature: float | None = None,
-    ) -> JudgeModelResponse | None:
+    ) -> tuple[JudgeModelResponse | None, dict[str, _UsageEntry]]:
         """Run the judge model and return its response."""
         from .schemas.llm import JudgeModelResponse
 
         if not findings:
             logger.info("No findings passed to judge model.")
-            return None
+            return None, {}
 
         prompt_lines = rulebook.judge_model_prompt_template
         user_message = self._build_judge_user_message(
@@ -491,16 +511,16 @@ class LLMClient:
             )
         except Exception:
             logger.exception("Judge model LLM call failed.")
-            return None
+            return None, {}
 
-        self._record_usage(model or self.model, response.usage)
+        call_usage = self._build_call_usage(model or self.model, response.usage)
         parsed_response = response.choices[0].message.parsed
         if parsed_response is None:
             logger.error("Judge LLM returned unparseable response.")
-            return None
+            return None, call_usage
 
         logger.debug("Judge reasoning: %s", parsed_response.reasoning_chain)
-        return parsed_response
+        return parsed_response, call_usage
 
     def _build_judge_user_message(
         self,

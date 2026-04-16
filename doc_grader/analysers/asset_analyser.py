@@ -22,6 +22,7 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
+from ..llm_client import merge_usage
 from .base_analyser import BaseLLMAnalyser
 
 if TYPE_CHECKING:
@@ -98,7 +99,7 @@ class AssetAnalyser(BaseLLMAnalyser):
         rules: list[LLMRule],
         rulebook: Rulebook,
         params: dict[str, Any] | None = None,
-    ) -> list[Any]:
+    ) -> tuple[list[Any], dict]:
         from ..schemas.llm import VisionFinding
 
         model = (params or {}).get("model")
@@ -137,11 +138,11 @@ class AssetAnalyser(BaseLLMAnalyser):
         )
 
         # Generic OpenAI vision model: semantic and other visual findings.
-        vision_findings = llm_client.analyse_assets(
-            doc, vision_system_prompt, model=model, temperature=temperature
+        vision_findings, vision_usage = llm_client.analyse_assets(
+            doc, vision_system_prompt, rulebook, model=model, temperature=temperature
         )
         findings.extend(vision_findings)
-        return findings
+        return findings, merge_usage(usage, vision_usage)
 
     def _check_sazba_md(
         self,
@@ -252,6 +253,7 @@ class AssetAnalyser(BaseLLMAnalyser):
         if not rules:
             return []
 
+        self._accumulated_usage: dict = {}
         sazba_rules = [r for r in rules if r.ac_code == "SAZBA"]
 
         # Markdown branch: deterministic SAZBA linting + vision LLM for diagrams
@@ -260,7 +262,8 @@ class AssetAnalyser(BaseLLMAnalyser):
             if sazba_rules:
                 findings.extend(self._check_sazba_md(doc, sazba_rules))
             if doc.total_pictures and llm_client:
-                raw = self.execute_llm(llm_client, doc, rules, rulebook, params)
+                raw, usage = self.execute_llm(llm_client, doc, rules, rulebook, params)
+                self._accumulated_usage = merge_usage(self._accumulated_usage, usage)
                 findings.extend(self.process_vision_findings(doc, raw, rules, params))
             return findings
 
@@ -275,8 +278,11 @@ class AssetAnalyser(BaseLLMAnalyser):
                 sazba_prompt = self.build_vision_system_prompt(
                     sazba_rules, rulebook, doc
                 )
-                raw_sazba = llm_client.analyse_pages_only(
-                    doc, sazba_prompt, model=model, temperature=temperature
+                raw_sazba, sazba_usage = llm_client.analyse_pages_only(
+                    doc, sazba_prompt, rulebook, model=model, temperature=temperature
+                )
+                self._accumulated_usage = merge_usage(
+                    self._accumulated_usage, sazba_usage
                 )
                 findings.extend(
                     self.process_vision_findings(doc, raw_sazba, rules, params)
@@ -298,5 +304,6 @@ class AssetAnalyser(BaseLLMAnalyser):
 
         if not llm_client:
             return []
-        raw = self.execute_llm(llm_client, doc, rules, rulebook, params)
+        raw, usage = self.execute_llm(llm_client, doc, rules, rulebook, params)
+        self._accumulated_usage = merge_usage(self._accumulated_usage, usage)
         return self.process_vision_findings(doc, raw, rules, params)

@@ -20,7 +20,7 @@ from .analysers.grammar_analyser import GrammarAnalyser
 from .analysers.integrity_analyser import IntegrityAnalyser
 from .analysers.language_analyser import LanguageAnalyser
 from .analysers.structure_analyser import StructureAnalyser
-from .llm_client import LLMClient
+from .llm_client import LLMClient, merge_usage, summarise_usage
 from .rule_engine import RuleEngine
 from .schemas.config import AppConfig, load_app_config, load_rulebook
 from .scorer import Scorer
@@ -67,8 +67,9 @@ def _load_app_config(config_path: str | None) -> AppConfig:
 
 def _run_analysers(
     ir: Document, config: AppConfig, rulebook: Rulebook, llm_client: Any | None = None
-) -> list[Finding]:
+) -> tuple[list[Finding], dict]:
     findings: list[Finding] = []
+    accumulated_usage: dict = {}
 
     for analyser_cfg in config.analysers:
         if not analyser_cfg.enabled:
@@ -98,10 +99,13 @@ def _run_analysers(
             )
             if result:
                 findings.extend(result)
+            analyser_usage = getattr(instance, "_accumulated_usage", None)
+            if analyser_usage:
+                accumulated_usage = merge_usage(accumulated_usage, analyser_usage)
         except Exception:
             logger.exception("Error running analyser %s", analyser_cfg.analyser_id)
 
-    return findings
+    return findings, accumulated_usage
 
 
 def _run_id_from_config(config: AppConfig) -> str:
@@ -251,7 +255,7 @@ def main(argv: list[str] | None = None) -> int:
     for doc_path, student_id in discover_cases(args.inputs):
         reset_id_counters()
         if llm_client:
-            llm_client.reset_usage()
+            pass
         path = doc_path
         file_outdir = base_outdir / student_id
         rule_engine = RuleEngine()
@@ -311,7 +315,9 @@ def main(argv: list[str] | None = None) -> int:
         write_json(file_outdir / "docling.json", ir_doc.docling_doc)
         write_json(file_outdir / "ir.json", ir_doc)
 
-        analyser_findings = _run_analysers(ir_doc, config, rulebook, llm_client)
+        analyser_findings, doc_usage = _run_analysers(
+            ir_doc, config, rulebook, llm_client
+        )
 
         if parser_findings:
             analyser_findings = parser_findings + analyser_findings
@@ -323,13 +329,14 @@ def main(argv: list[str] | None = None) -> int:
             judge_batch = rule_engine.prepare_judge_batch(analyser_findings)
             if judge_batch:
                 logger.info("Running judge model on %d findings...", len(judge_batch))
-                judge_response = llm_client.judge_findings(
+                judge_response, judge_usage = llm_client.judge_findings(
                     judge_batch,
                     ir_doc,
                     rulebook,
                     model=config.judge_model,
                     temperature=config.judge_temperature,
                 )
+                doc_usage = merge_usage(doc_usage, judge_usage)
                 if judge_response:
                     rule_engine.apply_judge_response(judge_batch, judge_response)
             judged_approved = sum(
@@ -385,7 +392,7 @@ def main(argv: list[str] | None = None) -> int:
             logger.info("\n%s\n", format_finding_short(finding))
 
         if llm_client:
-            log_json(logger, "LLM token usage", llm_client.get_usage_summary())
+            log_json(logger, "LLM token usage", summarise_usage(doc_usage))
 
     if args.clean_csv_out:
         csv_path = Path(args.clean_csv_out)
