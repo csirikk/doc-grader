@@ -1,4 +1,4 @@
-"""IPP assessment CSV parser.TODO: fix comment generation in clean csv"""
+"""IPP assessment CSV parser."""
 
 import re
 from dataclasses import dataclass
