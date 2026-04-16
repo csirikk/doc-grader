@@ -17,10 +17,6 @@ logger = logging.getLogger(__name__)
 _MIN_SECTION_WORDS: int = 10
 _MAX_FINDINGS: int = 100
 
-_SK_CHARS: frozenset[str] = frozenset("áÁäÄčČďĎéÉěĚíÍĺĹľĽňŇóÓôÔŕŔřŘšŠťŤúÚůŮýÝžŽ")
-_SK_THRESHOLD: float = 0.02
-
-
 _LT_SEVERITY: dict[str, float] = {
     "grammar": 0.4,
     "misspelling": 0.4,
@@ -88,11 +84,10 @@ _ISSUE_TITLES: dict[str, str] = {
 }
 
 
-def _lt_lang(text: str) -> str | None:
-    """Return the LanguageTool language tag for text, or ``None`` to skip."""
-    if sum(1 for ch in text if ch in _SK_CHARS) / max(len(text), 1) >= _SK_THRESHOLD:
-        return "sk"
-    return "en-US"
+_DOC_LANG_TO_LT: dict[str, str] = {
+    "sk": "sk",
+    "en": "en-US",
+}
 
 
 def _make_message(issue_type: str, snippet: str, replacements: list[str]) -> str:
@@ -153,9 +148,11 @@ class GrammarAnalyser(BaseLLMAnalyser):
         return super().analyse(doc, rulebook, params, llm_client)
 
     def _run_local_analysis(self, doc: Document) -> list[Finding]:
-        if doc.language == "cs":
+        lt_lang = _DOC_LANG_TO_LT.get(doc.language)
+        if lt_lang is None:
             logger.debug(
-                "Skipping grammar check, czech is not supported by LanguageTool"
+                "Skipping grammar check, language %r is not supported by LanguageTool",
+                doc.language,
             )
             return []
 
@@ -176,10 +173,6 @@ class GrammarAnalyser(BaseLLMAnalyser):
         for section, entries in groups.items():
             combined = " ".join(t for _, _, t in entries)
             if len(combined.split()) < _MIN_SECTION_WORDS:
-                continue
-
-            lt_lang = _lt_lang(combined)
-            if lt_lang is None:
                 continue
 
             issues = self._check(combined, lt_lang)
