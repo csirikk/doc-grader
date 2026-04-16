@@ -156,7 +156,7 @@ class LLMClient:
             if isinstance(item, TextItem):
                 text_content = item.text
             elif isinstance(item, TableItem):
-                text_content = item.export_to_markdown()
+                text_content = item.export_to_markdown(doc=doc.docling_doc)
             else:
                 continue
 
