@@ -6,133 +6,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
+from constants import CODE_ALIASES, DOC_CODES, IPP_CODES
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-# --- CONSTANTS ---
-
 DELIMITERS_LEFT = " \t\n\r,:;.(["
 DELIMITERS_RIGHT = " \t\n\r,:;.)]"
-
-IPP_CODES = {
-    "DOCTYPE",
-    "MISSING",
-    "FORMAT",
-    "FORM",
-    "STRUCT",
-    "SHORT",
-    "CONTENT",
-    "KAPTXT",
-    "LANG",
-    "CH",
-    "ICH",
-    "STYLE",
-    "FILO",
-    "HOV",
-    "TERM",
-    "BLOK",
-    "PRED",
-    "SAZBA",
-    "COMMENT",
-    "IR",
-    "JAK",
-    "AUTHOR",
-    "SRCFORMAT",
-    "BADUML",
-    "NOUML",
-    "WHY",
-    "NVI",
-    "PSR12",
-    "STN9",
-    "OOP",
-    "NOOP",
-    "NVP",
-    "EX",
-    "DECOMPOSE",
-    "HOW",
-    "SPACETAB",
-    "EXT",
-    "MEZ",
-    "UML",
-    "COPY",
-    "NOSRP",
-    "MDLINES",
-    "BADDP",
-    "OWNDIF",
-    "NV",
-    "NVPDOC",
-    "BW",
-    "OK",
-    "SINGLETON",
-    "STN0",
-    "STN1",
-    "STN2",
-    "STN3",
-    "STN4",
-    "STN5",
-    "STN6",
-    "PSR1",
-    "DP",
-}
-
-DOC_CODES = {
-    "DOCTYPE",
-    "MISSING",
-    "FORMAT",
-    "FORM",
-    "STRUCT",
-    "SHORT",
-    "CONTENT",
-    "KAPTXT",
-    "LANG",
-    "CH",
-    "ICH",
-    "STYLE",
-    "FILO",
-    "HOV",
-    "TERM",
-    "BLOK",
-    "PRED",
-    "SAZBA",
-    "IR",
-    "JAK",
-    "BADUML",
-    "NOUML",
-    "WHY",
-    "OOP",  # old: popis a terminologia oop
-    "EX",
-    "HOW",
-    "SPACETAB",
-    "EXT",
-    "MEZ",
-    "UML",
-    "COPY",
-    "MDLINES",
-    "BADDP",  # old: dokumentacia neodpoveda skriptu
-    "OWNDIF",
-    "NV",  # old: navrhovy vzor
-    "NVPDOC",
-    "BW",  # old: ?
-    "OK",
-    "SINGLETON",
-    "DP",
-}
-
-CODE_ALIASES = {
-    "PŘED": "PRED",
-    "BLOCK": "BLOK",
-    "STYL": "STYLE",
-    "SYLE": "STYLE",
-    "STRUKT.": "STRUCT",
-    "TYP.": "TYP",
-    "GRAM.": "GRAM",
-    "NOOOP": "NOOP",
-    "COMMENTS": "COMMENT",
-    "OO": "OOP",
-    "TERM.": "TERM",
-    "NVI": "NV",
-}
 
 
 # --- UTILITIES ---

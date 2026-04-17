@@ -4,14 +4,15 @@ import json
 import logging
 from pathlib import Path
 
-from analysis import (
+from constants import DOC_CODES, LEGACY_TO_CANONICAL
+from dataset_parser import normalise_code_alias
+
+from doc_grader.utils import log_json, write_json
+from notebooks.scripts.data_analysis import (
     filter_for_impact_stats,
     filter_to_normalised_years,
     load_clean_data,
 )
-from dataset_parser import DOC_CODES, normalise_code_alias
-
-from doc_grader.utils import log_json, write_json
 
 
 def compute_weights(
@@ -46,23 +47,6 @@ def compute_weights(
             continue
         for c in [r.get("ac_code")] if r.get("ac_code") else []:
             allowed_rulebook_codes.add(str(c))
-
-    LEGACY_TO_CANONICAL = {
-        "BLOK": "SAZBA",
-        "DOCTYPE": "SAZBA",
-        "FORM": "SAZBA",
-        "FORMAT": "SAZBA",
-        "HOW": "HOV",
-        "MDLINES": "SAZBA",
-        "MEZ": "SAZBA",
-        "MISSING": "STRUCT",
-        "NVPDOC": "BADDP",
-        "PRED": "SAZBA",
-        "SINGLETON": "BADDP",
-        "SPACETAB": "SAZBA",
-        "UML": "NOUML",
-        "WHY": "JAK",
-    }
 
     # Map each event to its canonical code and compute canonical medians from
     # event-level absolute normalized impacts.

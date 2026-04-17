@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from constants import MAX_DOC_POINTS
 from dataset_parser import DOC_CODES
 from langdetect import LangDetectException, detect
 from matplotlib.ticker import PercentFormatter
@@ -29,34 +30,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # --- DATA ---
-
-# Maximum documentation points per (year, task_variant), in milibody (mb).
-# 100 mb = 1 b
-MAX_DOC_POINTS: dict[tuple[str, str], int] = {
-    ("2013", "php"): 200,
-    ("2013", "py"): 200,
-    ("2014", "php"): 200,
-    ("2014", "py"): 200,
-    ("2015", "php"): 200,
-    ("2015", "py"): 200,
-    ("2016", "php"): 200,
-    ("2016", "py"): 200,
-    ("2017", "int"): 300,
-    ("2018", "par"): 100,
-    ("2018", "int"): 200,
-    ("2019", "par"): 100,
-    ("2019", "int"): 200,
-    ("2020", "par"): 100,
-    ("2020", "int"): 200,
-    ("2021", "par"): 100,
-    ("2021", "int"): 200,
-    ("2022", "par"): 100,
-    ("2022", "int"): 300,
-    ("2023", "par"): 100,
-    ("2023", "int"): 400,
-    ("2024", "par"): 100,
-    ("2024", "int"): 400,
-}
 
 
 def load_clean_data(path: Path | None = None) -> pd.DataFrame:
