@@ -8,6 +8,7 @@ import argparse
 import logging
 import os
 import sys
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -67,9 +68,10 @@ def _load_app_config(config_path: str | None) -> AppConfig:
 
 def _run_analysers(
     ir: Document, config: AppConfig, rulebook: Rulebook, llm_client: Any | None = None
-) -> tuple[list[Finding], dict]:
+) -> tuple[list[Finding], dict, dict[str, float]]:
     findings: list[Finding] = []
     accumulated_usage: dict = {}
+    stage_times: dict[str, float] = {}
 
     for analyser_cfg in config.analysers:
         if not analyser_cfg.enabled:
@@ -91,12 +93,14 @@ def _run_analysers(
 
         try:
             instance = analyser_class()
+            _t0 = time.monotonic()
             result = instance.analyse(
                 doc=ir,
                 rulebook=rulebook,
                 params=analyser_params,
                 llm_client=llm_client,
             )
+            stage_times[analyser_cfg.analyser_id] = round(time.monotonic() - _t0, 2)
             if result:
                 findings.extend(result)
             analyser_usage = getattr(instance, "_accumulated_usage", None)
@@ -105,7 +109,7 @@ def _run_analysers(
         except Exception:
             logger.exception("Error running analyser %s", analyser_cfg.analyser_id)
 
-    return findings, accumulated_usage
+    return findings, accumulated_usage, stage_times
 
 
 def _run_id_from_config(config: AppConfig) -> str:
@@ -256,13 +260,16 @@ def main(argv: list[str] | None = None) -> int:
         reset_id_counters()
         if llm_client:
             pass
+        run_start = time.monotonic()
         path = doc_path
         file_outdir = base_outdir / student_id
         rule_engine = RuleEngine()
 
+        _parse_t0 = time.monotonic()
         parse_output = parser.parse(
             path, run_id=run_id, config_hash=config_hash, student_id=student_id
         )
+        _parse_elapsed = round(time.monotonic() - _parse_t0, 2)
         parser_findings = parse_output.parser_findings
         ir_doc = parse_output.ir
 
@@ -294,6 +301,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             info["counts"]["n_findings"] = len(parser_findings)
             info["usage"] = summarise_usage({})
+            info["elapsed_seconds"] = round(time.monotonic() - run_start, 2)
             write_json(file_outdir / "info.json", info)
             clean_csv_rows.extend(
                 findings_to_csv_rows(
@@ -316,7 +324,7 @@ def main(argv: list[str] | None = None) -> int:
         write_json(file_outdir / "docling.json", ir_doc.docling_doc)
         write_json(file_outdir / "ir.json", ir_doc)
 
-        analyser_findings, doc_usage = _run_analysers(
+        analyser_findings, doc_usage, analyser_stage_times = _run_analysers(
             ir_doc, config, rulebook, llm_client
         )
 
@@ -330,6 +338,7 @@ def main(argv: list[str] | None = None) -> int:
             judge_batch = rule_engine.prepare_judge_batch(analyser_findings)
             if judge_batch:
                 logger.info("Running judge model on %d findings...", len(judge_batch))
+                _judge_t0 = time.monotonic()
                 judge_response, judge_usage = llm_client.judge_findings(
                     judge_batch,
                     ir_doc,
@@ -337,6 +346,7 @@ def main(argv: list[str] | None = None) -> int:
                     model=config.judge_model,
                     temperature=config.judge_temperature,
                 )
+                analyser_stage_times["judge"] = round(time.monotonic() - _judge_t0, 2)
                 doc_usage = merge_usage(doc_usage, judge_usage)
                 if judge_response:
                     rule_engine.apply_judge_response(judge_batch, judge_response)
@@ -385,7 +395,14 @@ def main(argv: list[str] | None = None) -> int:
 
         info["counts"]["n_findings"] = len(final_findings)
         info.update(re_summary)
+        info["document"] = {
+            "total_words": ir_doc.total_words,
+            "total_paragraphs": ir_doc.total_paragraphs,
+            "total_pictures": ir_doc.total_pictures,
+        }
+        info["stage_times"] = {"parse": _parse_elapsed, **analyser_stage_times}
         info["usage"] = summarise_usage(doc_usage)
+        info["elapsed_seconds"] = round(time.monotonic() - run_start, 2)
         write_json(file_outdir / "info.json", info)
 
         # log_json(logger, "IR Document", ir_doc)
