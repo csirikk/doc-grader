@@ -9,11 +9,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from constants import MAX_DOC_POINTS
-from dataset_parser import DOC_CODES
 from langdetect import LangDetectException, detect
 from matplotlib.ticker import PercentFormatter
-from visual_utils import (
+
+from .constants import MAX_DOC_POINTS
+from .dataset_parser import DOC_CODES
+from .visual_utils import (
     _FIG_H,
     _FIG_H_PER_ITEM,
     _FIG_W,
@@ -22,6 +23,7 @@ from visual_utils import (
     LANGUAGE_PALETTE,
     TASK_VARIANT_PALETTE,
     _save_or_show,
+    _validate_data,
 )
 
 if TYPE_CHECKING:
@@ -97,11 +99,6 @@ def build_project_df(df: pd.DataFrame) -> pd.DataFrame:
 # --- UTILITIES ---
 
 
-def _ensure_proj(df: pd.DataFrame, proj: pd.DataFrame | None) -> pd.DataFrame:
-    """Return proj if already computed, otherwise build it from df."""
-    return proj if proj is not None else build_project_df(df)
-
-
 def filter_for_impact_stats(
     df: pd.DataFrame, exclude_shared: bool = True
 ) -> pd.DataFrame:
@@ -123,16 +120,15 @@ def filter_to_normalised_years(df: pd.DataFrame) -> pd.DataFrame:
 # --- OVERVIEW ---
 
 
-def analyse_volume(df: pd.DataFrame, proj: pd.DataFrame | None = None) -> None:
+def analyse_volume(df: pd.DataFrame, proj: pd.DataFrame) -> None:
     """Print key volume statistics."""
-    proj = _ensure_proj(df, proj)
-    print(f"Total projects: {len(proj)}")
-    print(f"Total files: {df['source_file'].nunique()}")
-    print(f"Total unique codes used: {df['code'].nunique()}")
-    print(f"Year range: {(df['year'].min(), df['year'].max())}")
-    print(f"Task Variants: {sorted(df['task_variant'].unique())}")
-    print(f"Total grading events: {len(df)}")
-    print(f"Total grading events with impacts: {df['impact'].notna().sum()}")
+    logger.info(f"Total projects: {len(proj)}")
+    logger.info(f"Total files: {df['source_file'].nunique()}")
+    logger.info(f"Total unique codes used: {df['code'].nunique()}")
+    logger.info(f"Year range: {(df['year'].min(), df['year'].max())}")
+    logger.info(f"Task Variants: {sorted(df['task_variant'].unique())}")
+    logger.info(f"Total grading events: {len(df)}")
+    logger.info(f"Total grading events with impacts: {df['impact'].notna().sum()}")
 
 
 def summarise_score_imbalance(proj: pd.DataFrame) -> None:
@@ -140,7 +136,7 @@ def summarise_score_imbalance(proj: pd.DataFrame) -> None:
     perfect_docs = (proj["total_impact"] >= 0).sum()
     total_docs = len(proj)
     perfect_ratio = (perfect_docs / total_docs) * 100
-    print(
+    logger.info(
         f"Projects with 0 deductions: {perfect_docs} / {total_docs} ({perfect_ratio:.1f}%)"
     )
 
@@ -209,11 +205,9 @@ def analyse_impact_statistics(
 # --- FORMAT ANALYSIS ---
 
 
-def analyse_format_impact(
-    df: pd.DataFrame, proj: pd.DataFrame | None = None
-) -> pd.DataFrame:
+def analyse_format_impact(proj: pd.DataFrame) -> pd.DataFrame:
     """Build per-project data for document format comparison."""
-    return _ensure_proj(df, proj).dropna(subset=["doc_type", "doc_score_pct"])
+    return proj.dropna(subset=["doc_type", "doc_score_pct"])
 
 
 def summarise_format_impact(format_impact_df: pd.DataFrame) -> pd.DataFrame:
@@ -229,14 +223,20 @@ def summarise_format_impact(format_impact_df: pd.DataFrame) -> pd.DataFrame:
 def visualise_format_impact(
     format_impact_df: pd.DataFrame,
     save_path: Path | None = None,
-) -> Axes:
+) -> Axes | None:
     """
     Plot cumulative score distributions of Markdown vs PDF submissions.
     Expects the output of `analyse_format_impact`.
     """
+    valid_df = _validate_data(
+        format_impact_df, ["doc_score_pct", "doc_type"], "visualise_format_impact"
+    )
+    if valid_df is None:
+        return None
+
     fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
     sns.ecdfplot(
-        data=format_impact_df,
+        data=valid_df,
         y="doc_score_pct",
         hue="doc_type",
         palette=FORMAT_PALETTE,
@@ -249,7 +249,7 @@ def visualise_format_impact(
     ax.axvline(x=0.5, color="gray", linestyle="--", alpha=0.5, zorder=1)
     ax.text(
         x=0.51,
-        y=format_impact_df["doc_score_pct"].min() + 5,
+        y=valid_df["doc_score_pct"].min() + 5,
         s="Median Student",
         color="gray",
         fontsize=10,
@@ -326,12 +326,14 @@ def visualise_zero_impact_warnings(
 
 
 def visualise_doc_type_distribution(
-    df: pd.DataFrame,
-    proj: pd.DataFrame | None = None,
+    proj: pd.DataFrame,
     save_path: Path | None = None,
-) -> Axes:
+) -> Axes | None:
     """Plot proportional PDF vs MD submission distribution per year."""
-    data = _ensure_proj(df, proj).dropna(subset=["doc_type"]).sort_values("year")
+    data = _validate_data(proj, ["doc_type", "year"], "visualise_doc_type_distribution")
+    if data is None:
+        return None
+    data = data.sort_values("year")
 
     fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
     sns.histplot(
@@ -354,12 +356,16 @@ def visualise_doc_type_distribution(
 
 
 def visualise_task_variant_distribution(
-    df: pd.DataFrame,
-    proj: pd.DataFrame | None = None,
+    proj: pd.DataFrame,
     save_path: Path | None = None,
-) -> Axes:
+) -> Axes | None:
     """Plot project counts per task variant per year."""
-    data = _ensure_proj(df, proj).sort_values("year")
+    data = _validate_data(
+        proj, ["year", "task_variant"], "visualise_task_variant_distribution"
+    )
+    if data is None:
+        return None
+    data = data.sort_values("year")
 
     fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
     sns.countplot(
@@ -529,41 +535,34 @@ def visualise_shared_vs_individual_impact(
 
 
 def visualise_code_usage_trends(
-    df: pd.DataFrame,
+    proj: pd.DataFrame,
     codes: list[str] | None = None,
     n_codes: int = 8,
-    proj: pd.DataFrame | None = None,
     save_path: Path | None = None,
-) -> sns.FacetGrid:
+) -> sns.FacetGrid | None:
     """
     Plot the fraction of projects that received each code per year.
     The shaded area around each line shows the 95% confidence interval.
     """
-    proj = _ensure_proj(df, proj)
+    valid_proj = _validate_data(
+        proj, ["id", "year", "codes_list"], "visualise_code_usage_trends"
+    )
+    if valid_proj is None:
+        return None
+
+    exploded = valid_proj[["id", "year", "codes_list"]].explode("codes_list")
 
     if codes is None:
-        all_codes = df["code"].unique().tolist()
-        code_project_counts = pd.Series(
-            {
-                c: proj["codes_list"]
-                .map(lambda cl, c=c: c in cl if isinstance(cl, list) else False)
-                .sum()
-                for c in all_codes
-            }
-        )
-        codes = code_project_counts.nlargest(n_codes).index.tolist()
+        code_counts = exploded["codes_list"].value_counts()
+        codes = code_counts.nlargest(n_codes).index.tolist()
 
-    # one binary column per code, then melt to long form for relplot
-    binary = pd.DataFrame(
-        {
-            code: proj["codes_list"].map(
-                lambda cl, code=code: code in cl if isinstance(cl, list) else False
-            )
-            for code in codes
-        }
-    )
-    binary["year"] = proj["year"]
-    binary["id"] = proj["id"]
+    binary = pd.crosstab(
+        [exploded["id"], exploded["year"]], exploded["codes_list"]
+    ).reset_index()
+    for code in codes:
+        if code not in binary:
+            binary[code] = 0
+    binary[codes] = binary[codes].astype(bool)
 
     melted = binary.melt(
         id_vars=["id", "year"],
@@ -640,23 +639,21 @@ def visualise_code_impact_trends(
 
 
 def visualise_code_cooccurrence(
-    df: pd.DataFrame,
+    proj: pd.DataFrame,
     n_codes: int = 15,
-    proj: pd.DataFrame | None = None,
     save_path: Path | None = None,
-) -> sns.matrix.ClusterGrid:
+) -> sns.matrix.ClusterGrid | None:
     """Hierarchical clustering to group similar codes."""
-    proj = _ensure_proj(df, proj)
-    codes = df["code"].value_counts().head(n_codes).index.tolist()
-
-    binary = pd.DataFrame(
-        {
-            code: proj["codes_list"].map(
-                lambda cl, code=code: code in cl if isinstance(cl, list) else False
-            )
-            for code in codes
-        }
+    valid_proj = _validate_data(
+        proj, ["id", "codes_list"], "visualise_code_cooccurrence"
     )
+    if valid_proj is None:
+        return None
+
+    exploded = valid_proj[["id", "codes_list"]].explode("codes_list")
+    codes = exploded["codes_list"].value_counts().head(n_codes).index.tolist()
+
+    binary = pd.crosstab(exploded["id"], exploded["codes_list"])[codes].astype(bool)
 
     corr_matrix = binary.corr()
 
@@ -677,30 +674,28 @@ def visualise_code_cooccurrence(
 
 
 def visualise_code_points_correlation(
-    df: pd.DataFrame,
+    proj: pd.DataFrame,
     n_codes: int = 20,
-    proj: pd.DataFrame | None = None,
     save_path: Path | None = None,
-) -> Axes:
+) -> Axes | None:
     """
     Correlation between code presence and documentation score (% of the maximum),
     normalised to remove cross year/variant max point differences.
     """
-    proj = _ensure_proj(df, proj).dropna(subset=["doc_score_pct"])
-    codes = df["code"].value_counts().head(n_codes).index.tolist()
-
-    binary = pd.DataFrame(
-        {
-            code: proj["codes_list"].map(
-                lambda cl, code=code: code in cl if isinstance(cl, list) else False
-            )
-            for code in codes
-        }
+    valid_proj = _validate_data(
+        proj, ["id", "doc_score_pct", "codes_list"], "visualise_code_points_correlation"
     )
+    if valid_proj is None:
+        return None
 
-    correlations = binary.corrwith(proj["doc_score_pct"]).sort_values(
-        key=abs, ascending=True
-    )
+    exploded = valid_proj[["id", "codes_list"]].explode("codes_list")
+    codes = exploded["codes_list"].value_counts().head(n_codes).index.tolist()
+
+    binary = pd.crosstab(exploded["id"], exploded["codes_list"])[codes].astype(bool)
+
+    correlations = binary.corrwith(
+        valid_proj.set_index("id")["doc_score_pct"]
+    ).sort_values(key=abs, ascending=True)
 
     fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_W), layout="constrained")
     sns.barplot(
@@ -918,24 +913,29 @@ def analyse_comment_keywords(df: pd.DataFrame, n_keywords: int = 30) -> pd.DataF
 
 def summarise_token_limits(token_df: pd.DataFrame) -> None:
     """Print statistics about token length distribution."""
-    if token_df.empty:
-        print("No tokens processed. Please check if the datasets exist.")
+    valid_df = _validate_data(token_df, ["tokens"], "summarise_token_limits")
+    if valid_df is None:
+        logger.info("No tokens processed. Please check if the datasets exist.")
         return
 
-    p95 = token_df["tokens"].quantile(0.95)
-    print(f"95th Percentile Token Length: {int(p95)} tokens")
-    print(f"Max Token Length: {token_df['tokens'].max()}")
-    print("Llama3 Context Limit: 4096 tokens")
-    print("GPT-4 Context Limit: 8192 tokens")
+    p95 = valid_df["tokens"].quantile(0.95)
+    logger.info(f"95th Percentile Token Length: {int(p95)} tokens")
+    logger.info(f"Max Token Length: {valid_df['tokens'].max()}")
+    logger.info("Llama3 Context Limit: 4096 tokens")
+    logger.info("GPT-4 Context Limit: 8192 tokens")
 
 
 def visualise_token_limits(
     token_df: pd.DataFrame, save_path: Path | None = None
-) -> Axes:
+) -> Axes | None:
     """Plot the distribution of document token lengths."""
+    valid_df = _validate_data(token_df, ["tokens", "format"], "visualise_token_limits")
+    if valid_df is None:
+        return None
+
     fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
     sns.histplot(
-        data=token_df,
+        data=valid_df,
         x="tokens",
         hue="format",
         multiple="stack",

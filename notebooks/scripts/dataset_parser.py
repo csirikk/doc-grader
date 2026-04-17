@@ -1,15 +1,19 @@
 """IPP assessment CSV parser."""
 
+import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
-from constants import CODE_ALIASES, DOC_CODES, IPP_CODES
+
+from .constants import CODE_ALIASES, DOC_CODES, IPP_CODES
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
+
+logger = logging.getLogger(__name__)
 
 DELIMITERS_LEFT = " \t\n\r,:;.(["
 DELIMITERS_RIGHT = " \t\n\r,:;.)]"
@@ -470,11 +474,12 @@ def parse_document_tokens(
 
 
 def main() -> None:
+    logging.basicConfig(level=logging.INFO)
     root_dir = Path(__file__).parent.parent
     data_dir = root_dir / "data" / "ipp" / "assessments"
     all_files = list(data_dir.glob("ipp*.csv"))
 
-    print(f"Found {len(all_files)} files in {data_dir}")
+    logger.info(f"Found {len(all_files)} files in {data_dir}")
 
     all_extracted_rows = []
 
@@ -482,11 +487,11 @@ def main() -> None:
         try:
             df = pd.read_csv(file_path)
         except Exception as e:
-            print(f"Error reading {file_path}: {e}")
+            logger.error(f"Error reading {file_path}: {e}")
             continue
 
         if "comment" not in df.columns:
-            print(f"Skipping {file_path}, no 'comment' column")
+            logger.warning(f"Skipping {file_path}, no 'comment' column")
             continue
 
         filename = file_path.name
@@ -507,15 +512,15 @@ def main() -> None:
         output_path = root_dir / "data" / "clean_ipp_data.csv"
         output_df.to_csv(output_path, index=False)
 
-        print(f"Processed {len(output_df)} rows. Saved to {output_path}")
+        logger.info(f"Processed {len(output_df)} rows. Saved to {output_path}")
 
-        print("\nNumber of rows per code: ")
-        print(output_df["code"].value_counts().head(10))
+        logger.info("\nNumber of rows per code: ")
+        logger.info(output_df["code"].value_counts().head(10))
 
-        print("\nAverage impact of codes: ")
-        print(output_df.groupby("code")["impact"].mean().sort_values().head(10))
+        logger.info("\nAverage impact of codes: ")
+        logger.info(output_df.groupby("code")["impact"].mean().sort_values().head(10))
     else:
-        print("No data extracted.")
+        logger.info("No data extracted.")
 
 
 if __name__ == "__main__":
