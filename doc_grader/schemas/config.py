@@ -73,7 +73,7 @@ class AppConfig(StrictModel):
         default=None,
         description=(
             "Path to the rulebook JSON file, relative to the project root. "
-            "Overrides the default config/rulebook2425.json when set."
+            "Overrides the default config/rulebook.json when set."
         ),
     )
     analysers: list[AnalyserConfig] = Field(
