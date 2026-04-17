@@ -9,6 +9,7 @@ import seaborn as sns
 if TYPE_CHECKING:
     from pathlib import Path
 
+    import pandas as pd
     from matplotlib.figure import Figure
 
 logger = logging.getLogger(__name__)
@@ -62,3 +63,20 @@ def _save_or_show(fig: Figure, save_path: Path | None) -> None:
         plt.close(fig)
     else:
         plt.show()
+
+
+def _validate_data(
+    df: pd.DataFrame, required_cols: list[str], func_name: str
+) -> pd.DataFrame | None:
+    """Validate that the DataFrame contains the required columns and is not empty."""
+    missing = set(required_cols) - set(df.columns)
+    if missing:
+        logger.warning("Columns %s absent, skipping %s", missing, func_name)
+        return None
+
+    valid_df = df.dropna(subset=required_cols)
+    if valid_df.empty:
+        logger.warning("No valid data for %s, skipping %s", required_cols, func_name)
+        return None
+
+    return valid_df
