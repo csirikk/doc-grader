@@ -70,6 +70,8 @@ class RuleEngine:
                 if verdict.adjusted_snippet is not None and finding.anchors:
                     finding.anchors[0].snippet = verdict.adjusted_snippet
 
+            finding.judge_model = response.model_name
+
             after_state = {
                 "summary": finding.summary,
                 "severity": finding.severity,

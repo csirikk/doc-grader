@@ -49,6 +49,7 @@ class BaseAnalyser(ABC):
         confidence: float | None = None,
         run_id: str | None = None,
         config_hash: str | None = None,
+        generator_model: str | None = None,
     ) -> Finding:
         """Helper to create a unified Finding object."""
 
@@ -97,6 +98,7 @@ class BaseAnalyser(ABC):
             confidence=confidence,
             judge_status=judge_status,
             human_status=human_status,
+            generator_model=generator_model,
             anchors=anchors,
         )
 
@@ -192,13 +194,13 @@ class BaseLLMAnalyser(BaseAnalyser):
                 snippet_override=f.reason,
                 severity=f.severity,
                 confidence=f.confidence,
+                generator_model=f.model_name,
             )
             if f.model_name:
                 finding.model_evals.append(
                     ModelEval(
                         model_name=f.model_name,
                         label=f.ac_code,
-                        raw={"verdict": f.raw_response} if f.raw_response else None,
                     )
                 )
             findings.append(finding)
@@ -314,4 +316,5 @@ class BaseLLMAnalyser(BaseAnalyser):
             snippet_override=f.snippet,
             severity=f.severity,
             confidence=f.confidence,
+            generator_model=f.model_name,
         )

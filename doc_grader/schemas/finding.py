@@ -107,6 +107,13 @@ class Finding(StrictModel):
         ..., description="Human review lifecycle state for this finding"
     )
 
+    generator_model: str | None = Field(
+        default=None, description="Name of the model that generated this finding."
+    )
+    judge_model: str | None = Field(
+        default=None, description="Name of the model that judged this finding."
+    )
+
     # Evidence
     anchors: list[Anchor] = Field(default_factory=list)
     stats: list[Stat] = Field(default_factory=list)

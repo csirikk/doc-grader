@@ -205,11 +205,15 @@ class LLMClient:
             logger.error("LLM API call or processing failed: %s", e)
             return [], {}
 
-        call_usage = self._build_call_usage(model or self.model, response.usage)
+        call_usage = self._build_call_usage(response.model, response.usage)
         parsed_response = response.choices[0].message.parsed
         if parsed_response is None:
             logger.error("LLM returned unparseable response.")
             return [], call_usage
+
+        for f in parsed_response.findings:
+            f.model_name = response.model
+
         logger.info("LLM Reasoning Chain: %s", parsed_response.reasoning_chain)
         logger.info(
             "Successfully parsed %d findings from LLM.", len(parsed_response.findings)
@@ -307,11 +311,15 @@ class LLMClient:
             logger.error("Vision LLM API call failed: %s", e)
             return [], {}
 
-        call_usage = self._build_call_usage(model or self.model, response.usage)
+        call_usage = self._build_call_usage(response.model, response.usage)
         parsed_response = response.choices[0].message.parsed
         if parsed_response is None:
             logger.error("Vision LLM returned unparseable response.")
             return [], call_usage
+
+        for f in parsed_response.findings:
+            f.model_name = response.model
+
         logger.info("Vision LLM Reasoning Chain: %s", parsed_response.reasoning_chain)
         logger.info(
             "Successfully parsed %d vision findings.", len(parsed_response.findings)
@@ -378,11 +386,15 @@ class LLMClient:
             logger.error("Pages-only vision LLM API call failed: %s", e)
             return [], {}
 
-        call_usage = self._build_call_usage(model or self.model, response.usage)
+        call_usage = self._build_call_usage(response.model, response.usage)
         parsed_response = response.choices[0].message.parsed
         if parsed_response is None:
             logger.error("Pages-only vision LLM returned unparseable response.")
             return [], call_usage
+
+        for f in parsed_response.findings:
+            f.model_name = response.model
+
         logger.info(
             "Pages-only vision LLM reasoning: %s", parsed_response.reasoning_chain
         )
@@ -499,11 +511,13 @@ class LLMClient:
             logger.exception("Judge model LLM call failed.")
             return None, {}
 
-        call_usage = self._build_call_usage(model or self.model, response.usage)
+        call_usage = self._build_call_usage(response.model, response.usage)
         parsed_response = response.choices[0].message.parsed
         if parsed_response is None:
             logger.error("Judge LLM returned unparseable response.")
             return None, call_usage
+
+        parsed_response.model_name = response.model
 
         logger.debug("Judge reasoning: %s", parsed_response.reasoning_chain)
         return parsed_response, call_usage

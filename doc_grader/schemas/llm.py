@@ -110,7 +110,10 @@ class LLMFinding(StrictModel):
     reason: str
     severity: float = Field(default=0.5, ge=0.0, le=1.0)
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
-
+    model_name: str | None = Field(
+        default=None,
+        description="Name of the model that generated this finding, if known.",
+    )
 
 class GraderModelResponse(StrictModel):
     """The complete, raw response expected from the grader model."""
@@ -220,4 +223,7 @@ class JudgeModelResponse(StrictModel):
     verdicts: list[JudgeVerdict] = Field(
         default_factory=list,
         description="One verdict per finding in the submitted batch.",
+    )
+    model_name: str | None = Field(
+        default=None, description="The specific name of the judge model used."
     )
