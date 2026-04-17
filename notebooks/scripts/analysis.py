@@ -3,6 +3,7 @@
 import logging
 import re
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,9 +11,20 @@ import pandas as pd
 import seaborn as sns
 from dataset_parser import DOC_CODES
 from langdetect import LangDetectException, detect
-from matplotlib.axes import Axes
-from matplotlib.figure import Figure
 from matplotlib.ticker import PercentFormatter
+from visual_utils import (
+    _FIG_H,
+    _FIG_H_PER_ITEM,
+    _FIG_W,
+    CODE_TYPE_PALETTE,
+    FORMAT_PALETTE,
+    LANGUAGE_PALETTE,
+    TASK_VARIANT_PALETTE,
+    _save_or_show,
+)
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
 
 logger = logging.getLogger(__name__)
 
@@ -133,49 +145,6 @@ def filter_for_impact_stats(
 def filter_to_normalised_years(df: pd.DataFrame) -> pd.DataFrame:
     """Keep only rows where the year/variant has a known documentation point maximum."""
     return df.dropna(subset=["max_doc_points"])
-
-
-# --- VISUALISATION UTILITIES ---
-
-CODE_TYPE_PALETTE: dict[str, tuple] = {
-    "Doc code": sns.color_palette("deep")[2],  # green
-    "Other code": sns.color_palette("deep")[4],  # purple
-}
-TASK_VARIANT_PALETTE: dict[str, tuple] = {
-    "php": sns.color_palette("deep")[0],  # blue
-    "py": sns.color_palette("deep")[1],  # orange
-    "par": sns.color_palette("deep")[2],  # green
-    "int": sns.color_palette("deep")[3],  # red
-}
-FORMAT_PALETTE: dict[str, tuple] = {
-    "md": sns.color_palette("deep")[0],  # blue
-    "pdf": sns.color_palette("deep")[1],  # orange
-}
-LANGUAGE_PALETTE: dict[str, tuple] = {
-    "cs": sns.color_palette("deep")[0],  # blue
-    "sk": sns.color_palette("deep")[1],  # orange
-    "en": sns.color_palette("deep")[2],  # green
-    "unknown": sns.color_palette("deep")[7],  # gray
-}
-
-# Figure size constants
-_FIG_W: int = 10  # standard width
-_FIG_H: int = 6  # standard height
-_FIG_H_PER_ITEM: float = 0.4  # height per row for list charts
-
-
-def _save_or_show(fig: Figure, save_path: Path | None) -> None:
-    if save_path is not None:
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(save_path)
-        logger.info("Saved figure to %s", save_path)
-        plt.close(fig)
-    else:
-        plt.show()
-
-
-def configure_plot_style() -> None:
-    sns.set_theme(style="whitegrid", context="notebook", palette="deep")
 
 
 # --- OVERVIEW ---
