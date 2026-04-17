@@ -115,7 +115,7 @@ These analysers declare which rules they own via `get_rules(rulebook, params)` a
 
 | Analyser             | AC codes (representative)                                      | Notes                                    |
 |----------------------|----------------------------------------------------------------|------------------------------------------|
-| `language_analyser`  | `CH`, `ICH`, `TERM`, `LANG`, `STYLE`, `CONTENT`, `OOP`, `FILO` | Prose, content and design ACs            |
+| `content_analyser`   | `CH`, `ICH`, `TERM`, `LANG`, `STYLE`, `CONTENT`, `OOP`, `FILO` | Prose, content and design ACs            |
 | `grammar_analyser`   | `CH`                                                           | LanguageTool local checks / LLM fallback |
 | `integrity_analyser` | `COPY`                                                         | Spec-similarity via embeddings           |
 | `asset_analyser`     | `BADUML`, `SEMUML`, `OWNDIF`, `BW`, `NOUML`                    | Vision + fine-tuned classifier           |
@@ -196,7 +196,7 @@ Finding
        }
     },
     {
-       "analyser_id": "language_analyser",
+       "analyser_id": "content_analyser",
        "enabled": true,
        "model": "gpt-5.4-nano",
        "temperature": 0.0,
