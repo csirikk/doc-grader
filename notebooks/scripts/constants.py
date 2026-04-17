@@ -111,18 +111,18 @@ BONUS_CODES: frozenset[str] = frozenset({"DP", "EX", "NV", "OK", "OOP"})
 
 # Maps non-canonical spelling variants to their canonical uppercase form.
 CODE_ALIASES: dict[str, str] = {
-    "PŘED": "PRED",
     "BLOCK": "BLOK",
-    "STYL": "STYLE",
-    "SYLE": "STYLE",
-    "STRUKT.": "STRUCT",
-    "TYP.": "TYP",
+    "COMMENTS": "COMMENT",
     "GRAM.": "GRAM",
     "NOOOP": "NOOP",
-    "COMMENTS": "COMMENT",
-    "OO": "OOP",
-    "TERM.": "TERM",
     "NVI": "NV",
+    "OO": "OOP",
+    "PŘED": "PRED",
+    "STRUKT.": "STRUCT",
+    "STYL": "STYLE",
+    "SYLE": "STYLE",
+    "TERM.": "TERM",
+    "TYP.": "TYP",
 }
 
 # Maps normalised legacy DOC_CODES to their canonical rulebook equivalents.
