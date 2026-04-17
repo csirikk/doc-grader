@@ -9,7 +9,8 @@ from pathlib import Path
 import streamlit as st
 from document_panel import render_document
 from findings_panel import render_findings
-from inout import (
+
+from doc_grader.ui.data import (
     available_stages,
     load_run,
     run_display_name,

@@ -3,7 +3,8 @@
 from typing import TYPE_CHECKING
 
 import streamlit as st
-from utils import (
+
+from doc_grader.ui.ui_utils import (
     FILTER_OPTIONS,
     STATUS_COLOURS,
 )
