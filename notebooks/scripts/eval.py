@@ -45,38 +45,47 @@ def _load_all_stages(
             student_id,
         )
         return None, [], [], {}, {}
+
     base = output_dir / student_id
-    final_path = base / "findings.json"
-    if not final_path.exists():
+    stage_files: dict[str, str] = {
+        "final": "findings.json",
+        "raw": "raw_findings.json",
+        "judged": "judged_findings.json",
+        "info": "info.json",
+        "ir": "ir.json",
+    }
+    stage_defaults: dict[str, list[dict] | dict | None] = {
+        "final": None,
+        "raw": [],
+        "judged": [],
+        "info": {},
+        "ir": {},
+    }
+
+    loaded: dict[str, list[dict] | dict | None] = {}
+    for key, filename in stage_files.items():
+        path = base / filename
+        if path.exists():
+            with path.open(encoding="utf-8") as fh:
+                loaded[key] = json.load(fh)
+        else:
+            loaded[key] = stage_defaults[key]
+
+    if loaded["final"] is None:
         logger.warning(
             "findings.json not found for student %s (%s) at %s, skipping",
             student_id,
             task_variant,
-            final_path,
+            base / stage_files["final"],
         )
         return None, [], [], {}, {}
-    with final_path.open(encoding="utf-8") as fh:
-        final = json.load(fh)
-    raw: list[dict] = []
-    raw_path = base / "raw_findings.json"
-    if raw_path.exists():
-        with raw_path.open(encoding="utf-8") as fh:
-            raw = json.load(fh)
-    judged: list[dict] = []
-    judged_path = base / "judged_findings.json"
-    if judged_path.exists():
-        with judged_path.open(encoding="utf-8") as fh:
-            judged = json.load(fh)
-    info: dict = {}
-    info_path = base / "info.json"
-    if info_path.exists():
-        with info_path.open(encoding="utf-8") as fh:
-            info = json.load(fh)
-    ir: dict = {}
-    ir_path = base / "ir.json"
-    if ir_path.exists():
-        with ir_path.open(encoding="utf-8") as fh:
-            ir = json.load(fh)
+
+    final: list[dict] = loaded["final"] if isinstance(loaded["final"], list) else []
+    raw: list[dict] = loaded["raw"] if isinstance(loaded["raw"], list) else []
+    judged: list[dict] = loaded["judged"] if isinstance(loaded["judged"], list) else []
+    info: dict = loaded["info"] if isinstance(loaded["info"], dict) else {}
+    ir: dict = loaded["ir"] if isinstance(loaded["ir"], dict) else {}
+
     return final, raw, judged, info, ir
 
 
@@ -140,6 +149,11 @@ def _compare_student(
     raw_codes = {f.get("ac_code") for f in raw_findings if f.get("ac_code")}
     raw_overlap = gold_codes & raw_codes
 
+    generator_models = {
+        f.get("generator_model") for f in raw_findings if f.get("generator_model")
+    }
+    judge_models = {f.get("judge_model") for f in tool_findings if f.get("judge_model")}
+
     return {
         "student_id": student_id,
         "task_variant": task_variant,
@@ -147,6 +161,8 @@ def _compare_student(
         "max_doc_points": max_pts,
         "tool_raw_points": tool_raw_points,
         "points_delta": points_delta,
+        "generator_models": ", ".join(sorted(m for m in generator_models if m)),
+        "judge_models": ", ".join(sorted(m for m in judge_models if m)),
         "gold_code_count": len(gold_codes),
         "tool_code_count": len(tool_codes),
         "raw_code_count": len(raw_codes),
@@ -167,11 +183,25 @@ def _compare_student(
     }
 
 
-def _operational_fields(info: dict) -> dict:
+def _operational_fields(info: dict, generator_models: str, judge_models: str) -> dict:
     """Extract operational metrics from info.json for inclusion in a per-student row."""
     usage = info.get("usage", {})
     by_model = usage.get("by_model", {})
     n_api_calls = sum(m.get("calls", 0) for m in by_model.values())
+
+    gen_models_set = set(generator_models.split(", ")) if generator_models else set()
+    judge_models_set = set(judge_models.split(", ")) if judge_models else set()
+
+    gen_cost = (
+        sum(m.get("cost_eur", 0) for k, m in by_model.items() if k in gen_models_set)
+        if gen_models_set
+        else None
+    )
+    judge_cost = (
+        sum(m.get("cost_eur", 0) for k, m in by_model.items() if k in judge_models_set)
+        if judge_models_set
+        else None
+    )
 
     mimetype = info.get("input", {}).get("origin", {}).get("mimetype", "")
     if "pdf" in mimetype:
@@ -191,6 +221,8 @@ def _operational_fields(info: dict) -> dict:
     return {
         "doc_type": doc_type,
         "cost_eur": usage.get("total_cost_eur"),
+        "generator_cost_eur": gen_cost,
+        "judge_cost_eur": judge_cost,
         "prompt_tokens": usage.get("total_prompt_tokens"),
         "completion_tokens": usage.get("total_completion_tokens"),
         "cached_tokens": usage.get("total_cached_tokens"),
@@ -251,6 +283,9 @@ def _aggregate_code_stats(df: pd.DataFrame) -> dict[str, dict]:
 _PER_STUDENT_FIELDNAMES: list[str] = [
     "student_id",
     "task_variant",
+    "directory_alias",
+    "generator_models",
+    "judge_models",
     "doc_points",
     "max_doc_points",
     "tool_raw_points",
@@ -270,7 +305,10 @@ _PER_STUDENT_FIELDNAMES: list[str] = [
     "impact_delta",
     "doc_type",
     "doc_language",
+    "doc_language",
     "cost_eur",
+    "generator_cost_eur",
+    "judge_cost_eur",
     "prompt_tokens",
     "completion_tokens",
     "cached_tokens",
@@ -424,58 +462,28 @@ def _aggregate_bonus_split(df: pd.DataFrame, df_all: pd.DataFrame) -> dict:
     }
 
 
-def _aggregate_per_language(df: pd.DataFrame) -> dict:
-    """Per-language breakdown: point stats, P/R/F1, and score correlation."""
+def _aggregate_by_column(df: pd.DataFrame, column_name: str) -> dict:
+    """Group by one column and aggregate point stats, P/R/F1, and score correlation."""
     result: dict[str, dict] = {}
-    if "doc_language" not in df.columns:
+    if column_name not in df.columns:
         return result
-    for lang in df["doc_language"].dropna().unique():
-        subset = df[df["doc_language"] == lang]
+
+    if column_name == "task_variant":
+        group_values = [
+            value for value in ("par", "int") if value in set(df[column_name])
+        ]
+    else:
+        group_values = df[column_name].dropna().unique().tolist()
+
+    for group_value in group_values:
+        if not group_value:
+            continue
+        subset = df[df[column_name] == group_value]
         if subset.empty:
             continue
         code_stats = _aggregate_code_stats(subset)
         corr = _aggregate_score_correlations(subset)
-        result[lang] = {
-            **_aggregate_point_stats(subset),
-            **_aggregate_prf_stats(code_stats),
-            "pearson_r": corr["all"]["pearson_r"],
-            "pearson_p": corr["all"]["p_value"],
-            "n": len(subset),
-        }
-    return result
-
-
-def _aggregate_per_format(df: pd.DataFrame) -> dict:
-    """Per-format breakdown: point stats, P/R/F1, and score correlation."""
-    result: dict[str, dict] = {}
-    if "doc_type" not in df.columns:
-        return result
-    for fmt in df["doc_type"].dropna().unique():
-        subset = df[df["doc_type"] == fmt]
-        if subset.empty:
-            continue
-        code_stats = _aggregate_code_stats(subset)
-        corr = _aggregate_score_correlations(subset)
-        result[fmt] = {
-            **_aggregate_point_stats(subset),
-            **_aggregate_prf_stats(code_stats),
-            "pearson_r": corr["all"]["pearson_r"],
-            "pearson_p": corr["all"]["p_value"],
-            "n": len(subset),
-        }
-    return result
-
-
-def _aggregate_per_variant(df: pd.DataFrame) -> dict:
-    """Per-variant breakdown: point stats, P/R/F1, and score correlation."""
-    result: dict[str, dict] = {}
-    for variant in ("par", "int"):
-        subset = df[df["task_variant"] == variant]
-        if subset.empty:
-            continue
-        code_stats = _aggregate_code_stats(subset)
-        corr = _aggregate_score_correlations(subset)
-        result[variant] = {
+        result[group_value] = {
             **_aggregate_point_stats(subset),
             **_aggregate_prf_stats(code_stats),
             "pearson_r": corr["all"]["pearson_r"],
@@ -572,6 +580,7 @@ def _log_summary(summary: dict) -> None:
 
 
 def evaluate_pipeline(
+    variant_dirs: dict[str, Path | None] | None = None,
     par_dir: Path | None = None,
     int_dir: Path | None = None,
     gold_path: Path | None = None,
@@ -591,10 +600,12 @@ def evaluate_pipeline(
         logger.error("Gold CSV not found: %s", gold_path)
         raise SystemExit(1)
 
-    variant_dirs: dict[str, Path | None] = {
-        "par": par_dir,
-        "int": int_dir,
-    }
+    if variant_dirs is None:
+        variant_dirs = {
+            "par": par_dir,
+            "int": int_dir,
+        }
+
     if not any(variant_dirs.values()):
         logger.error("Provide at least one of par_dir or int_dir.")
         raise SystemExit(1)
@@ -635,38 +646,54 @@ def evaluate_pipeline(
         lambda: {"raw": 0, "dismissed": 0, "adjusted": 0, "final": 0}
     )
 
-    for student_id, task_variant in student_variants:
-        student_df = df[(df["id"] == student_id) & (df["task_variant"] == task_variant)]
-        year_str = str(student_df["year"].iloc[0])
-        max_pts = MAX_DOC_POINTS.get((year_str, task_variant), 100)
-
-        final, raw, judged, info, ir = _load_all_stages(
-            variant_dirs.get(task_variant), student_id, task_variant
-        )
-        if final is None:
-            skipped.append(f"{student_id}/{task_variant}")
+    for alias, vdir in variant_dirs.items():
+        if vdir is None:
             continue
 
-        for f in raw:
-            if code := f.get("ac_code"):
-                pipeline_acc[code]["raw"] += 1
-        for f in judged:
-            if code := f.get("ac_code"):
-                status = f.get("judge_status")
-                if status == "judged_dismissed":
-                    pipeline_acc[code]["dismissed"] += 1
-                elif status == "judged_adjusted":
-                    pipeline_acc[code]["adjusted"] += 1
-        for f in final:
-            if code := f.get("ac_code"):
-                pipeline_acc[code]["final"] += 1
+        actual_task_variant = "par" if alias.startswith("par") else "int"
 
-        row = _compare_student(
-            student_id, task_variant, student_df, final, max_pts, raw_findings=raw
-        )
-        row.update(_operational_fields(info))
-        row["doc_language"] = ir.get("language")
-        per_student_rows.append(row)
+        for student_id, task_variant in student_variants:
+            if task_variant != actual_task_variant:
+                continue
+
+            student_df = df[
+                (df["id"] == student_id) & (df["task_variant"] == task_variant)
+            ]
+            year_str = str(student_df["year"].iloc[0])
+            max_pts = MAX_DOC_POINTS.get((year_str, task_variant), 100)
+
+            final, raw, judged, info, ir = _load_all_stages(
+                vdir, student_id, task_variant
+            )
+            if final is None:
+                skipped.append(f"{student_id}/{alias}")
+                continue
+
+            for f in raw:
+                if code := f.get("ac_code"):
+                    pipeline_acc[code]["raw"] += 1
+            for f in judged:
+                if code := f.get("ac_code"):
+                    status = f.get("judge_status")
+                    if status == "judged_dismissed":
+                        pipeline_acc[code]["dismissed"] += 1
+                    elif status == "judged_adjusted":
+                        pipeline_acc[code]["adjusted"] += 1
+            for f in final:
+                if code := f.get("ac_code"):
+                    pipeline_acc[code]["final"] += 1
+
+            row = _compare_student(
+                student_id, task_variant, student_df, final, max_pts, raw_findings=raw
+            )
+            row["directory_alias"] = alias
+            row.update(
+                _operational_fields(
+                    info, row.get("generator_models", ""), row.get("judge_models", "")
+                )
+            )
+            row["doc_language"] = ir.get("language")
+            per_student_rows.append(row)
 
     if skipped:
         logger.warning(
@@ -723,9 +750,11 @@ def evaluate_pipeline(
             "score_correlations": _aggregate_score_correlations(df_students),
             "bonus_split": _aggregate_bonus_split(df_students, df_all),
         },
-        "per_variant": _aggregate_per_variant(df_students),
-        "per_format": _aggregate_per_format(df_students),
-        "per_language": _aggregate_per_language(df_students),
+        "per_variant": _aggregate_by_column(df_students, "task_variant"),
+        "per_format": _aggregate_by_column(df_students, "doc_type"),
+        "per_language": _aggregate_by_column(df_students, "doc_language"),
+        "per_generator_model": _aggregate_by_column(df_students, "generator_models"),
+        "per_judge_model": _aggregate_by_column(df_students, "judge_models"),
         "pipeline_stats": _aggregate_pipeline_stats(pipeline_acc),
         "operational": _aggregate_operational_stats(df_students),
         "per_code": code_stats,
