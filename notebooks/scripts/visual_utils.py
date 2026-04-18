@@ -34,8 +34,8 @@ CODE_TYPE_PALETTE: dict[str, tuple] = {
 TASK_VARIANT_PALETTE: dict[str, tuple] = {
     "php": _DEEP_PALETTE[0],  # blue
     "py": _DEEP_PALETTE[1],  # orange
-    "par": _DEEP_PALETTE[2],  # green
-    "int": _DEEP_PALETTE[3],  # red
+    "par": sns.color_palette(["#2A9D8F"])[0],  # teal
+    "int": sns.color_palette(["#6C5CE7"])[0],  # indigo
 }
 FORMAT_PALETTE: dict[str, tuple] = {
     "md": _DEEP_PALETTE[0],  # blue

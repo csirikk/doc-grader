@@ -33,6 +33,13 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_WARNING_TYPE_PALETTE: dict[str, str] = {
+    "Warning (0)": "#1f77b4",
+    "Bonus (>0)": "#2ca02c",
+    "Penalty (<0)": "#d62728",
+    "Unknown": "#7f7f7f",
+}
+
 # --- DATA ---
 
 
@@ -318,6 +325,8 @@ def visualise_zero_impact_warnings(
         data=plot_data,
         y="code",
         hue="penalty_type",
+        hue_order=["Penalty (<0)", "Warning (0)", "Bonus (>0)", "Unknown"],
+        palette=_WARNING_TYPE_PALETTE,
         multiple="fill",
         discrete=True,
         shrink=0.8,
@@ -966,6 +975,8 @@ def visualise_token_limits(
         data=valid_df,
         x="tokens",
         hue="format",
+        hue_order=list(FORMAT_PALETTE),
+        palette=FORMAT_PALETTE,
         multiple="stack",
         bins=30,
         ax=ax,

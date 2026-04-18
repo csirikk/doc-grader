@@ -1,4 +1,4 @@
-"""Gold evaluation visualisation and analysis."""
+"""Human-reference evaluation visualisation and analysis."""
 
 import json
 import logging
@@ -45,12 +45,21 @@ _MODEL_NAME_MAP: dict[str, str] = {
     "gpt-5.4-2026-03-05": "GPT 5.4",
 }
 
+_CODE_SOURCE_PALETTE: dict[str, str] = {
+    "human": "#3B3B3B",
+    "tool (final)": "#1f77b4",
+    "tool (raw)": "#9ecae1",
+}
+
+_STAGE_TIME_PALETTE: dict[str, str] = {
+    "parse": "#384238",
+    "analysers": "#4AA850",
+    "judge": "#DB3574",
+}
+
 # ,- DEFAULTS,-
 
 _DEFAULT_EVAL_DIR = Path(__file__).parent.parent.parent / "outputs" / "gold_eval"
-_DEFAULT_SAMPLE_DIR = (
-    Path(__file__).parent.parent.parent / "outputs" / "gold_eval_sample"
-)
 
 # ,- DATA LOADING,-
 
@@ -93,12 +102,38 @@ def load_eval_data(
             lambda value: _format_model_name(value) if pd.notna(value) else value
         )
 
+    df = _add_percentage_score_columns(df)
+
     summary: dict = {}
     if json_path.exists():
         with json_path.open(encoding="utf-8") as fh:
             summary = json.load(fh)
 
     return df, summary
+
+
+def _add_percentage_score_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Derive score percentage columns for cross-variant comparability."""
+    if "max_doc_points" not in df.columns:
+        return df
+
+    max_points = pd.to_numeric(df["max_doc_points"], errors="coerce")
+    max_points = max_points.where(max_points > 0)
+
+    if "doc_points" in df.columns:
+        df["doc_score_pct"] = (
+            pd.to_numeric(df["doc_points"], errors="coerce") / max_points
+        ) * 100
+    if "tool_raw_points" in df.columns:
+        df["tool_score_pct"] = (
+            pd.to_numeric(df["tool_raw_points"], errors="coerce") / max_points
+        ) * 100
+    if "points_delta" in df.columns:
+        df["points_delta_pct"] = (
+            pd.to_numeric(df["points_delta"], errors="coerce") / max_points
+        ) * 100
+
+    return df
 
 
 def _per_code_df(summary: dict) -> pd.DataFrame:
@@ -122,16 +157,17 @@ def _pipeline_stats_df(summary: dict) -> pd.DataFrame:
 def visualise_score_scatter(
     per_student_df: pd.DataFrame, save_path: Path | None = None
 ) -> Axes | None:
-    """Scatter plot of gold doc_points vs tool-estimated points, coloured by variant."""
-    df = per_student_df.dropna(subset=["doc_points", "tool_raw_points"])
-    all_pts = pd.concat([df["doc_points"], df["tool_raw_points"]])
+    """Scatter plot of human vs tool score as percentage of max points."""
+    df = _add_percentage_score_columns(per_student_df.copy())
+    df = df.dropna(subset=["doc_score_pct", "tool_score_pct"])
+    all_pts = pd.concat([df["doc_score_pct"], df["tool_score_pct"]])
     lo, hi = all_pts.min() - 5, all_pts.max() + 5
 
     fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
     sns.scatterplot(
         data=df,
-        x="doc_points",
-        y="tool_raw_points",
+        x="doc_score_pct",
+        y="tool_score_pct",
         hue="task_variant",
         palette=TASK_VARIANT_PALETTE,
         s=80,
@@ -141,39 +177,11 @@ def visualise_score_scatter(
     add_identity_reference_line(ax, lo, hi)
     ax.set_xlim(lo, hi)
     ax.set_ylim(lo, hi)
-    ax.set_xlabel("Gold Score")
-    ax.set_ylabel("Tool Score")
-    ax.set_title("Gold Vs Tool Score Comparison")
+    ax.set_xlabel("Human Score (% of max points)")
+    ax.set_ylabel("Tool Score (% of max points)")
+    ax.set_title("Human Vs Tool Score Comparison (Normalised)")
     handles, labels = ax.get_legend_handles_labels()
     ax.legend(handles=handles, labels=labels, title="Task variant")
-    _save_or_show(fig, save_path)
-    return ax
-
-
-def visualise_points_delta_distribution(
-    per_student_df: pd.DataFrame, save_path: Path | None = None
-) -> Axes | None:
-    """Histogram of per-student points delta (tool - gold), split by bonus status."""
-    df = per_student_df.dropna(subset=["points_delta"])
-
-    fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
-    sns.histplot(
-        data=df,
-        x="points_delta",
-        hue="has_gold_bonus",
-        bins=20,
-        multiple="layer",
-        element="step",
-        alpha=0.5,
-        ax=ax,
-    )
-    add_vertical_reference_line(ax, x=0, label="Reference: Zero Score Delta")
-    ax.set_xlabel("Score Delta (Tool - Human)")
-    ax.set_ylabel("Number of Students (count)")
-    set_integer_count_ticks(ax, axis="y")
-    ax.set_title("Distribution of Tool-Human Score Delta")
-    handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles=handles, labels=labels)
     _save_or_show(fig, save_path)
     return ax
 
@@ -181,7 +189,7 @@ def visualise_points_delta_distribution(
 def visualise_impact_delta_scatter(
     per_student_df: pd.DataFrame, save_path: Path | None = None
 ) -> Axes | None:
-    """Scatter of normalised gold impact vs tool impact with identity line."""
+    """Scatter of normalised human impact vs tool impact with identity line."""
     df = per_student_df.dropna(subset=["gold_impact_sum", "tool_impact_sum"])
     all_vals = pd.concat([df["gold_impact_sum"], df["tool_impact_sum"]])
     lo, hi = all_vals.min() - 0.02, all_vals.max() + 0.02
@@ -202,9 +210,9 @@ def visualise_impact_delta_scatter(
     ax.set_ylim(lo, hi)
     ax.xaxis.set_major_formatter(PercentFormatter(xmax=1.0))
     ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
-    ax.set_xlabel("Gold Impact Score (%)")
+    ax.set_xlabel("Human Impact Score (%)")
     ax.set_ylabel("Tool Impact Score (%)")
-    ax.set_title("Gold Vs Tool Impact Score Comparison")
+    ax.set_title("Human Vs Tool Impact Score Comparison")
     handles, labels = ax.get_legend_handles_labels()
     ax.legend(handles=handles, labels=labels, title="Task variant")
     _save_or_show(fig, save_path)
@@ -212,11 +220,13 @@ def visualise_impact_delta_scatter(
 
 
 def visualise_per_code_agreement(
-    summary: dict, save_path: Path | None = None
+    summary: dict,
+    save_path: Path | None = None,
+    max_codes: int | None = 15,
 ) -> Axes | None:
     """
     Diverging stacked horizontal bar chart:
-    overlap / missed / added per code, sorted by gold count.
+    overlap / missed / added per code, sorted by human count.
     """
     df = _per_code_df(summary)
     if df.empty:
@@ -230,6 +240,10 @@ def visualise_per_code_agreement(
         total_disagreement=df["missed_by_tool"] + df["added_by_tool"],
         net_bias=df["added_by_tool"] - df["missed_by_tool"],
     ).sort_values(["total_disagreement", "total_in_gold"], ascending=True)
+
+    if max_codes is not None and max_codes > 0 and len(df) > max_codes:
+        df = df.nlargest(max_codes, ["total_disagreement", "total_in_gold"])
+        df = df.sort_values(["total_disagreement", "total_in_gold"], ascending=True)
 
     order = df["code"].tolist()
 
@@ -341,7 +355,7 @@ def visualise_per_code_agreement_bias(
 def visualise_precision_recall_bubble(
     summary: dict, save_path: Path | None = None
 ) -> Axes | None:
-    """Bubble chart of per-code precision vs recall, sized by gold occurrence count."""
+    """Bubble chart of per-code precision vs recall, sized by human occurrence count."""
     df = _per_code_df(summary).dropna(subset=["precision", "recall"])
     if df.empty:
         logger.warning("No codes with both precision and recall, skipping bubble chart")
@@ -373,7 +387,7 @@ def visualise_precision_recall_bubble(
     ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
     ax.set_xlabel("Recall (%)")
     ax.set_ylabel("Precision (%)")
-    ax.set_title("Per-Code Precision Vs Recall (Bubble Size = Gold Occurrence Count)")
+    ax.set_title("Per-Code Precision Vs Recall (Bubble Size = Human Occurrence Count)")
     handles, labels = ax.get_legend_handles_labels()
     ax.legend(handles=handles, labels=labels, title="Reference")
     _save_or_show(fig, save_path)
@@ -381,7 +395,9 @@ def visualise_precision_recall_bubble(
 
 
 def visualise_code_frequency_comparison(
-    summary: dict, save_path: Path | None = None
+    summary: dict,
+    save_path: Path | None = None,
+    max_codes: int | None = 15,
 ) -> Axes | None:
     """
     Two-panel bar chart for code frequency:
@@ -399,6 +415,17 @@ def visualise_code_frequency_comparison(
         on="code",
         how="left",
     ).assign(raw_count=lambda d: d["raw_count"].fillna(0).astype(int))
+
+    if max_codes is not None and max_codes > 0 and len(combined) > max_codes:
+        combined = combined.assign(
+            max_count=lambda d: d[["total_in_gold", "total_in_tool", "raw_count"]].max(
+                axis=1
+            )
+        )
+        combined = combined.nlargest(max_codes, ["max_count", "total_in_gold"]).drop(
+            columns=["max_count"]
+        )
+
     combined = combined.sort_values("total_in_gold", ascending=False)
     order = combined["code"].tolist()
 
@@ -410,7 +437,7 @@ def visualise_code_frequency_comparison(
     ).assign(
         source=lambda d: d["source"].map(
             {
-                "total_in_gold": "gold",
+                "total_in_gold": "human",
                 "total_in_tool": "tool (final)",
                 "raw_count": "tool (raw)",
             }
@@ -442,7 +469,8 @@ def visualise_code_frequency_comparison(
         y="code",
         x="count",
         hue="source",
-        hue_order=["gold", "tool (final)", "tool (raw)"],
+        hue_order=["human", "tool (final)", "tool (raw)"],
+        palette=_CODE_SOURCE_PALETTE,
         order=order,
         orient="h",
         ax=ax_full,
@@ -452,7 +480,8 @@ def visualise_code_frequency_comparison(
         y="code",
         x="count",
         hue="source",
-        hue_order=["gold", "tool (final)", "tool (raw)"],
+        hue_order=["human", "tool (final)", "tool (raw)"],
+        palette=_CODE_SOURCE_PALETTE,
         order=detail_order,
         orient="h",
         ax=ax_detail,
@@ -461,7 +490,7 @@ def visualise_code_frequency_comparison(
     ax_full.set_xlabel("Occurrence Count (Students)")
     ax_full.set_ylabel("Code")
     set_integer_count_ticks(ax_full, axis="x")
-    ax_full.set_title("Code Frequency: Full Scale")
+    ax_full.set_title("Code Frequency: Full Scale (Human Vs Tool)")
 
     ax_detail.set_xlabel("Occurrence Count (Students)")
     ax_detail.set_ylabel("")
@@ -590,100 +619,6 @@ def visualise_judge_survival_rate(
     return ax
 
 
-def visualise_code_set_sizes(
-    per_student_df: pd.DataFrame, save_path: Path | None = None
-) -> Axes | None:
-    """Distribution of per-student code set sizes for gold vs tool, split by variant."""
-    melted = per_student_df.melt(
-        id_vars=["task_variant"],
-        value_vars=["gold_code_count", "tool_code_count"],
-        var_name="source",
-        value_name="n_codes",
-    ).assign(
-        source=lambda d: d["source"].map(
-            {"gold_code_count": "gold", "tool_code_count": "tool (final)"}
-        )
-    )
-
-    fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
-    sns.boxplot(
-        data=melted,
-        x="task_variant",
-        y="n_codes",
-        hue="source",
-        ax=ax,
-        fill=False,
-        flierprops={"alpha": 0.5},
-    )
-    ax.set_xlabel("Task variant")
-    ax.set_ylabel("Number of Distinct Codes (count)")
-    set_integer_count_ticks(ax, axis="y")
-    ax.set_title("Code Set Size per Student: Gold Vs Tool")
-    ax.legend(title="Source")
-    _save_or_show(fig, save_path)
-    return ax
-
-
-def visualise_raw_vs_final_code_count(
-    per_student_df: pd.DataFrame, save_path: Path | None = None
-) -> Axes | None:
-    """2D density of raw code count vs final code count, with integer ticks."""
-    df = per_student_df.dropna(subset=["raw_code_count", "tool_code_count"]).copy()
-    if df.empty:
-        logger.warning(
-            "No rows with raw_code_count/tool_code_count, skipping density chart"
-        )
-        return None
-
-    df["raw_code_count"] = pd.to_numeric(df["raw_code_count"], errors="coerce")
-    df["tool_code_count"] = pd.to_numeric(df["tool_code_count"], errors="coerce")
-    df = df.dropna(subset=["raw_code_count", "tool_code_count"])
-    if df.empty:
-        logger.warning("No numeric rows for raw/final code counts, skipping")
-        return None
-
-    df["raw_code_count"] = df["raw_code_count"].astype(int)
-    df["tool_code_count"] = df["tool_code_count"].astype(int)
-
-    fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
-    sns.histplot(
-        data=df,
-        x="raw_code_count",
-        y="tool_code_count",
-        discrete=True,
-        cbar=True,
-        cmap="Blues",
-        ax=ax,
-    )
-
-    max_raw = int(df["raw_code_count"].max())
-    max_final = int(df["tool_code_count"].max())
-    hi = max(max_raw, max_final)
-
-    lo = 0
-    identity_line = add_identity_reference_line(ax, lo, hi)
-    ax.set_xlim(-0.5, max_raw + 0.5)
-    ax.set_ylim(-0.5, max_final + 0.5)
-    set_integer_count_ticks(ax, axis="x")
-    set_integer_count_ticks(ax, axis="y")
-
-    if ax.collections:
-        colorbar = ax.collections[0].colorbar
-        if colorbar is not None:
-            colorbar.set_label("Number of Students (count)")
-
-    ax.set_xlabel("Raw Code Count (Pre-Judge)")
-    ax.set_ylabel("Final Code Count (Post-Judge)")
-    ax.set_title("Judge Filtering Density: Raw Vs Final Code Count per Student")
-    ax.legend(
-        handles=[identity_line],
-        labels=[identity_line.get_label()],
-        title="Reference",
-    )
-    _save_or_show(fig, save_path)
-    return ax
-
-
 def visualise_cost_by_variant(
     per_student_df: pd.DataFrame, save_path: Path | None = None
 ) -> Axes | None:
@@ -768,7 +703,7 @@ def visualise_latency_by_generator_model(
 def visualise_cost_vs_doc_points(
     per_student_df: pd.DataFrame, save_path: Path | None = None
 ) -> Axes | None:
-    """Scatter of gold doc_points vs cost per document."""
+    """Scatter of human doc_points vs cost per document."""
     df = _validate_data(
         per_student_df,
         ["doc_points", "generator_cost_eur", "generator_models"],
@@ -780,8 +715,8 @@ def visualise_cost_vs_doc_points(
         df,
         "doc_points",
         "generator_cost_eur",
-        "Pipeline Cost Vs Student Score (With Trendlines)",
-        "Gold Score",
+        "Pipeline Cost Vs Student Score (Human)",
+        "Human Score",
         "Cost (EUR)",
         save_path,
     )
@@ -816,56 +751,41 @@ def visualise_latency_by_variant(
     return ax
 
 
-def visualise_token_breakdown(
-    per_student_df: pd.DataFrame, save_path: Path | None = None
-) -> Axes | None:
-    """Stacked bar of mean prompt vs completion tokens per variant."""
+def summarise_token_usage_by_variant(per_student_df: pd.DataFrame) -> pd.DataFrame:
+    """Return mean token usage per task variant as a table."""
     df = _validate_data(
         per_student_df,
-        ["prompt_tokens", "completion_tokens"],
-        "visualise_token_breakdown",
+        ["prompt_tokens", "completion_tokens", "cached_tokens", "task_variant"],
+        "summarise_token_usage_by_variant",
     )
     if df is None:
-        return None
+        return pd.DataFrame()
 
-    df = df[df["task_variant"] == "int"].copy()
-    if hasattr(df["task_variant"], "cat"):
-        df["task_variant"] = df["task_variant"].cat.remove_unused_categories()
-
-    agg = (
+    summary_df = (
         df.groupby("task_variant", observed=True)[
-            ["prompt_tokens", "completion_tokens"]
+            ["prompt_tokens", "completion_tokens", "cached_tokens"]
         ]
         .mean()
+        .rename(
+            columns={
+                "prompt_tokens": "mean_prompt_tokens",
+                "completion_tokens": "mean_completion_tokens",
+                "cached_tokens": "mean_cached_tokens",
+            }
+        )
+        .assign(
+            total_mean_tokens=lambda d: (
+                d["mean_prompt_tokens"] + d["mean_completion_tokens"]
+            )
+        )
+        .round(2)
         .reset_index()
     )
-    melted = agg.melt(
-        id_vars="task_variant",
-        value_vars=["prompt_tokens", "completion_tokens"],
-        var_name="token_type",
-        value_name="mean_tokens",
-    ).assign(
-        token_type=lambda d: d["token_type"].map(
-            {"prompt_tokens": "prompt", "completion_tokens": "completion"}
-        )
+    logger.info(
+        "Mean token usage per document by task variant:\n%s",
+        summary_df.to_string(index=False),
     )
-
-    fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
-    sns.barplot(
-        data=melted,
-        x="task_variant",
-        y="mean_tokens",
-        hue="token_type",
-        hue_order=["prompt", "completion"],
-        ax=ax,
-        order=["int"],
-    )
-    ax.set_xlabel("Task variant")
-    ax.set_ylabel("Mean Tokens (count)")
-    ax.set_title("Mean Token Usage per Document by Task Variant")
-    ax.legend(title="Token Type")
-    _save_or_show(fig, save_path)
-    return ax
+    return summary_df
 
 
 def visualise_per_variant_metrics(
@@ -901,46 +821,57 @@ def visualise_per_format_metrics(
 def visualise_mae_by_score_quartile(
     per_student_df: pd.DataFrame, save_path: Path | None = None
 ) -> Axes | None:
-    """Box plot of absolute points delta grouped by gold score quartile."""
-    df = per_student_df.dropna(subset=["doc_points", "points_delta"]).copy()
-    df["abs_delta"] = df["points_delta"].abs()
+    """Box plot of absolute percentage-point delta grouped by score quartile."""
+    df = _add_percentage_score_columns(per_student_df.copy())
+    df = df.dropna(subset=["doc_score_pct", "points_delta_pct"]).copy()
+    df["abs_delta_pct"] = df["points_delta_pct"].abs()
     df["score_quartile"] = pd.qcut(
-        df["doc_points"], q=4, labels=["Q1 (low)", "Q2", "Q3", "Q4 (high)"]
+        df["doc_score_pct"], q=4, labels=["Q1 (low)", "Q2", "Q3", "Q4 (high)"]
     )
 
     fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
     sns.boxplot(
         data=df,
         x="score_quartile",
-        y="abs_delta",
+        y="abs_delta_pct",
         hue="task_variant",
         palette=TASK_VARIANT_PALETTE,
         ax=ax,
         fill=False,
         flierprops={"alpha": 0.5},
     )
-    ax.set_xlabel("Gold Score Quartile")
-    ax.set_ylabel("Absolute Score Delta")
-    ax.set_title("Tool Error (|Score Delta|) by Gold Score Quartile")
+    ax.set_xlabel("Human Score Quartile (% of max points)")
+    ax.set_ylabel("Absolute Score Delta (% points)")
+    ax.set_title("Tool Error (|Score Delta|) by Human Score Quartile (Normalised)")
     ax.legend(title="Task variant")
     _save_or_show(fig, save_path)
     return ax
 
 
 def visualise_format_comparison(
-    per_student_df: pd.DataFrame, save_path: Path | None = None
+    per_student_df: pd.DataFrame,
+    save_path: Path | None = None,
+    directory_aliases: tuple[str, ...] | None = ("par", "int"),
 ) -> Axes | None:
-    """Side-by-side strip+box plots comparing PDF vs Markdown on three metrics."""
+    """Strip+box plots comparing PDF vs Markdown on cost and latency only."""
     df = _validate_data(per_student_df, ["doc_type"], "visualise_format_comparison")
     if df is None:
         return None
+
+    if directory_aliases is not None and "directory_alias" in df.columns:
+        df = df[df["directory_alias"].isin(directory_aliases)].copy()
+        if df.empty:
+            logger.warning(
+                "No rows remain after filtering format comparison by aliases: %s",
+                ", ".join(directory_aliases),
+            )
+            return None
 
     metrics: list[tuple[str, str]] = []
     if "cost_eur" in df.columns and df["cost_eur"].notna().any():
         metrics.append(("cost_eur", "Cost (EUR)"))
     if "elapsed_seconds" in df.columns and df["elapsed_seconds"].notna().any():
         metrics.append(("elapsed_seconds", "Latency (s)"))
-    metrics.append(("overlap_count", "Overlap Count"))
 
     if not metrics:
         logger.warning("No suitable columns for format_comparison")
@@ -979,12 +910,45 @@ def visualise_format_comparison(
         ax.set_xlabel("Format")
         ax.set_ylabel(label)
         ax.set_title(label)
-        if col == "overlap_count":
-            set_integer_count_ticks(ax, axis="y")
 
-    fig.suptitle("PDF Vs Markdown: Cost, Latency, and Overlap")
+    fig.suptitle("PDF Vs Markdown: Cost and Latency")
     _save_or_show(fig, save_path)
     return axes[0]
+
+
+def summarise_format_comparison_scope(per_student_df: pd.DataFrame) -> pd.DataFrame:
+    """Summarise which aliases/models are represented in format-comparison data."""
+    required_cols = [
+        "directory_alias",
+        "task_variant",
+        "doc_type",
+        "generator_models",
+        "judge_models",
+    ]
+    df = _validate_data(
+        per_student_df,
+        ["directory_alias", "task_variant", "doc_type"],
+        "summarise_format_comparison_scope",
+    )
+    if df is None:
+        return pd.DataFrame(columns=[*required_cols, "n_students"])
+
+    for col in ("generator_models", "judge_models"):
+        if col not in df.columns:
+            df[col] = ""
+
+    scope_input = df[required_cols].copy()
+    for col in required_cols:
+        scope_input[col] = scope_input[col].astype("string")
+
+    scope_df = (
+        scope_input.fillna("")
+        .groupby(required_cols, dropna=False, observed=True)
+        .size()
+        .reset_index(name="n_students")
+        .sort_values("n_students", ascending=False)
+    )
+    return scope_df
 
 
 def visualise_stage_times(
@@ -1019,14 +983,12 @@ def visualise_stage_times(
         x="seconds",
         hue="stage",
         hue_order=["parse", "analysers", "judge"],
-        palette={
-            "parse": STAGE_PALETTE["raw"],
-            "analysers": STAGE_PALETTE["adjusted"],
-            "judge": STAGE_PALETTE["dismissed"],
-        },
+        palette=_STAGE_TIME_PALETTE,
         multiple="layer",
         fill=True,
         alpha=0.5,
+        # cut=0,
+        clip=(0.001, None),
         ax=ax,
     )
     ax.set_xlabel("Latency (s)")
@@ -1034,28 +996,6 @@ def visualise_stage_times(
     ax.set_title("Distribution of Pipeline Stage Latencies")
     _save_or_show(fig, save_path)
     return ax
-
-
-def visualise_cost_vs_words(
-    per_student_df: pd.DataFrame, save_path: Path | None = None
-) -> Axes | None:
-    """Scatter of total_words vs cost_eur, coloured by task variant."""
-    df = _validate_data(
-        per_student_df,
-        ["total_words", "generator_cost_eur", "generator_models"],
-        "visualise_cost_vs_words",
-    )
-    if df is None:
-        return None
-    return _plot_scatter_with_trendlines(
-        df,
-        "total_words",
-        "generator_cost_eur",
-        "Pipeline Cost Vs Document Word Count (With Trendlines)",
-        "Document Word Count",
-        "Cost (EUR)",
-        save_path,
-    )
 
 
 def _format_model_name(name: str) -> str:
@@ -1080,19 +1020,24 @@ def _plot_performance_metrics(
     mae_rows = []
     prf_rows = []
 
-    mae_metrics = {"MAE (pts)": "points_mae"}
+    has_pct_mae = any(
+        stats.get("points_mae_pct") is not None for stats in per_category.values()
+    )
+    mae_label = "MAE (% pts)" if has_pct_mae else "MAE (pts)"
+    mae_key = "points_mae_pct" if has_pct_mae else "points_mae"
+    mae_y_label = "Score (%)" if has_pct_mae else "Score (pts)"
+
+    mae_metrics = {mae_label: mae_key}
     prf_metrics = {
         "Precision": "macro_precision",
         "Recall": "macro_recall",
         "F1": "macro_f1",
     }
 
+    is_model_category = "model" in category_label.lower()
+
     for cat_val, stats in per_category.items():
-        fmt_cat = (
-            _format_model_name(cat_val)
-            if category_label in ["Vision Model + Content Model", "Model"]
-            else cat_val
-        )
+        fmt_cat = _format_model_name(cat_val) if is_model_category else cat_val
         for label, key in mae_metrics.items():
             val = stats.get(key)
             if val is not None:
@@ -1129,7 +1074,7 @@ def _plot_performance_metrics(
             ax=ax1,
         )
         ax1.set_xlabel("")
-        ax1.set_ylabel("Score")
+        ax1.set_ylabel(mae_y_label)
         ax1.set_title("Mean Absolute Error (MAE)")
         if palette is None:
             ax1.tick_params(axis="x", rotation=0)
@@ -1253,7 +1198,7 @@ def visualise_per_judge_model_metrics(
 ) -> tuple[Axes, Axes] | None:
     """Grouped bar chart of MAE, macro-P, macro-R and macro-F1 for judge models."""
     axes = _plot_performance_metrics(
-        summary, "per_judge_model", "Model", None, save_path
+        summary, "per_judge_model", "Judge Model", None, save_path
     )
     return axes
 
@@ -1269,9 +1214,6 @@ def plot_all(
         return (save_dir / name) if save_dir is not None else None
 
     visualise_score_scatter(per_student_df, _path("score_scatter.png"))
-    visualise_points_delta_distribution(
-        per_student_df, _path("points_delta_distribution.png")
-    )
     visualise_impact_delta_scatter(per_student_df, _path("impact_delta_scatter.png"))
     visualise_per_code_agreement(summary, _path("per_code_agreement.png"))
     visualise_per_code_agreement_bias(summary, _path("per_code_agreement_bias.png"))
@@ -1279,10 +1221,6 @@ def plot_all(
     visualise_code_frequency_comparison(summary, _path("code_frequency_comparison.png"))
     visualise_pipeline_waterfall(summary, _path("pipeline_waterfall.png"))
     visualise_judge_survival_rate(summary, _path("judge_survival_rate.png"))
-    visualise_code_set_sizes(per_student_df, _path("code_set_sizes.png"))
-    visualise_raw_vs_final_code_count(
-        per_student_df, _path("raw_vs_final_code_count.png")
-    )
     visualise_per_variant_metrics(summary, _path("per_variant_metrics.png"))
     visualise_per_format_metrics(summary, _path("per_format_metrics.png"))
     visualise_per_language_metrics(summary, _path("per_language_metrics.png"))
@@ -1290,7 +1228,6 @@ def plot_all(
     visualise_format_comparison(per_student_df, _path("format_comparison.png"))
     visualise_cost_by_variant(per_student_df, _path("cost_by_variant.png"))
     visualise_cost_vs_doc_points(per_student_df, _path("cost_vs_doc_points.png"))
-    visualise_cost_vs_words(per_student_df, _path("cost_vs_words.png"))
     visualise_cost_by_generator_model(
         per_student_df, _path("cost_by_generator_model.png")
     )
@@ -1298,5 +1235,5 @@ def plot_all(
     visualise_latency_by_generator_model(
         per_student_df, _path("latency_by_generator_model.png")
     )
-    visualise_token_breakdown(per_student_df, _path("token_breakdown.png"))
+    summarise_token_usage_by_variant(per_student_df)
     visualise_stage_times(per_student_df, _path("stage_times.png"))

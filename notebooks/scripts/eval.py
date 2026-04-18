@@ -145,6 +145,19 @@ def _compare_student(
     points_delta: int | None = (
         tool_raw_points - doc_pts if doc_pts is not None else None
     )
+    tool_score_pct: float | None = (
+        round((tool_raw_points / max_pts) * 100, 2) if max_pts > 0 else None
+    )
+    doc_score_pct: float | None = (
+        round((doc_pts / max_pts) * 100, 2)
+        if doc_pts is not None and max_pts > 0
+        else None
+    )
+    points_delta_pct: float | None = (
+        round((points_delta / max_pts) * 100, 2)
+        if points_delta is not None and max_pts > 0
+        else None
+    )
 
     raw_codes = {f.get("ac_code") for f in raw_findings if f.get("ac_code")}
     raw_overlap = gold_codes & raw_codes
@@ -160,7 +173,10 @@ def _compare_student(
         "doc_points": doc_pts,
         "max_doc_points": max_pts,
         "tool_raw_points": tool_raw_points,
+        "doc_score_pct": doc_score_pct,
+        "tool_score_pct": tool_score_pct,
         "points_delta": points_delta,
+        "points_delta_pct": points_delta_pct,
         "generator_models": ", ".join(sorted(m for m in generator_models if m)),
         "judge_models": ", ".join(sorted(m for m in judge_models if m)),
         "gold_code_count": len(gold_codes),
@@ -289,7 +305,10 @@ _PER_STUDENT_FIELDNAMES: list[str] = [
     "doc_points",
     "max_doc_points",
     "tool_raw_points",
+    "doc_score_pct",
+    "tool_score_pct",
     "points_delta",
+    "points_delta_pct",
     "has_gold_bonus",
     "gold_code_count",
     "tool_code_count",
@@ -436,12 +455,27 @@ def _aggregate_score_correlations(df: pd.DataFrame) -> dict:
 def _point_stats(df: pd.DataFrame) -> dict:
     """MAE and mean delta for a subset of the per-student DataFrame."""
     col = pd.to_numeric(df["points_delta"], errors="coerce").dropna()
+    col_pct = (
+        pd.to_numeric(df["points_delta_pct"], errors="coerce").dropna()
+        if "points_delta_pct" in df.columns
+        else pd.Series(dtype=float)
+    )
     if col.empty:
-        return {"n": len(col), "mean_delta": None, "mae": None}
+        return {
+            "n": len(col),
+            "mean_delta": None,
+            "mae": None,
+            "mean_delta_pct": None,
+            "mae_pct": None,
+        }
     return {
         "n": len(col),
         "mean_delta": round(float(col.mean()), 2),
         "mae": round(float(col.abs().mean()), 2),
+        "mean_delta_pct": (
+            round(float(col_pct.mean()), 2) if not col_pct.empty else None
+        ),
+        "mae_pct": round(float(col_pct.abs().mean()), 2) if not col_pct.empty else None,
     }
 
 
@@ -496,7 +530,12 @@ def _aggregate_by_column(df: pd.DataFrame, column_name: str) -> dict:
 def _aggregate_point_stats(df: pd.DataFrame) -> dict:
     """MAE and mean delta over doc_points vs tool_raw_points."""
     stats = _point_stats(df)
-    return {"points_mae": stats["mae"], "points_mean_delta": stats["mean_delta"]}
+    return {
+        "points_mae": stats["mae"],
+        "points_mean_delta": stats["mean_delta"],
+        "points_mae_pct": stats["mae_pct"],
+        "points_mean_delta_pct": stats["mean_delta_pct"],
+    }
 
 
 def _aggregate_prf_stats(code_stats: dict[str, dict]) -> dict:
@@ -531,11 +570,25 @@ def _log_summary(summary: dict) -> None:
             overall["total_gold_code_instances"],
         )
     if (mae := overall.get("points_mae")) is not None:
-        logger.info(
-            "Points MAE: %.1f pts | mean delta: %+.1f pts",
-            mae,
-            overall["points_mean_delta"],
-        )
+        mae_pct = overall.get("points_mae_pct")
+        delta_pct = overall.get("points_mean_delta_pct")
+        if mae_pct is not None and delta_pct is not None:
+            logger.info(
+                (
+                    "Points MAE: %.1f pts (%.2f%% pts) | "
+                    "mean delta: %+.1f pts (%+.2f%% pts)"
+                ),
+                mae,
+                mae_pct,
+                overall["points_mean_delta"],
+                delta_pct,
+            )
+        else:
+            logger.info(
+                "Points MAE: %.1f pts | mean delta: %+.1f pts",
+                mae,
+                overall["points_mean_delta"],
+            )
     if (f1 := overall.get("macro_f1")) is not None:
         logger.info(
             "Macro P/R/F1: %.3f / %.3f / %.3f",
