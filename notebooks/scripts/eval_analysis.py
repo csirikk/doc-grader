@@ -168,12 +168,12 @@ def visualise_points_delta_distribution(
         ax=ax,
     )
     add_vertical_reference_line(ax, x=0, label="Reference: Zero Score Delta")
-    ax.set_xlabel("Score Delta (Tool - Gold)")
+    ax.set_xlabel("Score Delta (Tool - Human)")
     ax.set_ylabel("Number of Students (count)")
     set_integer_count_ticks(ax, axis="y")
-    ax.set_title("Distribution of Tool-Gold Score Delta")
+    ax.set_title("Distribution of Tool-Human Score Delta")
     handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles=handles, labels=labels, title="Has Gold Bonus")
+    ax.legend(handles=handles, labels=labels)
     _save_or_show(fig, save_path)
     return ax
 
@@ -253,7 +253,7 @@ def visualise_per_code_agreement(
     ax.set_xlabel("Number of Students (count; Negative = Missed by Tool)")
     ax.set_ylabel("Code")
     set_integer_count_ticks(ax, axis="x")
-    ax.set_title("Per-Code Agreement Sorted by Diagnostic Priority")
+    ax.set_title("Per-Code Agreement")
     ax.legend(
         handles=[
             Patch(facecolor=AGREEMENT_PALETTE["missed"], label="Missed"),
@@ -399,7 +399,7 @@ def visualise_code_frequency_comparison(
         on="code",
         how="left",
     ).assign(raw_count=lambda d: d["raw_count"].fillna(0).astype(int))
-    combined = combined.sort_values("total_in_gold", ascending=True)
+    combined = combined.sort_values("total_in_gold", ascending=False)
     order = combined["code"].tolist()
 
     melted = combined.melt(
@@ -423,15 +423,16 @@ def visualise_code_frequency_comparison(
     ].max(axis=1)
     outlier_code = per_code_max.idxmax()
     detail_melted = melted[melted["code"] != outlier_code].copy()
+    detail_order = [code for code in order if code != outlier_code]
     if detail_melted.empty:
         detail_melted = melted.copy()
+        detail_order = order.copy()
         outlier_code = ""
 
     fig, axes = plt.subplots(
         1,
         2,
         figsize=(_FIG_W * 1.9, max(_FIG_H, len(order) * _FIG_H_PER_ITEM)),
-        sharey=True,
         layout="constrained",
     )
     ax_full, ax_detail = axes[0], axes[1]
@@ -442,6 +443,7 @@ def visualise_code_frequency_comparison(
         x="count",
         hue="source",
         hue_order=["gold", "tool (final)", "tool (raw)"],
+        order=order,
         orient="h",
         ax=ax_full,
     )
@@ -451,6 +453,7 @@ def visualise_code_frequency_comparison(
         x="count",
         hue="source",
         hue_order=["gold", "tool (final)", "tool (raw)"],
+        order=detail_order,
         orient="h",
         ax=ax_detail,
     )
@@ -507,19 +510,51 @@ def visualise_pipeline_waterfall(
         STAGE_PALETTE["dismissed"],
     ]
 
-    fig, ax = plt.subplots(
-        figsize=(_FIG_W, max(_FIG_H, len(order) * _FIG_H_PER_ITEM)),
+    per_code_max = df.set_index("code")[
+        ["raw", "final", "adjusted_only", "dismissed_only"]
+    ].max(axis=1)
+    outlier_code = per_code_max.idxmax()
+
+    detail_plot_df = plot_df.drop(index=outlier_code, errors="ignore")
+    if detail_plot_df.empty:
+        detail_plot_df = plot_df.copy()
+        outlier_code = ""
+
+    fig, axes = plt.subplots(
+        1,
+        2,
+        figsize=(_FIG_W * 1.9, max(_FIG_H, len(order) * _FIG_H_PER_ITEM)),
         layout="constrained",
     )
-    plot_df.plot(kind="barh", stacked=True, color=colors, ax=ax, width=0.8)
+    ax_full, ax_detail = axes[0], axes[1]
 
-    ax.set_xlabel("Number of Findings (count; Total = Raw Count)")
-    ax.set_ylabel("Code")
-    set_integer_count_ticks(ax, axis="x")
-    ax.set_title("Pipeline Attrition: Final / Adjusted / Dismissed per Code")
-    ax.legend(["Final", "Adjusted", "Dismissed"], title="Stage")
+    plot_df.plot(kind="barh", stacked=True, color=colors, ax=ax_full, width=0.8)
+    detail_plot_df.plot(
+        kind="barh", stacked=True, color=colors, ax=ax_detail, width=0.8
+    )
+
+    ax_full.set_xlabel("Number of Findings (count; Total = Raw Count)")
+    ax_full.set_ylabel("Code")
+    set_integer_count_ticks(ax_full, axis="x")
+    ax_full.set_title("Pipeline Attrition: Full Scale")
+
+    ax_detail.set_xlabel("Number of Findings (count; Total = Raw Count)")
+    ax_detail.set_ylabel("")
+    detail_max = detail_plot_df.sum(axis=1).max() if not detail_plot_df.empty else 0
+    ax_detail.set_xlim(0, max(1, detail_max * 1.1))
+    set_integer_count_ticks(ax_detail, axis="x")
+    if outlier_code:
+        ax_detail.set_title(f"Detail View (Excluding Outlier: {outlier_code})")
+    else:
+        ax_detail.set_title("Detail View")
+
+    ax_full.legend(["Final", "Adjusted", "Dismissed"], title="Stage")
+    legend_detail = ax_detail.get_legend()
+    if legend_detail is not None:
+        legend_detail.remove()
+
     _save_or_show(fig, save_path)
-    return ax
+    return ax_full
 
 
 def visualise_judge_survival_rate(
