@@ -318,7 +318,6 @@ def main(argv: list[str] | None = None) -> int:
             grader_rows.append(row)
 
             logger.warning("Parsing failed for %s", path)
-            exit_code = 1
             continue
 
         write_json(file_outdir / "docling.json", ir_doc.docling_doc)
