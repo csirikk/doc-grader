@@ -24,6 +24,8 @@ from .visual_utils import (
     TASK_VARIANT_PALETTE,
     _save_or_show,
     _validate_data,
+    add_vertical_reference_line,
+    set_integer_count_ticks,
 )
 
 if TYPE_CHECKING:
@@ -137,7 +139,10 @@ def summarise_score_imbalance(proj: pd.DataFrame) -> None:
     total_docs = len(proj)
     perfect_ratio = (perfect_docs / total_docs) * 100
     logger.info(
-        f"Projects with 0 deductions: {perfect_docs} / {total_docs} ({perfect_ratio:.1f}%)"
+        "Projects with 0 deductions: %s / %s (%.1f%%)",
+        perfect_docs,
+        total_docs,
+        perfect_ratio,
     )
 
 
@@ -157,9 +162,10 @@ def visualise_total_impact_distribution(
         ax=ax,
     )
     ax.xaxis.set_major_formatter(PercentFormatter(xmax=1.0))
+    set_integer_count_ticks(ax, axis="y")
     ax.set_title("Distribution of Total Documentation Deductions per Project")
-    ax.set_xlabel("Total Deduction (% of Total Grade)")
-    ax.set_ylabel("Number of Projects")
+    ax.set_xlabel("Total Deduction Score (% of Maximum)")
+    ax.set_ylabel("Number of Projects (count)")
     _save_or_show(fig, save_path)
     return ax
 
@@ -243,10 +249,11 @@ def visualise_format_impact(
         linewidth=2.5,
         ax=ax,
     )
-    ax.set_xlabel("Fraction of Students")
-    ax.set_ylabel("Documentation Score (% of Maximum)")
-    ax.set_title("Cumulative Documentation Score Distribution by Document Format")
-    ax.axvline(x=0.5, color="gray", linestyle="--", alpha=0.5, zorder=1)
+    add_vertical_reference_line(ax, x=0.5, label="Reference: Median Student")
+    ax.xaxis.set_major_formatter(PercentFormatter(xmax=1.0))
+    ax.set_xlabel("Students (%)")
+    ax.set_ylabel("Score (% of Maximum)")
+    ax.set_title("Cumulative Score Distribution by Document Format")
     ax.text(
         x=0.51,
         y=valid_df["doc_score_pct"].min() + 5,
@@ -254,6 +261,8 @@ def visualise_format_impact(
         color="gray",
         fontsize=10,
     )
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles=handles, labels=labels, title="Document Format")
     _save_or_show(fig, save_path)
     return ax
 
@@ -314,9 +323,10 @@ def visualise_zero_impact_warnings(
         shrink=0.8,
         ax=ax,
     )
-    ax.set_xlabel("Proportion")
+    ax.set_xlabel("Proportion (%)")
+    ax.set_ylabel("Code")
     ax.xaxis.set_major_formatter(PercentFormatter(xmax=1.0))
-    ax.set_title("Warning vs Penalty vs Bonus Rate per Code")
+    ax.set_title("Warning Vs Penalty Vs Bonus Rate per Code")
     sns.move_legend(ax, loc="lower right", title="Type")
     _save_or_show(fig, save_path)
     return ax
@@ -347,7 +357,8 @@ def visualise_doc_type_distribution(
         shrink=0.8,
         ax=ax,
     )
-    ax.set_ylabel("Proportion")
+    ax.set_xlabel("Year")
+    ax.set_ylabel("Proportion (%)")
     ax.set_title("Document Format Distribution by Year")
     ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
     ax.tick_params(axis="x", rotation=45)
@@ -371,7 +382,9 @@ def visualise_task_variant_distribution(
     sns.countplot(
         data=data, x="year", hue="task_variant", palette=TASK_VARIANT_PALETTE, ax=ax
     )
-    ax.set_ylabel("Number of Projects")
+    ax.set_xlabel("Year")
+    ax.set_ylabel("Number of Projects (count)")
+    set_integer_count_ticks(ax, axis="y")
     ax.set_title("Projects per Task Variant by Year")
     ax.legend(title="Task variant")
     _save_or_show(fig, save_path)
@@ -400,7 +413,10 @@ def visualise_code_frequency(
         ax=ax,
     )
 
-    ax.set_title(f"Top {n_codes} IPP Codes")
+    ax.set_xlabel("Number of Events (count)")
+    ax.set_ylabel("Code")
+    set_integer_count_ticks(ax, axis="x")
+    ax.set_title(f"Top {n_codes} IPP Codes by Occurrence Count")
     ax.legend(title="Category")
     _save_or_show(fig, save_path)
     return ax
@@ -460,8 +476,9 @@ def visualise_impact_boxplots(
         jitter=True,
         legend=True,
     )
-    ax.set_xlabel("Impact")
-    ax.set_title("Impact Distribution per Code")
+    ax.xaxis.set_major_formatter(PercentFormatter(xmax=1.0))
+    ax.set_xlabel("Impact Score (% of Maximum)")
+    ax.set_title("Impact Score Distribution per Code")
     ax.legend(title="Category")
     _save_or_show(fig, save_path)
     return ax
@@ -524,9 +541,10 @@ def visualise_shared_vs_individual_impact(
         zorder=3,
         ax=ax,
     )
-    ax.set_xlabel("Mean Impact")
-    ax.set_title("Shared vs Individual Impact Comparison")
-    ax.legend(title="Penalty scope")
+    ax.xaxis.set_major_formatter(PercentFormatter(xmax=1.0))
+    ax.set_xlabel("Mean Impact Score (% of Maximum)")
+    ax.set_title("Shared Vs Individual Impact Comparison")
+    ax.legend(title="Penalty Scope")
     _save_or_show(fig, save_path)
     return ax
 
@@ -585,10 +603,12 @@ def visualise_code_usage_trends(
         aspect=1.3,
     )
     g.set_titles("{col_name}")
-    g.set_axis_labels("Year", "Fraction of projects")
+    g.set_axis_labels("Year", "Projects (%)")
     g.tick_params(axis="x", rotation=45)
+    for ax in g.axes.flat:
+        ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
     g.figure.suptitle(
-        "Code Usage Over Time\n(shaded area shows the 95% confidence interval)",
+        "Code Usage Over Time\n(Shaded Area Shows the 95% Confidence Interval)",
         y=1.05,
     )
     _save_or_show(g.figure, save_path)
@@ -625,10 +645,12 @@ def visualise_code_impact_trends(
         aspect=1.3,
     )
     g.set_titles("{col_name}")
-    g.set_axis_labels("Year", "Mean penalty")
+    g.set_axis_labels("Year", "Mean Impact Score (% of Maximum)")
     g.tick_params(axis="x", rotation=45)
+    for ax in g.axes.flat:
+        ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
     g.figure.suptitle(
-        "Code Impact Over Time\n(shaded area shows the 95% confidence interval)",
+        "Code Impact Over Time\n(Shaded Area Shows the 95% Confidence Interval)",
         y=1.05,
     )
     _save_or_show(g.figure, save_path)
@@ -710,8 +732,8 @@ def visualise_code_points_correlation(
     )
 
     ax.set_xlabel("Correlation with Documentation Score")
-    ax.set_ylabel("Codes")
-    ax.set_title("Impact on Documentation Score")
+    ax.set_ylabel("Code")
+    ax.set_title("Code Correlation with Documentation Score")
     ax.legend(title="Category", loc="upper right")
     _save_or_show(fig, save_path)
     return ax
@@ -815,7 +837,9 @@ def visualise_comment_length(
     fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
     sns.histplot(data=comment_length_df, x="comment_len", binwidth=5, ax=ax)
     ax.set_xlim(0, comment_length_df["comment_len"].quantile(0.99))
+    set_integer_count_ticks(ax, axis="y")
     ax.set_xlabel("Comment Length (characters)")
+    ax.set_ylabel("Number of Comments (count)")
     ax.set_title("Distribution of Comment Lengths")
     _save_or_show(fig, save_path)
     return ax
@@ -847,6 +871,9 @@ def visualise_language_distribution_overall(
         legend=False,
         ax=ax,
     )
+    ax.set_xlabel("Language")
+    ax.set_ylabel("Number of Comments (count)")
+    set_integer_count_ticks(ax, axis="y")
     ax.set_title("Comment Language (Overall)")
     _save_or_show(fig, save_path)
     return ax
@@ -868,8 +895,9 @@ def visualise_language_distribution_by_year(
         shrink=0.8,
         ax=ax,
     )
+    ax.set_xlabel("Year")
     ax.set_title("Comment Language (By Year)")
-    ax.set_ylabel("Proportion")
+    ax.set_ylabel("Proportion (%)")
     ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
     ax.tick_params(axis="x", rotation=45)
     _save_or_show(fig, save_path)
@@ -945,24 +973,22 @@ def visualise_token_limits(
 
     llama3_limit = 4096
     gpt4_limit = 8192
-    palette = sns.color_palette("deep")
 
-    ax.axvline(
-        llama3_limit,
-        color=palette[3],
-        linestyle="--",
-        label=f"LLaMA3 Limit ({llama3_limit})",
+    add_vertical_reference_line(
+        ax,
+        x=llama3_limit,
+        label=f"LLaMA3 Limit ({llama3_limit} Tokens)",
     )
-    ax.axvline(
-        gpt4_limit,
-        color=palette[2],
-        linestyle="--",
-        label=f"GPT-4 Limit ({gpt4_limit})",
+    add_vertical_reference_line(
+        ax,
+        x=gpt4_limit,
+        label=f"GPT-4 Limit ({gpt4_limit} Tokens)",
     )
 
+    set_integer_count_ticks(ax, axis="y")
     ax.set_title("Token Length Distribution for Sampled Documents")
-    ax.set_xlabel("Token Count (cl100k_base)")
-    ax.set_ylabel("Number of Documents")
+    ax.set_xlabel("Token Count (cl100k_base Tokens)")
+    ax.set_ylabel("Number of Documents (count)")
 
     _seaborn_legend = ax.get_legend()
 
@@ -978,7 +1004,7 @@ def visualise_token_limits(
     ax.legend(
         handles=format_handles + line_handles,
         labels=format_labels + line_labels,
-        title="Format & Limits",
+        title="Format and Limits",
     )
 
     _save_or_show(fig, save_path)
