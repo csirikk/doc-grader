@@ -394,7 +394,7 @@
       "title": "Implementation Details",
       "analyser_id": "content_analyser",
       "course": "ipp",
-      "prompt_instruction": "Technically insufficient description of the implementation (e.g., failing to mention if regular expressions, state machines, parser-generators or other techniques were used).",
+      "prompt_instruction": "Technically insufficient description of the implementation.",
       "is_legacy": true,
       "ac_code": "JAK",
       "severity_weight": 0.1
