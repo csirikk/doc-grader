@@ -74,7 +74,9 @@ class BaseAnalyser(ABC):
                 Anchor(
                     target=FineRef.model_validate({"$ref": ref}),
                     snippet=snippet,
-                    prov=list(evidence_item.prov),
+                    prov=[]
+                    if isinstance(evidence_item, PageItem)
+                    else list(evidence_item.prov),
                     section_path=doc.section_paths.get(ref),
                 )
             )
