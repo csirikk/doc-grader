@@ -214,7 +214,7 @@ def main(argv: list[str] | None = None) -> int:
 
     from .parsers.parser import DocumentParser
 
-    logger.info("Initializing parser...")
+    logger.info("Initialising parser...")
     parser = DocumentParser()
     scorer = Scorer()
 
