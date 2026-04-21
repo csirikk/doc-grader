@@ -285,6 +285,7 @@ class DocumentParser:
         config_hash: str | None = None,
         student_id: str | None = None,
         expected_filename: str | None = None,
+        allowed_extensions: list[str] | None = None,
     ) -> ParseOutput:
         """Parse the given document."""
         doc_ref = DocumentRef(source_path=str(path), student_id=student_id)
@@ -314,13 +315,25 @@ class DocumentParser:
                 parse_meta,
                 "DOCTYPE",
                 "Unsupported file type",
-                f"Unsupported suffix: {path.suffix}",
-                f"Unsupported suffix: '{path.suffix}'",
+                f"Cannot parse unsupported suffix: {path.suffix}",
+                f"Cannot parse unsupported suffix: '{path.suffix}'",
                 run_id,
                 config_hash,
             )
 
         findings: list[Finding] = []
+
+        if allowed_extensions is not None and suffix not in allowed_extensions:
+            findings.append(
+                self._make_finding(
+                    doc_ref,
+                    "DOCTYPE",
+                    "Incorrect Document Type",
+                    f"Document extension '{path.suffix}' is not among the allowed extensions {allowed_extensions}.",
+                    run_id,
+                    config_hash,
+                )
+            )
 
         if expected_filename and path.stem != path.with_name(expected_filename).stem:
             findings.append(

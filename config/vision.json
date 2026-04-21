@@ -1,6 +1,10 @@
 {
     "course": "ipp",
     "expected_filename": null,
+    "allowed_extensions": [
+        ".pdf",
+        ".md"
+    ],
     "judge": true,
     "judge_model": "gpt-5.4",
     "judge_temperature": 0.0,

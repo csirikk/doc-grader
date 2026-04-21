@@ -1,6 +1,10 @@
 {
     "course": "ipp",
     "expected_filename": null,
+    "allowed_extensions": [
+        ".pdf",
+        ".md"
+    ],
     "judge": true,
     "analysers": [
         {

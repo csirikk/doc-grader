@@ -48,6 +48,10 @@ class AppConfig(StrictModel):
         default=None,
         description="Expected document filename (e.g. 'readme') without the extension.",
     )
+    allowed_extensions: list[str] = Field(
+        default_factory=lambda: [".pdf", ".md"],
+        description="List of allowed file extensions (e.g. ['.pdf', '.md']).",
+    )
     judge_model: str | None = Field(
         default=None,
         description=(

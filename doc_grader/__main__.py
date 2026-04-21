@@ -272,6 +272,7 @@ def main(argv: list[str] | None = None) -> int:
             config_hash=config_hash,
             student_id=student_id,
             expected_filename=config.expected_filename,
+            allowed_extensions=config.allowed_extensions,
         )
         _parse_elapsed = round(time.monotonic() - _parse_t0, 2)
         parser_findings = parse_output.parser_findings
