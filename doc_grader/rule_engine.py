@@ -18,7 +18,7 @@ class RuleEngine:
                 continue
 
             if not (finding.anchors or finding.stats or finding.model_evals):
-                logger.warning(
+                logger.info(
                     ("Skipping finding '%s' (%s): no anchors, stats, or model_evals"),
                     finding.finding_id,
                     finding.ac_code,
