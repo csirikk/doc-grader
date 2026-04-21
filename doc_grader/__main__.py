@@ -267,7 +267,11 @@ def main(argv: list[str] | None = None) -> int:
 
         _parse_t0 = time.monotonic()
         parse_output = parser.parse(
-            path, run_id=run_id, config_hash=config_hash, student_id=student_id
+            path,
+            run_id=run_id,
+            config_hash=config_hash,
+            student_id=student_id,
+            expected_filename=config.expected_filename,
         )
         _parse_elapsed = round(time.monotonic() - _parse_t0, 2)
         parser_findings = parse_output.parser_findings

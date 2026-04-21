@@ -1,5 +1,6 @@
 {
     "course": "ipp",
+    "expected_filename": "documentation",
     "judge": true,
     "judge_model": "gpt-5.4",
     "judge_temperature": 0.0,

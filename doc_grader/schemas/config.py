@@ -44,6 +44,10 @@ class AppConfig(StrictModel):
             "Whether to run the LLM judge on findings from non-LLM analysers."
         ),
     )
+    expected_filename: str | None = Field(
+        default=None,
+        description="Expected document filename (e.g. 'readme') without the extension.",
+    )
     judge_model: str | None = Field(
         default=None,
         description=(
