@@ -280,7 +280,8 @@
       "prompt_instruction": "Typography and formatting violations: (1) code identifiers such as variable names, function names, or class names appear in standard body font instead of a monospace/fixed-width font; (2) text paragraphs are not justified to block alignment, appearing left-aligned as 'prapor' (PDF only); (3) inconsistent font sizes or types within sections without semantic purpose; (4) incorrect spacing around brackets or punctuation, for example a space before a closing bracket or after an opening bracket; (5) non-syllabic prepositions or conjunctions left stranded at the end of a line (Czech and Slovak text only); (6) broken Markdown rendering artefacts visible in the PDF output, such as raw asterisks or backticks.",
       "is_legacy": true,
       "ac_code": "SAZBA",
-      "severity_weight": 0.0
+      "severity_weight": 0.0,
+      "requires_pages": true
     },
     {
       "title": "Insufficient Cover Page",
@@ -407,7 +408,8 @@
       "judge_instruction": "CRITICAL INSTRUCTION: Do not evaluate the quality of this diagram. Assume the quality is definitively confirmed as BAD. Your only task is to verify if the image is a UML Class Diagram. If the image depicts classes, attributes, and methods (even poorly), you MUST approve the finding. ONLY dismiss this finding if the image is clearly not a UML Class Diagram (e.g., it is a flowchart, terminal screenshot, or block of text).",
       "is_legacy": true,
       "ac_code": "BADUML",
-      "severity_weight": 0.1
+      "severity_weight": 0.1,
+      "backend": "classifier"
     },
     {
       "title": "UML Diagram Semantic Completeness",
@@ -425,7 +427,8 @@
       "prompt_instruction": "The UML Class Diagram is missing.",
       "is_legacy": true,
       "ac_code": "NOUML",
-      "severity_weight": 0.25
+      "severity_weight": 0.25,
+      "backend": "deterministic"
     },
     {
       "title": "UML Diagram Own Classes",
@@ -443,7 +446,8 @@
       "prompt_instruction": "The diagram has a dark background pasted into a document with a light background, making it visually inconsistent with the surrounding document.",
       "is_legacy": true,
       "ac_code": "BW",
-      "severity_weight": 0.0125
+      "severity_weight": 0.0125,
+      "requires_pages": true
     }
   ]
 }

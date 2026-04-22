@@ -178,28 +178,11 @@
       "title": "Typography and Formatting",
       "analyser_id": "asset_analyser",
       "course": null,
-      "prompt_instruction": "Typography and formatting violations: incorrect font for identifiers, inconsistent font sizes, incorrect spacing around brackets or punctuation, or broken Markdown rendering artifacts.",
+      "prompt_instruction": "Typography and formatting violations: (1) code identifiers such as variable names, function names, or class names appear in standard body font instead of a monospace/fixed-width font; (2) text paragraphs not justified to block alignment, appearing left-aligned as 'prapor'; (3) inconsistent font sizes or types within sections without semantic purpose; (4) incorrect spacing around brackets or punctuation, for example a space before a closing bracket or after an opening bracket; (5) broken Markdown rendering artefacts visible in the PDF output, such as raw asterisks or backticks.",
       "is_legacy": true,
       "ac_code": "SAZBA",
-      "severity_weight": 0.0
-    },
-    {
-      "title": "Spacing Issues",
-      "analyser_id": "asset_analyser",
-      "course": null,
-      "prompt_instruction": "Incorrect spacing around punctuation or brackets (for example space before closing bracket or extra space before punctuation).",
-      "is_legacy": true,
-      "ac_code": "MEZ",
-      "severity_weight": 0.0
-    },
-    {
-      "title": "Block Alignment",
-      "analyser_id": "asset_analyser",
-      "course": null,
-      "prompt_instruction": "Text paragraphs not justified to block alignment (PDF only) or visible alignment/formatting errors.",
-      "is_legacy": true,
-      "ac_code": "BLOK",
-      "severity_weight": 0.0
+      "severity_weight": 0.0,
+      "requires_pages": true
     },
     {
       "title": "Insufficient Cover Page",

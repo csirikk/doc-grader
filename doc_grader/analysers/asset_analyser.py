@@ -69,17 +69,18 @@ class AssetAnalyser(BaseLLMAnalyser):
         rulebook: Rulebook,
         doc: Document,
     ) -> str:
-        """Build the vision grader system prompt, excluding rules that cannot be
-        evaluated from images alone.
+        """Build the vision grader system prompt, excluding rules that are handled
+        by dedicated sub-engines or require page context unavailable for this doc.
 
-        - NOUML: absence of a diagram cannot be seen in an image.
-        - BADUML: handled by the fine-tuned binary classifier, not the vision LLM.
-        - BW: excluded for markdown docs as it requires document background context.
-        - SAZBA: excluded for markdown docs (handled deterministically).
+        Exclusion is data-driven via LLMRule.backend and LLMRule.requires_pages:
+        - backend='classifier' or 'deterministic': handled outside the vision LLM.
+        - requires_pages=True: needs full PDF page context; excluded for markdown.
         """
-        excluded: set[str] = {"NOUML", "BADUML"}
+        excluded: set[str] = {
+            r.ac_code for r in rules if r.backend in ("classifier", "deterministic")
+        }
         if not doc.docling_doc.pages:
-            excluded.update({"BW", "SAZBA"})
+            excluded.update(r.ac_code for r in rules if r.requires_pages)
         rules_text = ""
         for r in rules:
             if r.ac_code in excluded:
@@ -96,32 +97,38 @@ class AssetAnalyser(BaseLLMAnalyser):
         rulebook: Rulebook,
         params: dict[str, Any] | None = None,
     ) -> tuple[list[Any], dict]:
+        """Dispatch all active rules to the appropriate sub-engine.
+
+        - backend='classifier': fine-tuned vision classifier.
+        - backend='deterministic': handled in analyse(), not here.
+        - requires_pages=False, backend=None: vision LLM on extracted diagrams.
+        - requires_pages=True, backend=None: vision LLM on full PDF page images.
+        """
         from ..schemas.llm import VisionFinding
 
         model = (params or {}).get("model")
         temperature = (params or {}).get("temperature")
         ft_model = (params or {}).get("classifier_model") or _BADUML_MODEL
-        vision_system_prompt = self.build_vision_system_prompt(rules, rulebook, doc)
-        active_codes = {r.ac_code for r in rules}
-        raw_labels: dict = {}
         usage: dict = {}
-        if "BADUML" in active_codes:
-            raw_labels, usage = llm_client.run_vision_classifier(
+        findings: list[VisionFinding] = []
+
+        raw_labels: dict = {}
+        if any(r.backend == "classifier" for r in rules):
+            raw_labels, classifier_usage = llm_client.run_vision_classifier(
                 doc, rulebook.classifier_system_prompt, ft_model
             )
+            usage = merge_usage(usage, classifier_usage)
         baduml_count = 0
-        findings: list[VisionFinding] = []
         for cref, item in raw_labels.items():
             label = (item.get("label") or "").strip().upper()
             raw = (item.get("raw") or "").strip()
-
             if "BADUML" in label or "BADUML" in raw.upper():
                 findings.append(
                     VisionFinding(
                         ac_code="BADUML",
                         item_cref=cref,
                         reason=(
-                            "The UML Class Diagram is visually flawed and "
+                            "The UML Class Diagram is visually flawed and"
                             " its structure cannot easily be understood."
                         ),
                         raw_response=raw,
@@ -137,12 +144,35 @@ class AssetAnalyser(BaseLLMAnalyser):
             len(raw_labels),
         )
 
-        # Generic OpenAI vision model: semantic and other visual findings.
-        vision_findings, vision_usage = llm_client.analyse_assets(
-            doc, vision_system_prompt, rulebook, model=model, temperature=temperature
-        )
-        findings.extend(vision_findings)
-        return findings, merge_usage(usage, vision_usage)
+        diagram_rules = [
+            r
+            for r in rules
+            if not r.requires_pages and r.backend not in ("classifier", "deterministic")
+        ]
+        if diagram_rules:
+            diagram_prompt = self.build_vision_system_prompt(
+                diagram_rules, rulebook, doc
+            )
+            diagram_findings, diagram_usage = llm_client.analyse_assets(
+                doc, diagram_prompt, rulebook, model=model, temperature=temperature
+            )
+            findings.extend(diagram_findings)
+            usage = merge_usage(usage, diagram_usage)
+
+        page_rules = [
+            r
+            for r in rules
+            if r.requires_pages and r.backend not in ("classifier", "deterministic")
+        ]
+        if page_rules and doc.docling_doc.pages:
+            page_prompt = self.build_vision_system_prompt(page_rules, rulebook, doc)
+            page_findings, page_usage = llm_client.analyse_pages_only(
+                doc, page_prompt, rulebook, model=model, temperature=temperature
+            )
+            findings.extend(page_findings)
+            usage = merge_usage(usage, page_usage)
+
+        return findings, usage
 
     def _check_sazba_md(
         self,
@@ -201,13 +231,12 @@ class AssetAnalyser(BaseLLMAnalyser):
                     text = child.content
                     for m in _IDENT_RE.finditer(text):
                         violations.append(
-                            f"Line {line_no or '?'}: [SAZBA] "
+                            f"Line {line_no or '?'}: "
                             f"Identifier '{m.group()}' should use monospace formatting"
                         )
                     if _MEZ_RE.search(text):
                         violations.append(
-                            f"Line {line_no or '?'}: [MEZ] "
-                            f"Incorrect spacing around bracket"
+                            f"Line {line_no or '?'}: Incorrect spacing around bracket"
                         )
         except Exception as exc:
             logger.warning("markdown-it-py token walk failed: %s", exc)
@@ -254,6 +283,7 @@ class AssetAnalyser(BaseLLMAnalyser):
             return []
 
         self._accumulated_usage: dict = {}
+
         sazba_rules = [r for r in rules if r.ac_code == "SAZBA"]
 
         # Markdown branch: deterministic SAZBA linting + vision LLM for diagrams
@@ -267,39 +297,33 @@ class AssetAnalyser(BaseLLMAnalyser):
                 findings.extend(self.process_vision_findings(doc, raw, rules, params))
             return findings
 
-        # PDF branch
+        # PDF branch: execute_llm dispatches diagram/page/classifier rules internally.
         findings = []
 
         if not doc.total_pictures:
-            # No diagrams: run SAZBA via a pages-only vision call, then emit NOUML
-            if sazba_rules and llm_client:
-                model = (params or {}).get("model")
-                temperature = (params or {}).get("temperature")
-                sazba_prompt = self.build_vision_system_prompt(
-                    sazba_rules, rulebook, doc
-                )
-                raw_sazba, sazba_usage = llm_client.analyse_pages_only(
-                    doc, sazba_prompt, rulebook, model=model, temperature=temperature
-                )
-                self._accumulated_usage = merge_usage(
-                    self._accumulated_usage, sazba_usage
-                )
-                findings.extend(
-                    self.process_vision_findings(doc, raw_sazba, rules, params)
-                )
-            findings.append(
-                self._make_finding(
-                    doc=doc,
-                    ac_code="NOUML",
-                    title=self._title_for_ac_code(rules, "NOUML"),
-                    summary="No UML Class Diagram was found in the document.",
-                    judge_status="to_be_judged",
-                    human_status="proposed",
-                    evidence_item=None,
-                    severity=1.0,
-                    confidence=1.0,
-                )
+            # No extracted diagrams: execute_llm will skip analyse_assets (no images)
+            # and use analyse_pages_only for page-level rules.
+            if llm_client:
+                raw, usage = self.execute_llm(llm_client, doc, rules, rulebook, params)
+                self._accumulated_usage = merge_usage(self._accumulated_usage, usage)
+                findings.extend(self.process_vision_findings(doc, raw, rules, params))
+            nouml_active = any(
+                r.backend == "deterministic" and r.ac_code == "NOUML" for r in rules
             )
+            if nouml_active:
+                findings.append(
+                    self._make_finding(
+                        doc=doc,
+                        ac_code="NOUML",
+                        title=self._title_for_ac_code(rules, "NOUML"),
+                        summary="No UML Class Diagram was found in the document.",
+                        judge_status="to_be_judged",
+                        human_status="proposed",
+                        evidence_item=None,
+                        severity=1.0,
+                        confidence=1.0,
+                    )
+                )
             return findings
 
         if not llm_client:

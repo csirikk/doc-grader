@@ -122,19 +122,18 @@ class GrammarAnalyser(BaseLLMAnalyser):
         params: dict[str, Any] | None = None,
     ) -> list[LLMRule]:
         params = params or {}
-        if params.get("grammar_engine", "local") == "local":
-            return []
-
         language = params.get("language")
         if language == "cs":
             # Czech CH is handled by content_analyser.
             return []
 
         course = params.get("course")
+        disabled: set[str] = set(params.get("disabled_codes") or [])
         return [
             rule
             for rule in rulebook.rules
             if rule.ac_code == "CH"
+            and rule.ac_code not in disabled
             and (rule.course is None or rule.course == course)
             and (rule.language is None or rule.language == language)
         ]
@@ -147,6 +146,10 @@ class GrammarAnalyser(BaseLLMAnalyser):
         llm_client: Any | None = None,
     ) -> list[Finding]:
         if (params or {}).get("grammar_engine", "local") == "local":
+            if rulebook is not None:
+                rules = self.get_rules(rulebook, params)
+                if not rules:
+                    return []
             return self._run_local_analysis(doc)
         return super().analyse(doc, rulebook, params, llm_client)
 

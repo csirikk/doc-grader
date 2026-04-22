@@ -43,6 +43,25 @@ class LLMRule(StrictModel):
         default=None,
         description="Language code this rule applies to. None means all languages.",
     )
+    backend: Literal["vision", "classifier", "deterministic"] | None = Field(
+        default=None,
+        description=(
+            "Execution engine for this rule within its analyser. "
+            "  - 'vision': evaluated by the vision LLM (asset_analyser default). "
+            "  - 'classifier': evaluated by a dedicated fine-tuned classifier. "
+            "  - 'deterministic': evaluated by in-code logic, no LLM required. "
+            "  - None: evaluated by the grader LLM text prompt "
+            "(default for text analysers)."
+        ),
+    )
+    requires_pages: bool = Field(
+        default=False,
+        description=(
+            "Whether this rule requires full PDF page images to evaluate. "
+            "Rules with this flag are excluded from vision prompts when the document "
+            "has no pages (e.g. Markdown source)."
+        ),
+    )
 
 
 class Rulebook(StrictModel):

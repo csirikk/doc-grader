@@ -208,7 +208,8 @@
       "prompt_instruction": "Typography and formatting violations: (1) code identifiers such as variable names, function names, or class names appear in standard body font instead of a monospace/fixed-width font; (2) text paragraphs are not justified to block alignment, appearing left-aligned as 'prapor' (PDF only); (3) inconsistent font sizes or types within sections without semantic purpose; (4) incorrect spacing around brackets or punctuation, for example a space before a closing bracket or after an opening bracket; (5) non-syllabic prepositions or conjunctions left stranded at the end of a line (Czech and Slovak text only); (6) broken Markdown rendering artefacts visible in the PDF output, such as raw asterisks or backticks.",
       "is_legacy": true,
       "ac_code": "SAZBA",
-      "severity_weight": 0.0
+      "severity_weight": 0.0,
+      "requires_pages": true
     },
     {
       "title": "Internal Representation",
