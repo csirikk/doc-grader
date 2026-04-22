@@ -192,8 +192,8 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         rulebook = load_rulebook(rulebook_path)
 
-    except Exception as e:
-        logger.error("Failed to load config or rulebook: %s", e)
+    except Exception:
+        logger.exception("Failed to load config or rulebook")
         return 2
 
     llm_client = None

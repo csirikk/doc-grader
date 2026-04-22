@@ -50,14 +50,18 @@ def configure_logging(level: int = logging.INFO) -> None:
 
     if is_notebook:
         handler = logging.StreamHandler(sys.stdout)
-        handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
+        fmt = logging.Formatter(
+            "%(asctime)s %(levelname)s %(name)s: %(message)s",
+            "%Y-%m-%dT%H:%M:%S",
+        )
+        handler.setFormatter(fmt)
     else:
-        handler = RichHandler(rich_tracebacks=True, markup=True)
+        handler = RichHandler(
+            rich_tracebacks=True, markup=True, show_time=True, show_level=True
+        )
 
     logging.basicConfig(
         level=logging.WARNING,  # default to WARNING to avoid noisy logs from deps
-        format="%(name)s: %(message)s",
-        datefmt="[%H:%M:%S]",
         handlers=[handler],
         force=True,
     )

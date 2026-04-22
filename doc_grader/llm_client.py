@@ -244,8 +244,8 @@ class LLMClient:
                 response_format=GraderModelResponse,
                 messages=messages,
             )
-        except Exception as e:
-            logger.error("LLM API call or processing failed: %s", e)
+        except Exception:
+            logger.exception("LLM API call or processing failed.")
             return [], {}
 
         call_usage = self._build_call_usage(response.model, response.usage)
@@ -257,7 +257,7 @@ class LLMClient:
         for f in parsed_response.findings:
             f.model_name = response.model
 
-        logger.info("LLM Reasoning Chain: %s", parsed_response.reasoning_chain)
+        logger.debug("LLM reasoning chain: %s", parsed_response.reasoning_chain)
         logger.info(
             "Successfully parsed %d findings from LLM.", len(parsed_response.findings)
         )
@@ -370,8 +370,8 @@ class LLMClient:
                 response_format=VisionModelResponse,
                 messages=messages,
             )
-        except Exception as e:
-            logger.error("Vision LLM API call failed: %s", e)
+        except Exception:
+            logger.exception("Vision LLM API call failed.")
             return [], {}
 
         call_usage = self._build_call_usage(response.model, response.usage)
@@ -383,7 +383,7 @@ class LLMClient:
         for f in parsed_response.findings:
             f.model_name = response.model
 
-        logger.info("Vision LLM Reasoning Chain: %s", parsed_response.reasoning_chain)
+        logger.debug("Vision LLM reasoning chain: %s", parsed_response.reasoning_chain)
         logger.info(
             "Successfully parsed %d vision findings.", len(parsed_response.findings)
         )
@@ -453,8 +453,8 @@ class LLMClient:
                 response_format=VisionModelResponse,
                 messages=messages,
             )
-        except Exception as e:
-            logger.error("Pages-only vision LLM API call failed: %s", e)
+        except Exception:
+            logger.exception("Pages-only vision LLM API call failed.")
             return [], {}
 
         call_usage = self._build_call_usage(response.model, response.usage)
@@ -466,7 +466,7 @@ class LLMClient:
         for f in parsed_response.findings:
             f.model_name = response.model
 
-        logger.info(
+        logger.debug(
             "Pages-only vision LLM reasoning: %s", parsed_response.reasoning_chain
         )
         logger.info(
@@ -533,8 +533,8 @@ class LLMClient:
                         },
                     ],
                 )
-            except Exception as e:
-                logger.error("Classifier call failed for %s: %s", cref, e)
+            except Exception:
+                logger.exception("Classifier call failed for %s", cref)
                 continue
 
             call_usage = merge_usage(
@@ -551,7 +551,7 @@ class LLMClient:
                 label = "UNKNOWN"
 
             results[cref] = {"label": label, "raw": raw_content}
-            logger.info("Classified %s as %r", cref, label)
+            logger.debug("Classified %s as %r", cref, label)
 
         return results, call_usage
 

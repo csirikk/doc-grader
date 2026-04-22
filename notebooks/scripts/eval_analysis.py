@@ -1017,7 +1017,7 @@ def _plot_performance_metrics(
 ) -> tuple[Axes, Axes] | None:
     per_category = summary.get(key_name, {})
     if not per_category:
-        logger.warning(f"{key_name} block is empty")
+        logger.warning("%s block is empty", key_name)
         return None
 
     mae_rows = []

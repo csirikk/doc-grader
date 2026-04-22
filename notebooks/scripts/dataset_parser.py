@@ -503,19 +503,19 @@ def main() -> None:
     data_dir = root_dir / "data" / "ipp" / "assessments"
     all_files = list(data_dir.glob("ipp*.csv"))
 
-    logger.info(f"Found {len(all_files)} files in {data_dir}")
+    logger.info("Found %d files in %s", len(all_files), data_dir)
 
     all_extracted_rows = []
 
     for file_path in all_files:
         try:
             df = pd.read_csv(file_path)
-        except Exception as e:
-            logger.error(f"Error reading {file_path}: {e}")
+        except Exception:
+            logger.exception("Error reading %s", file_path)
             continue
 
         if "comment" not in df.columns:
-            logger.warning(f"Skipping {file_path}, no 'comment' column")
+            logger.warning("Skipping %s, no 'comment' column", file_path)
             continue
 
         filename = file_path.name
@@ -536,7 +536,7 @@ def main() -> None:
         output_path = root_dir / "data" / "clean_ipp_data.csv"
         output_df.to_csv(output_path, index=False)
 
-        logger.info(f"Processed {len(output_df)} rows. Saved to {output_path}")
+        logger.info("Processed %d rows. Saved to %s", len(output_df), output_path)
 
         logger.info("\nNumber of rows per code: ")
         logger.info(output_df["code"].value_counts().head(10))

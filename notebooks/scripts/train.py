@@ -93,8 +93,8 @@ def generate_data_records(base_dir: Path):
                         },
                     ]
                 }
-            except Exception as e:
-                logger.warning("Failed to load %s: %s", file_path, e)
+            except Exception:
+                logger.warning("Failed to load %s", file_path, exc_info=True)
 
 
 def main() -> int:

@@ -134,13 +134,13 @@ def filter_to_normalised_years(df: pd.DataFrame) -> pd.DataFrame:
 
 def analyse_volume(df: pd.DataFrame, proj: pd.DataFrame) -> None:
     """Print key volume statistics."""
-    logger.info(f"Total projects: {len(proj)}")
-    logger.info(f"Total files: {df['source_file'].nunique()}")
-    logger.info(f"Total unique codes used: {df['code'].nunique()}")
-    logger.info(f"Year range: {(df['year'].min(), df['year'].max())}")
-    logger.info(f"Task Variants: {sorted(df['task_variant'].unique())}")
-    logger.info(f"Total grading events: {len(df)}")
-    logger.info(f"Total grading events with impacts: {df['impact'].notna().sum()}")
+    logger.info("Total projects: %d", len(proj))
+    logger.info("Total files: %d", df["source_file"].nunique())
+    logger.info("Total unique codes used: %d", df["code"].nunique())
+    logger.info("Year range: %s", (df["year"].min(), df["year"].max()))
+    logger.info("Task Variants: %s", sorted(df["task_variant"].unique()))
+    logger.info("Total grading events: %d", len(df))
+    logger.info("Total grading events with impacts: %d", df["impact"].notna().sum())
 
 
 def summarise_score_imbalance(proj: pd.DataFrame) -> None:
@@ -959,8 +959,8 @@ def summarise_token_limits(token_df: pd.DataFrame) -> None:
         return
 
     p95 = valid_df["tokens"].quantile(0.95)
-    logger.info(f"95th Percentile Token Length: {int(p95)} tokens")
-    logger.info(f"Max Token Length: {valid_df['tokens'].max()}")
+    logger.info("95th Percentile Token Length: %d tokens", int(p95))
+    logger.info("Max Token Length: %s", valid_df["tokens"].max())
     logger.info("Llama3 Context Limit: 4096 tokens")
     logger.info("GPT-4 Context Limit: 8192 tokens")
 
