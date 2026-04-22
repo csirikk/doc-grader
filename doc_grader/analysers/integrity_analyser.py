@@ -176,7 +176,7 @@ def _is_boilerplate(text: str) -> bool:
 
 def _clean_and_filter(text: str, min_len: int) -> str | None:
     """Return cleaned text or ``None`` if it should be skipped."""
-    from ..parsers.parser import clean_pdf_text
+    from ..parser import clean_pdf_text
 
     cleaned = clean_pdf_text(text).strip()
     if len(cleaned) < min_len or _is_boilerplate(cleaned):
@@ -232,7 +232,7 @@ def _spec_cache_path(spec_path: Path) -> Path:
 
 def _build_spec_index(spec_path: Path, min_chunk_len: int) -> SpecIndex:
     """Parse, chunk, sentence-split and embed the specification."""
-    from ..parsers.parser import DocumentParser
+    from ..parser import DocumentParser
 
     cache_key = str(spec_path.resolve())
     if cache_key in _spec_cache:
@@ -488,7 +488,7 @@ class IntegrityAnalyser(BaseLLMAnalyser):
 
         has_copy_rule = any(r.ac_code == "COPY" for r in rules)
         if has_copy_rule and (params or {}).get("spec_path"):
-            from ..parsers.parser import DocumentParser
+            from ..parser import DocumentParser
 
             spec_path = Path(params["spec_path"])  # type: ignore
             try:

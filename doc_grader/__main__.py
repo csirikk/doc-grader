@@ -222,7 +222,7 @@ def main(argv: list[str] | None = None) -> int:
     clean_csv_rows: list = []  # accumulated per-finding rows for --clean-csv-out
     grader_rows: list = []  # one row per document for --csv-out
 
-    from .parsers.parser import DocumentParser
+    from .parser import DocumentParser
 
     logger.info("Initialising parser...")
     parser = DocumentParser()
