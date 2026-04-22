@@ -102,9 +102,13 @@ class AssetAnalyser(BaseLLMAnalyser):
         temperature = (params or {}).get("temperature")
         ft_model = (params or {}).get("classifier_model") or _BADUML_MODEL
         vision_system_prompt = self.build_vision_system_prompt(rules, rulebook, doc)
-        raw_labels, usage = llm_client.run_vision_classifier(
-            doc, rulebook.classifier_system_prompt, ft_model
-        )
+        active_codes = {r.ac_code for r in rules}
+        raw_labels: dict = {}
+        usage: dict = {}
+        if "BADUML" in active_codes:
+            raw_labels, usage = llm_client.run_vision_classifier(
+                doc, rulebook.classifier_system_prompt, ft_model
+            )
         baduml_count = 0
         findings: list[VisionFinding] = []
         for cref, item in raw_labels.items():
