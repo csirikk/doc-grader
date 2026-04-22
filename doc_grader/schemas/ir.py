@@ -118,6 +118,8 @@ def get_picture_pil(doc: Document, idx: int, item: Any) -> Any:
             import cairosvg
 
             png_bytes = cairosvg.svg2png(url=str(img_path))
+            if not png_bytes:
+                return None
             return Image.open(io.BytesIO(png_bytes))
         return Image.open(img_path)
     except Exception as exc:
