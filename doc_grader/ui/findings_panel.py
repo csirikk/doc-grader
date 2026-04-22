@@ -1,4 +1,7 @@
-"""Right-column findings panel: list and review findings."""
+"""Right-column findings panel, listing findings for review.
+
+Author: Matúš Csirik
+"""
 
 from typing import TYPE_CHECKING
 
@@ -159,7 +162,15 @@ def _on_view_anchor(safe_fid: str):
 
 
 def render_findings(findings: list[dict], out_dir: Path) -> None:
-    """Render the full findings panel in the right column."""
+    """Render the full findings panel in the right column.
+
+    Args:
+        findings: List of finding dictionaries as produced by the grader.
+        out_dir: Path to the run output directory (used for context if needed).
+
+    Returns:
+        None
+    """
 
     filter_col, sort_col = st.columns([1, 1], vertical_alignment="bottom")
     status_filter = filter_col.selectbox(

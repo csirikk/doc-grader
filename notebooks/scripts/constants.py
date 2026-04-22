@@ -1,4 +1,7 @@
-"""Shared domain constants for IPP assessment scripts."""
+"""Shared domain constants for IPP assessment scripts.
+
+Author: Matúš Csirik
+"""
 
 # All known IPP grading codes (both legacy and current).
 IPP_CODES: set[str] = {

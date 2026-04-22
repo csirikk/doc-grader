@@ -1,4 +1,7 @@
-"""Shared visualisation utilities for notebook scripts."""
+"""Shared visualisation utilities for notebook scripts.
+
+Author: Matúš Csirik
+"""
 
 import logging
 from typing import TYPE_CHECKING
@@ -61,10 +64,24 @@ STAGE_PALETTE: dict[str, tuple] = {
 
 
 def configure_plot_style() -> None:
+    """Set a consistent plotting style for notebook visualisations.
+
+    Uses a whitegrid theme and the deep colour palette to keep charts
+    visually consistent across scripts.
+    """
+
     sns.set_theme(style="whitegrid", context="notebook", palette="deep")
 
 
 def _save_or_show(fig: Figure, save_path: Path | None) -> None:
+    """Save the figure to ``save_path`` or show it interactively.
+
+    Args:
+        fig: Matplotlib figure to persist or display.
+        save_path: Optional Path to write the figure. If ``None``, the figure
+            is shown using ``plt.show()``.
+    """
+
     if save_path is not None:
         save_path.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(save_path)

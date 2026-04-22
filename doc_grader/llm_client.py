@@ -1,3 +1,11 @@
+"""Wrapper around the LLM API used by the grader.
+
+Author: Matúš Csirik
+
+This module encapsulates calls to the OpenAI client for text and vision
+workloads, token usage accounting and simple cost estimation helpers.
+"""
+
 import logging
 import os
 from typing import TYPE_CHECKING, TypedDict
@@ -52,7 +60,16 @@ logger = logging.getLogger(__name__)
 def merge_usage(
     a: dict[str, _UsageEntry], b: dict[str, _UsageEntry]
 ) -> dict[str, _UsageEntry]:
-    """Return a new by-model usage dict that is the sum of *a* and *b*."""
+    """Merge two by-model usage dictionaries.
+
+    Args:
+        a: First usage mapping keyed by model name.
+        b: Second usage mapping keyed by model name.
+
+    Returns:
+        A new mapping keyed by model name with aggregated usage counts and
+        monetary cost when available.
+    """
     result: dict[str, _UsageEntry] = dict(a)
     for model, entry in b.items():
         if model in result:
@@ -79,7 +96,18 @@ def merge_usage(
 
 
 def summarise_usage(by_model: dict[str, _UsageEntry]) -> dict:
-    """Compute aggregate totals from a by-model usage dict."""
+    """Compute aggregate totals from a by-model usage mapping.
+
+    The returned mapping includes per-model copies plus totals for prompt,
+    completion and cached tokens and the total cost in euros when available.
+
+    Args:
+        by_model: Mapping of usage entries keyed by model name.
+
+    Returns:
+        A dictionary containing the original ``by_model`` mapping and aggregate
+        totals.
+    """
     total_prompt = sum(e["prompt_tokens"] for e in by_model.values())
     total_completion = sum(e["completion_tokens"] for e in by_model.values())
     total_cached = sum(e["cached_tokens"] for e in by_model.values())
@@ -159,7 +187,22 @@ class LLMClient:
         model: str | None = None,
         temperature: float | None = None,
     ) -> tuple[list[LLMFinding], dict[str, _UsageEntry]]:
-        """Extract document text, call the grader model, and return findings."""
+        """Extract document text, call the grader model and return findings.
+
+        The method serialises the document into a single text chunk, sends it
+        to the configured grader model and returns parsed findings together
+        with per-model token usage information.
+
+        Args:
+            doc: Document wrapper providing Docling content and page images.
+            system_prompt: System prompt text or template for the grader.
+            model: Optional override model name for this call.
+            temperature: Optional temperature override for this call.
+
+        Returns:
+            A tuple ``(findings, usage)`` where ``findings`` is a list of
+            parsed LLM findings and ``usage`` is a by-model usage mapping.
+        """
         from docling_core.types.doc.document import TableItem, TextItem
 
         from .schemas.llm import GraderModelResponse
@@ -221,7 +264,15 @@ class LLMClient:
         return parsed_response.findings, call_usage
 
     def _build_page_context_content(self, doc: Document, header: str) -> list[dict]:
-        """Return user-content blocks for all document pages, ordered by page number."""
+        """Return user-content blocks for all document pages, ordered by page number.
+
+        Args:
+            doc: Document containing pages with images.
+            header: Introductory header text to include once.
+
+        Returns:
+            A list of content blocks suitable for inclusion in the LLM input.
+        """
         content: list[dict] = []
         valid_pages = [
             (page_no, page)
@@ -250,9 +301,21 @@ class LLMClient:
         model: str | None = None,
         temperature: float | None = None,
     ) -> tuple[list, dict[str, _UsageEntry]]:
-        """Run the OpenAI vision LLM on all pictures in the document.
+        """Run the vision LLM on all pictures in the document.
 
-        Returns raw VisionFinding-compatible objects as produced by the model.
+        The method collects images from the document, attaches optional
+        page-level context and forwards them to the vision model defined in
+        the rulebook. It returns the raw model findings and token usage.
+
+        Args:
+            doc: Document containing pictures to analyse.
+            system_prompt: Vision model system prompt.
+            rulebook: Rulebook providing vision prompt templates.
+            model: Optional model override.
+            temperature: Optional temperature override.
+
+        Returns:
+            Tuple of (vision findings list, by-model usage mapping).
         """
         from .schemas.llm import VisionModelResponse
 
@@ -334,13 +397,21 @@ class LLMClient:
         model: str | None = None,
         temperature: float | None = None,
     ) -> tuple[list, dict[str, _UsageEntry]]:
-        """Run the vision LLM on all document pages without any diagram images.
+        """Run the vision LLM on document pages when no diagrams are present.
 
-        Used for PDFs that contain no pictures so that page-level rules such as
-        SAZBA can still be evaluated.  Each page is labelled with a referenceable
-        tag so the model can cite it in its findings.
+        This is used for PDFs without diagram images so the vision model can
+        still evaluate page-level properties. Each page is labelled to allow
+        citation from the model output.
 
-        Returns raw VisionFinding-compatible objects as produced by the model.
+        Args:
+            doc: Document with page images to send.
+            system_prompt: Vision model system prompt.
+            rulebook: Rulebook providing page-level prompt templates.
+            model: Optional model override.
+            temperature: Optional temperature override.
+
+        Returns:
+            Tuple of (vision findings list, by-model usage mapping).
         """
         from .schemas.llm import VisionModelResponse
 
@@ -410,10 +481,17 @@ class LLMClient:
         system_prompt: str,
         model: str,
     ) -> tuple[dict[str, dict[str, str]], dict[str, _UsageEntry]]:
-        """Send each picture in the document to the fine-tuned OpenAI vision model.
+        """Classify each picture using a fine-tuned vision classifier.
 
-        Returns a mapping {cref: {"label": <label>, "raw": <raw_response>}} and
-        accumulated token usage for all per-image classifier calls.
+        Args:
+            doc: Document containing pictures to classify.
+            system_prompt: System prompt for the classifier.
+            model: Model name of the fine-tuned classifier.
+
+        Returns:
+            A tuple ``(results, usage)`` where ``results`` maps picture cref to
+            a dict containing the assigned label and raw response text, and
+            ``usage`` aggregates token usage across classifier calls.
         """
         results: dict[str, dict[str, str]] = {}
         call_usage: dict[str, _UsageEntry] = {}
@@ -433,6 +511,8 @@ class LLMClient:
                     model=model,
                     temperature=self.temperature,
                     max_completion_tokens=self.max_completion_tokens,
+                    # System prompt is hardcoded to the one
+                    # that was used for fine-tuning
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {
@@ -483,7 +563,23 @@ class LLMClient:
         model: str | None = None,
         temperature: float | None = None,
     ) -> tuple[JudgeModelResponse | None, dict[str, _UsageEntry]]:
-        """Run the judge model and return its response."""
+        """Run the judge model on a set of findings and return its response.
+
+        The judge model receives a compact representation of each finding
+        together with optional document context and page images when
+        available. The method returns the parsed judge response and token
+        usage. If no findings are provided it returns ``(None, {})``.
+
+        Args:
+            findings: List of findings to submit to the judge.
+            doc: Document used to provide contextual material.
+            rulebook: Rulebook that defines judge prompt templates.
+            model: Optional model override.
+            temperature: Optional temperature override.
+
+        Returns:
+            Tuple of (parsed JudgeModelResponse or None, by-model usage mapping).
+        """
         from .schemas.llm import JudgeModelResponse
 
         if not findings:

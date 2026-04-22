@@ -1,4 +1,7 @@
-"""Human-reference evaluation visualisation and analysis."""
+"""Human-reference evaluation visualisation and analysis.
+
+Author: Matúš Csirik
+"""
 
 import json
 import logging

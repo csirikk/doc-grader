@@ -1,5 +1,7 @@
 """Integrity analyser: detect spec-copied text via sentence embeddings.
 
+Author: Matúš Csirik
+
 Responsible for AC:
 - 'COPY': Significant overlap with the official assignment specification,
   indicating text was copied or closely paraphrased rather than written

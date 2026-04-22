@@ -1,5 +1,7 @@
 """1. Extract and preprocess images from student submissions.
 
+Author: Matúš Csirik
+
 Reads grading data from clean_ipp_data.csv, locates each student's submitted
 documents, extracts images (from PDFs and Markdown files via the docling IR),
 resizes and deduplicates images, and writes manifest.jsonl.
@@ -245,7 +247,18 @@ def extract_records(
 ) -> tuple[list[StudentImageRecord], set[str]]:
     """Extract and preprocess images for each row in the DataFrame.
 
-    Returns a tuple of (records, student_ids_that_yielded_images).
+    Args:
+        rows: DataFrame with rows describing student submissions.
+        ipp_dir: Root directory containing student submission folders.
+        output_dir: Directory to write processed images into.
+        label: Label to assign to produced records (e.g. 'BADUML' or 'GOODUML').
+        doc_parser: DocumentParser instance used to extract images from docs.
+        seen_hashes: Mutable set to track deduplicated image hashes.
+
+    Returns:
+        A tuple (records, success_ids) where ``records`` is a list of
+        StudentImageRecord objects and ``success_ids`` is the set of student
+        ids that yielded at least one image.
     """
     records: list[StudentImageRecord] = []
     success_ids: set[str] = set()
@@ -308,6 +321,17 @@ def extract_records(
 
 
 def run(*, csv_path: Path, ipp_dir: Path, output_dir: Path) -> list[StudentImageRecord]:
+    """Run the extraction pipeline for the dataset described by ``csv_path``.
+
+    Args:
+        csv_path: Path to the CSV file listing grading rows.
+        ipp_dir: Root directory containing student submission folders.
+        output_dir: Base directory to place extracted image sets.
+
+    Returns:
+        A combined list of StudentImageRecord objects for both BADUML and GOODUML.
+    """
+
     df = pd.read_csv(csv_path)
     doc_parser = DocumentParser()
     seen_hashes: set[str] = set()

@@ -1,4 +1,7 @@
-"""Left-column document viewer panel."""
+"""Left-column document viewer panel.
+
+Author: Matúš Csirik
+"""
 
 from pathlib import Path
 
@@ -12,7 +15,16 @@ def render_document(
     selected_finding: dict | None,
     height: int = 820,
 ) -> None:
-    """Render the student document in the left column."""
+    """Render the student document in the left column.
+
+    Args:
+        source_path: Path to the source document, or ``None`` when not set.
+        selected_finding: Optional finding dict used to highlight context.
+        height: Viewer height in pixels.
+
+    Returns:
+        None
+    """
     if not source_path:
         st.info("No document loaded.")
         return

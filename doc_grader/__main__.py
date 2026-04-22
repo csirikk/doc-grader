@@ -1,5 +1,6 @@
 """doc-grader: Intelligent Tool for Assessment of Student Project Documentations
-Matúš Csirik, 2026
+
+Author: Matúš Csirik, 2026
 
 Licensed under the GNU General Public License v3.0 (GPL-3.0).
 """
@@ -125,6 +126,15 @@ def _config_for_hash(config: AppConfig) -> dict[str, Any]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Command-line entry point for the doc-grader pipeline.
+
+    Args:
+        argv: Optional list of command-line arguments. When omitted the
+            arguments from ``sys.argv`` are used by ``argparse``.
+
+    Returns:
+        Process exit code (0 for success, non-zero for errors).
+    """
     load_dotenv()
     arg_parser = argparse.ArgumentParser(prog="project")
     arg_parser.add_argument(
@@ -409,9 +419,7 @@ def main(argv: list[str] | None = None) -> int:
         info["elapsed_seconds"] = round(time.monotonic() - run_start, 2)
         write_json(file_outdir / "info.json", info)
 
-        # log_json(logger, "IR Document", ir_doc)
         for finding in final_findings:
-            # log_json(logger, f"Finding: {finding.title}", finding)
             logger.info("\n%s\n", format_finding_short(finding))
 
         log_json(logger, "LLM token usage", info["usage"])

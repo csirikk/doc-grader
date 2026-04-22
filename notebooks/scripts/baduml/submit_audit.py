@@ -1,5 +1,7 @@
 """2. Prepare and submit UML image audit requests to the OpenAI Batch API.
 
+Author: Matúš Csirik
+
 Assigns each image a UUID4 custom_id, writes audit_id_mapping.json so the
 relationship between custom_id and source image is never lost, logs an
 estimated Batch API cost, and (optionally --dry-run) uploads the requests JSONL
@@ -208,6 +210,18 @@ def write_requests_jsonl(
     out_path: Path,
     model: str,
 ) -> int:
+    """Build and write Batch API request JSONL and an id mapping file.
+
+    Args:
+        images_dir: Directory with ``baduml`` and ``gooduml`` subfolders.
+        mapping_path: File path where the custom_id to source mapping is written.
+        out_path: Path to write the requests JSONL file.
+        model: Model string to request from the Batch API.
+
+    Returns:
+        Number of valid requests written.
+    """
+
     rows = _iter_images(images_dir)
     if not rows:
         logger.error("No input images found under %s", images_dir)
@@ -252,7 +266,16 @@ def submit_batch(
     model: str,
     api_key_env: str,
 ) -> tuple[str, str] | None:
-    """Upload JSONL file and submit a Batch API job."""
+    """Upload a requests JSONL and submit it as a Batch job to OpenAI.
+
+    Args:
+        requests_path: Path to the JSONL file containing Batch requests.
+        model: Model to request for the batch completions.
+        api_key_env: Environment variable name that stores the API key.
+
+    Returns:
+        Tuple of (batch_id, status) on success, or ``None`` on failure.
+    """
     from openai import OpenAI  # not needed for dry-run
 
     api_key = os.environ.get(api_key_env)

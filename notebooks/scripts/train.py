@@ -1,3 +1,15 @@
+"""Helpers to prepare and run fine-tuning of the BADUML vision classifier.
+
+Author: Matúš Csirik
+
+This script is intended to be run from a development environment and is
+not part of the grader production pipeline. It provides dataset generation
+and a small ``main`` entry point to launch a quick fine-tuning job.
+
+Requires the ``unsloth`` library and therefore a different version of Python
+than the rest of the tool.
+"""
+
 import logging
 from pathlib import Path
 
@@ -20,6 +32,19 @@ logger = logging.getLogger(__name__)
 
 
 def generate_data_records(base_dir: Path):
+    """Yield training records for images under ``base_dir``.
+
+    The generator yields platform-specific training dicts expected by the
+    SFT Trainer dataset pipeline. Each yielded record contains a short
+    system/user/assistant message conversation and an inline image PIL
+    instance.
+
+    Args:
+        base_dir: Directory containing subfolders ``gooduml`` and ``baduml``.
+
+    Yields:
+        Mapping-like training records consumed by the dataset builder.
+    """
     for label in ["gooduml", "baduml"]:
         folder_path = base_dir / label
         if not folder_path.exists():
@@ -73,6 +98,12 @@ def generate_data_records(base_dir: Path):
 
 
 def main() -> int:
+    """Run a short fine-tuning job using images under ``BASE_DIR``.
+
+    Returns:
+        Exit code integer (0 on success).
+    """
+
     logger.info("Loading model...")
     model, tokenizer = FastVisionModel.from_pretrained(
         model_name=MODEL_NAME,

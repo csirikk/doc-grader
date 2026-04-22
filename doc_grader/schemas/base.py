@@ -1,4 +1,7 @@
-"""Base Pydantic models and shared utilities."""
+"""Base Pydantic models and shared utilities.
+
+Author: Matúš Csirik
+"""
 
 from pydantic import BaseModel, ConfigDict
 

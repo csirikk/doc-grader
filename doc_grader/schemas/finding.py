@@ -1,4 +1,7 @@
-"""Finding schema definition."""
+"""Finding schema definition.
+
+Author: Matúš Csirik
+"""
 
 from typing import Any, Literal
 

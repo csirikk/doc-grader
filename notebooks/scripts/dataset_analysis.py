@@ -1,4 +1,7 @@
-"""IPP assessment analysis and visualisation."""
+"""IPP assessment analysis and visualisation.
+
+Author: Matúš Csirik
+"""
 
 import logging
 import re

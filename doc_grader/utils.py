@@ -1,5 +1,11 @@
-"""Utility helpers.
-TODO: validate csv out, ensure same as graders, not clean ipp data csv"""
+"""Utility helpers for logging, JSON/CSV I/O and small utilities.
+
+Author: Matúš Csirik
+
+This module centralises logging configuration and provides helpers to
+serialise domain objects to JSON, write CSV exports and generate simple
+identifiers. It is intended for use by the grader pipeline and test code.
+"""
 
 import csv
 import hashlib
@@ -19,7 +25,19 @@ if TYPE_CHECKING:
 
 
 def configure_logging(level: int = logging.INFO) -> None:
-    """Configures logging, with a fallback for Jupyter notebooks."""
+    """Configure module logging.
+
+    Sets up a compact formatter for Jupyter environments and a ``richer``
+    handler for terminal use. The `level` argument controls the
+    `doc_grader` logger level, other libraries remain at WARNING by
+    default.
+
+    Args:
+        level: Logging level to set for the `doc_grader` logger.
+
+    Returns:
+        None
+    """
 
     is_notebook = False
     try:
@@ -33,7 +51,7 @@ def configure_logging(level: int = logging.INFO) -> None:
     if is_notebook:
         handler = logging.StreamHandler(sys.stdout)
         handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
-    else:  # terminal
+    else:
         handler = RichHandler(rich_tracebacks=True, markup=True)
 
     logging.basicConfig(
@@ -47,7 +65,18 @@ def configure_logging(level: int = logging.INFO) -> None:
 
 
 def _to_jsonable(x: Any) -> Any:
-    """Convert various objects to JSON-serializable Python structures."""
+    """Convert domain objects to JSON-serialisable structures.
+
+    The function recursively converts Pydantic models, pathlib `Path`
+    objects and datetime instances so that the result can be passed to
+    `json.dumps`.
+
+    Args:
+        x: Domain object to convert.
+
+    Returns:
+        A JSON-serialisable representation of ``x``.
+    """
     if isinstance(x, DoclingDocument):  # uses by_alias=True, exclude_none=True
         return _to_jsonable(x.export_to_dict())
     if isinstance(x, BaseModel):
@@ -64,7 +93,16 @@ def _to_jsonable(x: Any) -> Any:
 
 
 def write_json(path: Path, payload: Any) -> None:
-    """Write any JSON-serializable payload to file."""
+    """Write a JSON-serialisable payload to `path`.
+
+    Args:
+        path: Destination file path.
+        payload: Any domain object that can be converted to JSON via
+            :func:`_to_jsonable`.
+
+    Returns:
+        None
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     payload_json = _to_jsonable(payload)
     path.write_text(
@@ -73,7 +111,19 @@ def write_json(path: Path, payload: Any) -> None:
 
 
 def log_json(logger: logging.Logger, label: str, payload: Any) -> None:
-    """Log any JSON-serializable payload"""
+    """Log a JSON-serialisable payload at DEBUG level.
+
+    This helper guards the potentially expensive JSON serialization so
+    that it only occurs when the logger is set to DEBUG.
+
+    Args:
+        logger: Logger instance to use.
+        label: Short label included in the log message.
+        payload: Payload to serialise and log.
+
+    Returns:
+        None
+    """
     if not logger.isEnabledFor(logging.DEBUG):
         return
     try:
@@ -88,17 +138,31 @@ _id_counters: dict[str, int] = {}
 
 
 def next_id(prefix: str) -> str:
-    """Return the next sequential id for the given prefix."""
+    """Return the next sequential identifier for ``prefix``.
+
+    Args:
+        prefix: Prefix string used to build the id.
+
+    Returns:
+        A new identifier string "{prefix}-{n}".
+    """
     n = _id_counters.get(prefix, 0) + 1
     _id_counters[prefix] = n
     return f"{prefix}-{n}"
 
 
 def reset_id_counters(*prefixes: str) -> None:
-    """
-    Reset internal id counters.
-    Without arguments resets all prefixes. If one or more `prefixes` are
-    provided only those counters are cleared.
+    """Reset internal identifier counters.
+
+    Without arguments this clears all counters. If one or more
+    ``prefixes`` are provided only those counters are removed.
+
+    Args:
+        *prefixes: Optional list of prefixes whose counters should be
+            reset.
+
+    Returns:
+        None
     """
     if not prefixes:
         _id_counters.clear()
@@ -108,6 +172,14 @@ def reset_id_counters(*prefixes: str) -> None:
 
 
 def compute_doc_hash(path: str | Path) -> str:
+    """Compute a SHA-256 digest for a file.
+
+    Args:
+        path: Path or string pointing to the file to hash.
+
+    Returns:
+        Hex-encoded digest prefixed with "sha256:".
+    """
     hasher = hashlib.sha256()
     with Path(path).open("rb") as f:
         while True:
@@ -119,7 +191,17 @@ def compute_doc_hash(path: str | Path) -> str:
 
 
 def format_finding_short(finding: Finding) -> str:
-    """Return a summary of a Finding."""
+    """Return a concise multi-line summary for a ``Finding``.
+
+    The summary includes the finding id, summary text and selected
+    numeric metrics. Long snippets are truncated to keep the output compact.
+
+    Args:
+        finding: Finding object to format.
+
+    Returns:
+        A single string containing the formatted summary.
+    """
     lines = [
         f"[{finding.finding_id}]:",
         f"{finding.summary}",
@@ -167,11 +249,20 @@ def format_finding_short(finding: Finding) -> str:
 
 
 def compute_config_hash(config: dict) -> str:
+    """Compute a canonical SHA-256 hash for a configuration mapping.
+
+    The mapping is deterministically serialised so identical structures
+    always yield the same digest.
+
+    Args:
+        config: Mapping representing the configuration.
+
+    Returns:
+        Hex-encoded digest prefixed with "sha256:".
+    """
     canonical = json.dumps(config, sort_keys=True, separators=(",", ":"))
     return "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
-
-# --- CSV export ---
 
 # Column order mirrors clean_ipp_data.csv produced by dataset_parser.py
 # Columns (grade points, year, variant) are left as None.
@@ -190,7 +281,6 @@ CSV_COLUMNS: list[str] = [
     "doc_points",
     "doc_type",
     "bonus_points",
-    # Extras
     "severity",
     "confidence",
     "judge_status",

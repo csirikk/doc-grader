@@ -1,5 +1,7 @@
 """4. Split the audit manifest and format fine-tuning JSONL files.
 
+Author: Matúš Csirik
+
 Takes audit_manifest.jsonl, splits records by student_id to avoid data leakage,
 and writes one OpenAI vision fine-tuning JSONL per split (train, validation,
 test) to data/vision-training/audit_jsonl/.
@@ -36,7 +38,17 @@ def split(
     ratios: tuple[float, float, float] = (0.8, 0.2, 0.0),
     seed: int = 42,
 ) -> dict[str, list[StudentImageRecord]]:
-    """Split records into train, validation, and test sets by student_id."""
+    """Split records into train, validation and test sets grouped by student.
+
+    Args:
+        records: List of StudentImageRecord objects to split.
+        ratios: Tuple of (train, validation, test) ratios summing to <= 1.
+        seed: Random seed for reproducible shuffling.
+
+    Returns:
+        A mapping with keys 'train', 'validation' and 'test' containing the
+        selected records per split.
+    """
     groups: dict[str, list[StudentImageRecord]] = defaultdict(list)
     for record in records:
         groups[record.student_id].append(record)
@@ -95,7 +107,15 @@ def _make_entry(image_ref: str, label: str, analysis: str) -> dict[str, object]:
 
 
 def write_jsonl(records: list[StudentImageRecord], out_path: Path) -> int:
-    """Write records to a JSONL fine-tuning file. Returns lines written."""
+    """Write records to a JSONL fine-tuning file.
+
+    Args:
+        records: List of StudentImageRecord entries to write.
+        out_path: Destination file path for the JSONL output.
+
+    Returns:
+        The number of written lines (entries).
+    """
     out_path.parent.mkdir(parents=True, exist_ok=True)
     count = 0
     skipped = 0
@@ -128,7 +148,15 @@ def run(
     splits: dict[str, list[StudentImageRecord]],
     output_dir: Path,
 ) -> None:
-    """Write one JSONL file per split to output_dir."""
+    """Write one JSONL file per split to ``output_dir``.
+
+    Args:
+        splits: Mapping of split name to lists of StudentImageRecord.
+        output_dir: Directory where the JSONL files will be written.
+
+    Returns:
+        None
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
     for name, records in splits.items():
         out_path = output_dir / f"{name}.jsonl"

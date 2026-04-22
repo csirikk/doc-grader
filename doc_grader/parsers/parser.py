@@ -1,4 +1,7 @@
-"""Unified parser interface returning IR-oriented parse output."""
+"""Unified parser interface returning IR-oriented parse output.
+
+Author: Matúš Csirik
+"""
 
 import codecs
 import io
@@ -151,7 +154,14 @@ def _clean_md_image_src(src: str) -> str:
 
 
 def extract_md_image_uris(text: str) -> list[str]:
-    """Extract ordered Markdown image URIs using markdown-it tokens."""
+    """Extract ordered Markdown image URIs using markdown-it tokens.
+
+    Args:
+        text: Markdown source text to scan for image tokens.
+
+    Returns:
+        A list of cleaned image source URIs in the order they appear.
+    """
     if not text:
         logger.debug("Markdown image extraction skipped: empty input")
         return []
@@ -287,7 +297,26 @@ class DocumentParser:
         expected_filename: str | None = None,
         allowed_extensions: list[str] | None = None,
     ) -> ParseOutput:
-        """Parse the given document."""
+        """Parse the given document and return an IR-oriented ParseOutput.
+
+        The method converts the source file into a Docling document, extracts
+        text and page/image metadata, computes a content language hint and
+        assembles any parser-level findings.
+
+        Args:
+            path: Path to the source file to parse.
+            run_id: Optional run identifier used when creating findings.
+            config_hash: Optional hash of the active configuration.
+            student_id: Optional student identifier to attach to the document
+                reference.
+            expected_filename: Optional expected filename (without suffix) to
+                generate a finding if the name differs.
+            allowed_extensions: Optional list of allowed extensions to check.
+
+        Returns:
+            A class `ParseOutput` containing the DocumentRef, optional IR
+            document and any parser-generated findings and metadata.
+        """
         doc_ref = DocumentRef(source_path=str(path), student_id=student_id)
         suffix = path.suffix.lower()
 

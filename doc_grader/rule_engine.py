@@ -1,3 +1,12 @@
+"""Rule engine for post-processing findings.
+
+Author: Matúš Csirik
+
+This module contains the class `RuleEngine` which prepares findings for a
+separate judge model, applies judge verdicts and performs final filtering
+and normalisation of findings produced by analysers.
+"""
+
 import logging
 from typing import TYPE_CHECKING
 
@@ -9,8 +18,25 @@ logger = logging.getLogger(__name__)
 
 
 class RuleEngine:
+    """Provide utilities to prepare, apply and finalise judge decisions.
+
+    The class methods are stateless and operate on lists of ``Finding``
+    objects produced by analysers.
+    """
+
     def prepare_judge_batch(self, findings: list[Finding]) -> list[Finding]:
-        """Select findings that should be sent to the judge model."""
+        """Select findings that should be sent to the judge model.
+
+        The method filters out findings that are not marked for judgement or
+        that lack anchors, stats and model evaluations because the judge
+        requires some evidence to make a reliable decision.
+
+        Args:
+            findings: Sequence of findings to evaluate.
+
+        Returns:
+            A list of findings that are valid inputs for the judge model.
+        """
         to_judge: list[Finding] = []
 
         for finding in findings:
@@ -36,7 +62,20 @@ class RuleEngine:
     def apply_judge_response(
         self, findings: list[Finding], response: JudgeModelResponse
     ) -> None:
-        """Apply judge verdicts to findings in-place."""
+        """Apply judge verdicts to findings in-place.
+
+        Updates each finding's ``judge_status`` and, when present, applies any
+        adjusted severity, confidence, summary or snippet supplied by the
+        judge response. The method also records judge metadata under
+        ``finding.meta['judge']``.
+
+        Args:
+            findings: List of findings to update. Findings are mutated in place.
+            response: Judge model response containing verdicts keyed by finding id.
+
+        Returns:
+            None
+        """
         verdict_map = {verdict.finding_id: verdict for verdict in response.verdicts}
 
         for finding in findings:
@@ -96,11 +135,18 @@ class RuleEngine:
             finding.meta = {**(finding.meta or {}), "judge": judge_meta}
 
     def process(self, findings: list[Finding]) -> tuple[list[Finding], dict]:
-        """Filter and normalise findings. Returns (final_findings, summary_dict).
+        """Filter and normalise findings.
 
-        - judged_dismissed: dropped (judge vetoed).
-        - all other judge states: kept.
-        - duplicates: de-duplicated by finding_id.
+        The method drops findings vetoed by the judge, removes duplicate
+        finding ids and returns a summary structure.
+
+        Args:
+            findings: Input list of findings to process.
+
+        Returns:
+            A tuple ``(final_findings, summary_dict)`` where ``final_findings``
+            is the filtered list of findings and ``summary_dict`` contains
+            counts of dropped items and the final count.
         """
         final: list[Finding] = []
         seen_ids: set[str] = set()

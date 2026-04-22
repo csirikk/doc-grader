@@ -1,4 +1,7 @@
-"""Grammar and spelling analyser using LanguageTool (English and Slovak)."""
+"""Grammar and spelling analyser using LanguageTool (English and Slovak).
+
+Author: Matúš Csirik
+"""
 
 import logging
 from typing import TYPE_CHECKING, Any, ClassVar

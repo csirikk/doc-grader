@@ -1,4 +1,7 @@
-"""Structure analyser for deterministic document structure checks."""
+"""Structure analyser for deterministic document structure checks.
+
+Author: Matúš Csirik
+"""
 
 import logging
 from typing import TYPE_CHECKING, Any, ClassVar

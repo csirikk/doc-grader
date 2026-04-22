@@ -1,5 +1,7 @@
 """Evaluate pipeline output against the IPP gold dataset.
 
+Author: Matúš Csirik
+
 The pipeline must be run on the student documents before running this script.
 Results show code-level and impact-level agreement/disagreement between the
 tool and human graders.

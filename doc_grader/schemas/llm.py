@@ -1,3 +1,8 @@
+"""LLM-related schema definitions.
+
+Author: Matúš Csirik
+"""
+
 from typing import Literal, Self
 
 from pydantic import Field, model_validator
@@ -114,6 +119,7 @@ class LLMFinding(StrictModel):
         default=None,
         description="Name of the model that generated this finding, if known.",
     )
+
 
 class GraderModelResponse(StrictModel):
     """The complete, raw response expected from the grader model."""

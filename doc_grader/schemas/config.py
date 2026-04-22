@@ -1,4 +1,7 @@
-"""Configuration schema for analysers and pipeline."""
+"""Configuration schema for analysers and pipeline.
+
+Author: Matúš Csirik
+"""
 
 from pathlib import Path  # noqa: TC003
 from typing import Any

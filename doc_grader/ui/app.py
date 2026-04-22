@@ -1,5 +1,7 @@
 """doc-grader review UI main Streamlit application.
 
+Author: Matúš Csirik
+
 Launch with:
     streamlit run src/ui/app.py
 """

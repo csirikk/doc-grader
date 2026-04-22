@@ -1,5 +1,7 @@
 """Calibrated severity scoring for doc-grader findings.
 
+Author: Matúš Csirik
+
 impact = -(severity_weight * severity * max_doc_points)
 
 - ``severity_weight`` is stored on each LLMRule in the rulebook
@@ -27,7 +29,22 @@ class Scorer:
         rulebook: Rulebook,
         max_doc_points: int | None = None,
     ) -> None:
-        """Compute impact for each finding in-place using per-rule severity weights."""
+        """Compute impact for each finding in-place using per-rule severity weights.
+
+        The impact is derived from the rule's severity weight and the
+        finding's severity. When ``max_doc_points`` is provided the impact
+        is scaled into absolute points, otherwise a normalised value is
+        returned.
+
+        Args:
+            findings: Mutable list of findings to update in-place.
+            rulebook: Rulebook containing severity weights indexed by code.
+            max_doc_points: Optional maximum documentation points used to
+                scale the impact into absolute point values.
+
+        Returns:
+            None
+        """
         for finding in findings:
             rule = rulebook.rules_by_code.get(finding.ac_code)
             if rule is None:

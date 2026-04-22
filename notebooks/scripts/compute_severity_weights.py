@@ -1,4 +1,7 @@
-"""Compute per-code severity weights from the IPP dataset."""
+"""Compute per-code severity weights from the IPP dataset.
+
+Author: Matúš Csirik
+"""
 
 import json
 import logging
@@ -20,7 +23,17 @@ def compute_weights(
     write_path: Path | None = None,
     rulebook_path: Path | None = None,
 ) -> dict[str, float]:
-    """Compute canonical severity weights."""
+    """Compute canonical severity weights from historical dataset.
+
+    Args:
+        data_path: Optional path to the cleaned dataset CSV. If omitted a
+            default location is used.
+        write_path: Optional path to write the computed JSON weights.
+        rulebook_path: Optional path to the rulebook JSON used to filter codes.
+
+    Returns:
+        Mapping of canonical AC codes to inferred severity weights.
+    """
     logger = logging.getLogger(__name__)
 
     df = load_clean_data(data_path)
@@ -49,7 +62,7 @@ def compute_weights(
             allowed_rulebook_codes.add(str(c))
 
     # Map each event to its canonical code and compute canonical medians from
-    # event-level absolute normalized impacts.
+    # event-level absolute normalised impacts.
     df = df.assign(impact_normalised_abs=lambda d: d["impact_normalised"].abs())
     df["canon"] = df["code"].apply(lambda c: LEGACY_TO_CANONICAL.get(str(c), str(c)))
     df_mapped = df[df["canon"].isin(allowed_rulebook_codes)]

@@ -1,5 +1,7 @@
 """LLM-based content analyser. All prose-based LLM grading.
 
+Author: Matúš Csirik
+
 Responsible for AC:
 - 'CH': Spelling or grammar mistakes in Czech text.
 - 'ICH': First-person singular usage.

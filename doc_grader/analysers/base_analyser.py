@@ -1,4 +1,7 @@
-"""Base analyser structure and registry."""
+"""Base analyser structure and registry.
+
+Author: Matúš Csirik
+"""
 
 import logging
 from abc import ABC, abstractmethod

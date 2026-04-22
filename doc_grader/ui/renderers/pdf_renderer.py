@@ -1,3 +1,8 @@
+"""PDF renderer for the Streamlit UI.
+
+Author: Matúš Csirik
+"""
+
 from typing import TYPE_CHECKING
 
 import streamlit as st
@@ -46,7 +51,16 @@ def _get_annotations(finding: dict | None) -> list[dict]:
 
 
 def render_pdf(path: Path, selected_finding: dict | None) -> None:
-    """Render a PDF document with clickable findings annotations."""
+    """Render a PDF document with clickable finding annotations.
+
+    Args:
+        path: Path to the PDF file to display.
+        selected_finding: Optional finding dict whose anchors are rendered as
+            clickable annotations.
+
+    Returns:
+        None
+    """
     if pdf_viewer is None:
         st.error("streamlit-pdf-viewer is not installed.")
         return

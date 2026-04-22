@@ -1,4 +1,7 @@
-"""Intermediate Representation schema."""
+"""Intermediate Representation schema.
+
+Author: Matúš Csirik
+"""
 
 import logging
 from typing import Any
@@ -64,9 +67,19 @@ class Document(StrictModel):
 def get_picture_pil(doc: Document, idx: int, item: Any) -> Any:
     """Resolve a Docling PictureItem to a PIL image.
 
-    Tries in order: in-memory pil_image, URI on the item, Markdown image URI
-    list, and finally a local path relative to the document source directory.
-    Returns None when no image can be loaded.
+    The resolution attempts the following in order: an in-memory
+    ``pil_image`` on the item, the item's URI, the Markdown image URI list
+    stored on the document, and finally a local file path resolved
+    relative to the document source directory.
+
+    Args:
+        doc: Document wrapper containing md_image_uris and document reference.
+        idx: Index of the picture in the Docling picture list.
+        item: The PictureItem-like object to resolve.
+
+    Returns:
+        A PIL Image instance when the image could be loaded, otherwise
+        ``None``.
     """
     from pathlib import Path
     from urllib.parse import unquote

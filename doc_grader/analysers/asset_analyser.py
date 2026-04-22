@@ -1,20 +1,22 @@
 """LLM-based asset analyser. Visual quality of diagrams and figures.
 
+Author: Matúš Csirik
+
 Responsible for AC:
 - 'NOUML': No UML class diagram is present in the document.
 - 'BADUML': UML class diagram has broken notation, uses the wrong type, was
-  auto-generated without curation, or is so visually flawed it cannot be read.
-  Detected by the OpenAI fine-tuned binary classifier.
+    auto-generated without curation, or is so visually flawed it cannot be read.
+    Detected by the OpenAI fine-tuned binary classifier.
 - 'SEMUML': UML class diagram is semantically incomplete: missing significant
-  classes or methods, or fails to convey class interactions.
-  Detected by a generic OpenAI vision LLM.
+    classes or methods, or fails to convey class interactions.
+    Detected by a generic OpenAI vision LLM.
 - 'OWNDIF': Diagram does not visually distinguish custom (student) classes from
-  framework/library classes (e.g. ipp-core).
+    framework/library classes (e.g. ipp-core).
 - 'BW': Dark-background diagram pasted into a light-background document.
 - 'SAZBA': Typography and formatting violations (monospace identifiers, block
-  justification, font consistency, spacing around brackets, etc.).
-  PDF: evaluated by the generic vision LLM seeing all document pages.
-  Markdown: evaluated deterministically via pymarkdownlnt and markdown-it-py.
+    justification, font consistency, spacing around brackets, etc.).
+    PDF: evaluated by the generic vision LLM seeing all document pages.
+    Markdown: evaluated deterministically via pymarkdownlnt and markdown-it-py.
 """
 
 import logging

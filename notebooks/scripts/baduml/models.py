@@ -1,4 +1,7 @@
-"""Shared data model and manifest I/O for the vision training pipeline."""
+"""Shared data model and manifest I/O for the vision training pipeline.
+
+Author: Matúš Csirik
+"""
 
 import json
 import logging
@@ -21,10 +24,17 @@ class StudentImageRecord:
 
 
 def save_manifest(records: list[StudentImageRecord], path: Path) -> None:
-    """Serialise records to a JSONL manifest at path.
+    """Serialise records to a JSONL manifest at ``path``.
 
-    Each line is a JSON object produced from asdict(record). Uses
-    ensure_ascii=True to keep outputs ASCII-only.
+    Each line is a JSON object produced from ``asdict(record)``. The output
+    uses ``ensure_ascii=True`` to keep the manifest ASCII-only.
+
+    Args:
+        records: List of StudentImageRecord objects to write.
+        path: Path to the manifest JSONL file to create.
+
+    Returns:
+        None
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as fh:
@@ -34,7 +44,15 @@ def save_manifest(records: list[StudentImageRecord], path: Path) -> None:
 
 
 def load_manifest(path: Path) -> list[StudentImageRecord]:
-    """Read JSONL manifest and return only records where the image still exists."""
+    """Read a JSONL manifest and return records whose image files still exist.
+
+    Args:
+        path: Path to the JSONL manifest file.
+
+    Returns:
+        A list of StudentImageRecord objects present in the manifest and whose
+        referenced image files are available on disk.
+    """
     records = []
     if not path.exists():
         logger.error("Manifest not found at %s", path)

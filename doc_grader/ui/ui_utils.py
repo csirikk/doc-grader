@@ -1,4 +1,7 @@
-"""Shared judge-status metadata for UI modules."""
+"""Shared judge-status metadata for UI modules.
+
+Author: Matúš Csirik
+"""
 
 STATUS_COLOURS: dict[str, str] = {
     "not_to_be_judged": "blue",

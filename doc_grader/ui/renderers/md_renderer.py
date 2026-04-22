@@ -1,3 +1,8 @@
+"""Markdown renderer for the Streamlit UI.
+
+Author: Matúš Csirik
+"""
+
 import base64
 import html
 import mimetypes
@@ -83,7 +88,16 @@ def _inject_html_highlights(
 
 
 def render_markdown(path: Path, selected_finding: dict | None) -> None:
-    """Render Markdown with highlights and local image embedding."""
+    """Render Markdown content with highlights and embedded local images.
+
+    Args:
+        path: Path to the Markdown file to render.
+        selected_finding: Optional finding dictionary whose anchors will be
+            highlighted in the rendered output.
+
+    Returns:
+        None
+    """
     md_content = html.escape(path.read_text(encoding="utf-8"), quote=False)
     html_body = marko.Markdown().convert(md_content)
 

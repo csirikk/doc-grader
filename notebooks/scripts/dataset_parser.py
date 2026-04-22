@@ -1,4 +1,7 @@
-"""IPP assessment CSV parser."""
+"""IPP assessment CSV parser.
+
+Author: Matúš Csirik
+"""
 
 import logging
 import re
@@ -303,6 +306,12 @@ def parse_comment(text: str) -> list[Event]:
     """
     Parses a full comment string into a list of Events.
     Example: "STRUCT -10 (comment), SHORT" -> [Event(STRUCT, -10), Event(SHORT)]
+
+    Args:
+        text: Raw comment text to parse for IPP codes and signed impacts.
+
+    Returns:
+        A list of Event instances describing parsed codes, spans and impacts.
     """
 
     text = text.translate(str.maketrans("−–—", "---"))  # noqa: RUF001
@@ -381,6 +390,15 @@ def extract_rows_from_dataframe(
 ) -> Iterator[dict[str, Any]]:
     """
     Processes a DataFrame row by row, extracting Events from the comment column.
+
+    Args:
+        df: DataFrame containing grading rows including a ``comment`` column.
+        filename: Source CSV filename used for the ``source_file`` field.
+        year: Cohort year string for the extracted rows.
+        task_variant: Task variant identifier for the extracted rows.
+
+    Returns:
+        An iterator producing dictionaries representing normalised event rows.
     """
     # Normalise
     required_cols = ["id", "points", "doc_type", "bonus_points"]
@@ -474,6 +492,12 @@ def parse_document_tokens(
 
 
 def main() -> None:
+    """Command-line helper to run extraction over the IPP assessments CSVs.
+
+    The function writes a consolidated ``clean_ipp_data.csv`` into the data
+    directory when rows are successfully extracted.
+    """
+
     logging.basicConfig(level=logging.INFO)
     root_dir = Path(__file__).parent.parent
     data_dir = root_dir / "data" / "ipp" / "assessments"

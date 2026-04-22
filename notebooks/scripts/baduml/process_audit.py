@@ -1,5 +1,7 @@
 """3. Process OpenAI Batch audit results into an audit dataset.
 
+Author: Matúš Csirik
+
 Reads the Batch output JSONL and audit_id_mapping.json, copies audited images
 into data/vision-training/audit/{baduml,gooduml}/, writes conflicts.csv for
 cases where the AI classification differs from the original source label, and
@@ -42,8 +44,16 @@ def _extract_classification_analysis(entry: dict) -> tuple[str, str] | None:
 
 
 def _unique_dest(path: Path) -> Path:
+    """Return a non-colliding Path by appending an index if needed.
+
+    If ``path`` does not exist it is returned unchanged. Otherwise a suffix
+    ``_{n}`` is appended to the stem with an increasing counter until a
+    free filename is found.
+    """
+
     if not path.exists():
         return path
+
     stem = path.stem
     suffix = path.suffix
     parent = path.parent
@@ -64,6 +74,20 @@ def run(
     conflicts_csv: Path,
     audit_manifest_path: Path,
 ) -> int:
+    """Process a Batch audit results file and assemble an audit manifest.
+
+    Args:
+        batch_results: Path to the OpenAI Batch JSONL output.
+        mapping_path: Path to the audit id mapping JSON.
+        manifest_path: Path to the raw manifest JSONL produced earlier.
+        audit_dir: Directory to place audited images into subfolders.
+        conflicts_csv: CSV path to write conflict rows where labels differ.
+        audit_manifest_path: Destination JSONL path for the filtered audit manifest.
+
+    Returns:
+        Exit code integer (0 on success, non-zero on failure).
+    """
+
     if not batch_results.is_file():
         logger.error("Batch results file missing: %s", batch_results)
         return 1
