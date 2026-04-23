@@ -68,9 +68,10 @@ class AppConfig(StrictModel):
     max_doc_points: int | None = Field(
         default=None,
         description=(
-            "Maximum documentation points for this run. Used by the Scorer to "
-            "convert the normalised per-code weight into an absolute point "
-            "deduction. Set to None to skip absolute impact computation."
+            "Maximum documentation points (in minipoints) for this run. "
+            "Used by the Scorer to convert the normalised per-code weight "
+            "into an absolute point deduction. Set to None to skip absolute "
+            "impact computation."
         ),
     )
     disabled_codes: list[str] = Field(
