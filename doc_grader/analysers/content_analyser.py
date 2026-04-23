@@ -3,7 +3,9 @@
 Author: Matúš Csirik
 
 Responsible for AC:
-- 'CH': Spelling or grammar mistakes in Czech text.
+- 'CH': Combined spelling or grammar mistakes when the rulebook does not split them.
+- 'SPELLING': Spelling mistakes in Czech or Slovak text.
+- 'GRAMMAR': Grammar or punctuation mistakes in Czech or Slovak text.
 - 'ICH': First-person singular usage.
 - 'TERM': Incorrect or imprecise technical terminology.
 - 'LANG': Language mixing.
@@ -50,7 +52,8 @@ class ContentAnalyser(BaseLLMAnalyser):
     ) -> list[LLMRule]:
         rules = super().get_rules(rulebook, params=params)
         language = params.get("language") if params else None
-        if language != "cs":
-            # CH is handled by grammar_analyser for non-Czech documents.
-            return [rule for rule in rules if rule.ac_code != "CH"]
+        grammar_codes = {"CH", "SPELLING", "GRAMMAR"}
+        if language not in {"cs", "sk"}:
+            # English grammar and spelling are handled by grammar_analyser.
+            return [rule for rule in rules if rule.ac_code not in grammar_codes]
         return rules

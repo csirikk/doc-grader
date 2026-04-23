@@ -1,4 +1,4 @@
-"""Grammar and spelling analyser using LanguageTool (English and Slovak).
+"""Grammar and spelling analyser using LanguageTool for English only.
 
 Author: Matúš Csirik
 """
@@ -120,7 +120,6 @@ _IGNORED_WORDS: frozenset[str] = frozenset(
     }
 )
 
-_CH_TITLE = "Grammar and Spelling"
 _ISSUE_TITLES: dict[str, str] = {
     "grammar": "Grammar Error",
     "misspelling": "Spelling Error",
@@ -128,8 +127,12 @@ _ISSUE_TITLES: dict[str, str] = {
 
 
 _DOC_LANG_TO_LT: dict[str, str] = {
-    "sk": "sk",
     "en": "en-US",
+}
+
+_SPLIT_LT_CODES: dict[str, str] = {
+    "grammar": "GRAMMAR",
+    "misspelling": "SPELLING",
 }
 
 
@@ -143,7 +146,7 @@ def _make_message(issue_type: str, snippet: str, replacements: list[str]) -> str
 
 
 class GrammarAnalyser(BaseLLMAnalyser):
-    """LanguageTool-based grammar and spelling analyser for English and Slovak.
+    """LanguageTool-based grammar and spelling analyser for English.
 
     Text items are grouped by section path, concatenated, and checked
     as a unit. Each match offset is mapped back to the originating item
@@ -163,12 +166,23 @@ class GrammarAnalyser(BaseLLMAnalyser):
     ) -> list[LLMRule]:
         params = params or {}
         language = params.get("language")
-        if language == "cs":
-            # Czech CH is handled by content_analyser.
+        if language != "en":
+            # Czech and Slovak grammar are handled by content_analyser.
             return []
 
         course = params.get("course")
         disabled: set[str] = set(params.get("disabled_codes") or [])
+        split_rules = [
+            rule
+            for rule in rulebook.rules
+            if rule.ac_code in _SPLIT_LT_CODES.values()
+            and rule.ac_code not in disabled
+            and (rule.course is None or rule.course == course)
+            and (rule.language is None or rule.language == language)
+        ]
+        if split_rules:
+            return split_rules
+
         return [
             rule
             for rule in rulebook.rules
@@ -185,15 +199,23 @@ class GrammarAnalyser(BaseLLMAnalyser):
         params: dict[str, Any] | None = None,
         llm_client: Any | None = None,
     ) -> list[Finding]:
+        try:
+            self._diagnostics = []
+        except Exception:
+            logger.debug("Could not initialise analyser diagnostics", exc_info=True)
+
         if (params or {}).get("grammar_engine", "local") == "local":
+            rules: list[LLMRule] | None = None
             if rulebook is not None:
                 rules = self.get_rules(rulebook, params)
                 if not rules:
                     return []
-            return self._run_local_analysis(doc)
+            return self._run_local_analysis(doc, rules)
         return super().analyse(doc, rulebook, params, llm_client)
 
-    def _run_local_analysis(self, doc: Document) -> list[Finding]:
+    def _run_local_analysis(
+        self, doc: Document, rules: list[LLMRule] | None = None
+    ) -> list[Finding]:
         lt_lang = _DOC_LANG_TO_LT.get(doc.language)
         if lt_lang is None:
             logger.debug(
@@ -201,6 +223,8 @@ class GrammarAnalyser(BaseLLMAnalyser):
                 doc.language,
             )
             return []
+
+        titles_by_code = {rule.ac_code: rule.title for rule in rules or []}
 
         groups: dict[str, list[tuple[str, TextItem, str]]] = {}
         for item, _ in doc.docling_doc.iterate_items():
@@ -231,6 +255,16 @@ class GrammarAnalyser(BaseLLMAnalyser):
                 pos += len(t) + 1
 
             for issue in issues:
+                issue_type = issue["issue_type"]
+                ac_code = _SPLIT_LT_CODES.get(issue_type)
+                if ac_code is not None and ac_code in titles_by_code:
+                    title = titles_by_code[ac_code]
+                elif "CH" in titles_by_code:
+                    ac_code = "CH"
+                    title = titles_by_code["CH"]
+                else:
+                    continue
+
                 source_item = entries[0][1]
                 for start, end, item in offset_map:
                     if start <= issue["offset"] < end:
@@ -239,8 +273,8 @@ class GrammarAnalyser(BaseLLMAnalyser):
                 findings.append(
                     self._make_finding(
                         doc=doc,
-                        ac_code="CH",
-                        title=_CH_TITLE,
+                        ac_code=ac_code,
+                        title=title,
                         summary=issue["message"],
                         judge_status="to_be_judged",
                         human_status="proposed",
@@ -263,7 +297,16 @@ class GrammarAnalyser(BaseLLMAnalyser):
         try:
             matches = GrammarAnalyser._lt[lt_lang].check(text)
         except Exception as exc:
-            logger.warning("LanguageTool.check() failed: %s", exc)
+            msg = f"LanguageTool.check() failed for lt_lang={lt_lang}: {exc}"
+            logger.warning("%s", msg)
+            try:
+                existing = getattr(self, "_diagnostics", None)
+                if existing is None:
+                    self._diagnostics = [msg]
+                else:
+                    existing.append(msg)
+            except Exception:
+                logger.debug("Failed to record LanguageTool diagnostic", exc_info=True)
             return []
 
         issues: list[dict[str, Any]] = []
@@ -277,6 +320,7 @@ class GrammarAnalyser(BaseLLMAnalyser):
                 continue
             issues.append(
                 {
+                    "issue_type": match.rule_issue_type,
                     "message": _make_message(
                         match.rule_issue_type,
                         snippet,

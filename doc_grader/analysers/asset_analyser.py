@@ -3,17 +3,19 @@
 Author: Matúš Csirik
 
 Responsible for AC:
-- 'NOUML': No UML class diagram is present in the document.
-- 'BADUML': UML class diagram has broken notation, uses the wrong type, was
+- 'UML_MISSING': No UML class diagram is present in the document.
+- 'UML_BAD': UML class diagram has broken notation, uses the wrong type, was
     auto-generated without curation, or is so visually flawed it cannot be read.
-    Detected by the OpenAI fine-tuned binary classifier.
+    Detected by the OpenAI fine-tuned BADUML classifier and mapped from the
+    internal BADUML label at output time.
 - 'SEMUML': UML class diagram is semantically incomplete: missing significant
     classes or methods, or fails to convey class interactions.
     Detected by a generic OpenAI vision LLM.
-- 'OWNDIF': Diagram does not visually distinguish custom (student) classes from
+- 'UML_OWNDIF': Diagram does not visually distinguish custom (student) classes from
     framework/library classes (e.g. ipp-core).
-- 'BW': Dark-background diagram pasted into a light-background document.
-- 'SAZBA': Typography and formatting violations (monospace identifiers, block
+- 'UML_READ': Dark-background diagram pasted into a light-background document,
+    low readability, or otherwise poor visual clarity.
+- 'TYPESET': Typography and formatting violations (monospace identifiers, block
     justification, font consistency, spacing around brackets, etc.).
     PDF: evaluated by the generic vision LLM seeing all document pages.
     Markdown: evaluated deterministically via pymarkdownlnt and markdown-it-py.
@@ -30,12 +32,15 @@ from .base_analyser import BaseLLMAnalyser
 if TYPE_CHECKING:
     from ..schemas.document import Document
     from ..schemas.finding import Finding
-    from ..schemas.llm import LLMRule, Rulebook
+    from ..schemas.llm import LLMRule, Rulebook, VisionFinding
 
 logger = logging.getLogger(__name__)
 
 # OpenAI fine-tuned binary classifier default model ID
 BADUML_MODEL = "ft:gpt-4.1-2025-04-14:personal:baduml-classifier-gold:DU8txcxh"
+
+# Internal classifier labels mapped onto public rulebook AC codes.
+CLASSIFIER_AC_CODE_MAP: dict[str, str] = {"BADUML": "UML_BAD"}
 
 # pymarkdownlnt rules targeted by the MD SAZBA check
 SAZBA_LINT_RULES: frozenset[str] = frozenset({"md009", "md010"})
@@ -62,6 +67,9 @@ class AssetAnalyser(BaseLLMAnalyser):
 
     analyser_id: ClassVar[str] = "asset_analyser"
     name: ClassVar[str] = "Asset Analyser"
+
+    def _output_vision_ac_code(self, ac_code: str) -> str:
+        return CLASSIFIER_AC_CODE_MAP.get(ac_code, ac_code)
 
     def build_vision_system_prompt(
         self,
@@ -138,11 +146,6 @@ class AssetAnalyser(BaseLLMAnalyser):
                     )
                 )
                 baduml_count += 1
-        logger.info(
-            "%d/%d images classified as BADUML by fine-tuned model.",
-            baduml_count,
-            len(raw_labels),
-        )
 
         diagram_rules = [
             r
@@ -174,6 +177,18 @@ class AssetAnalyser(BaseLLMAnalyser):
 
         return findings, usage
 
+    def _finalise_vision_finding(
+        self,
+        finding: Finding,
+        vision_finding: VisionFinding,
+        output_code: str,
+    ) -> None:
+        super()._finalise_vision_finding(finding, vision_finding, output_code)
+        if finding.model_evals:
+            finding.model_evals[-1].raw = vision_finding.raw_response
+        if vision_finding.ac_code != output_code:
+            finding.meta = {"internal_ac_code": vision_finding.ac_code}
+
     def _check_sazba_md(
         self,
         doc: Document,
@@ -185,7 +200,7 @@ class AssetAnalyser(BaseLLMAnalyser):
         token walk for unformatted identifiers (SAZBA) and spacing around
         brackets (MEZ).  Emits at most one Finding aggregating all violations.
         """
-        title = self._title_for_ac_code(sazba_rules, "SAZBA")
+        title = self._title_for_ac_code(sazba_rules, "TYPESET")
         source_path = doc.doc_ref.source_path
         if source_path is None:
             logger.warning("No source path available for MD SAZBA check; skipping.")
@@ -257,7 +272,7 @@ class AssetAnalyser(BaseLLMAnalyser):
         return [
             self._make_finding(
                 doc=doc,
-                ac_code="SAZBA",
+                ac_code="TYPESET",
                 title=title,
                 summary=summary,
                 judge_status="not_to_be_judged",
@@ -284,7 +299,7 @@ class AssetAnalyser(BaseLLMAnalyser):
 
         self._accumulated_usage: dict = {}
 
-        sazba_rules = [r for r in rules if r.ac_code == "SAZBA"]
+        sazba_rules = [r for r in rules if r.ac_code == "TYPESET"]
 
         # Markdown branch: deterministic SAZBA linting + vision LLM for diagrams
         if not doc.docling_doc.pages:
@@ -308,14 +323,15 @@ class AssetAnalyser(BaseLLMAnalyser):
                 self._accumulated_usage = merge_usage(self._accumulated_usage, usage)
                 findings.extend(self.process_vision_findings(doc, raw, rules, params))
             nouml_active = any(
-                r.backend == "deterministic" and r.ac_code == "NOUML" for r in rules
+                r.backend == "deterministic" and r.ac_code == "UML_MISSING"
+                for r in rules
             )
             if nouml_active:
                 findings.append(
                     self._make_finding(
                         doc=doc,
-                        ac_code="NOUML",
-                        title=self._title_for_ac_code(rules, "NOUML"),
+                        ac_code="UML_MISSING",
+                        title=self._title_for_ac_code(rules, "UML_MISSING"),
                         summary="No UML Class Diagram was found in the document.",
                         judge_status="to_be_judged",
                         human_status="proposed",

@@ -161,6 +161,71 @@ class BaseLLMAnalyser(BaseAnalyser):
             and r.ac_code not in disabled
         ]
 
+    def _output_vision_ac_code(self, ac_code: str) -> str:
+        """Map internal vision-model labels to public rulebook AC codes."""
+        return ac_code
+
+    def _finalise_vision_finding(
+        self,
+        finding: Finding,
+        vision_finding: VisionFinding,
+        output_code: str,
+    ) -> None:
+        """Apply analyser-specific post-processing to a converted vision finding."""
+        if vision_finding.model_name:
+            finding.model_evals.append(
+                ModelEval(
+                    model_name=vision_finding.model_name,
+                    label=vision_finding.ac_code,
+                )
+            )
+
+    def _resolve_item_cref(
+        self,
+        doc: Document,
+        item_cref: str,
+        source_name: str,
+    ) -> DocItem | None:
+        """Resolve a Docling cref into an evidence item for a generated finding."""
+        from docling_core.types.doc.document import RefItem
+
+        try:
+            return RefItem.model_validate({"$ref": item_cref}).resolve(
+                doc=doc.docling_doc
+            )
+        except Exception:
+            logger.warning("Failed to resolve %s item_cref %r", source_name, item_cref)
+            return None
+
+    def _make_generated_finding(
+        self,
+        doc: Document,
+        rules: list[LLMRule],
+        ac_code: str,
+        item_cref: str,
+        summary: str,
+        snippet_override: str | None,
+        severity: float | None,
+        confidence: float | None,
+        generator_model: str | None,
+        source_name: str,
+    ) -> Finding:
+        """Build a Finding from a structured model output record."""
+        evidence_item = self._resolve_item_cref(doc, item_cref, source_name)
+        return self._make_finding(
+            doc=doc,
+            ac_code=ac_code,
+            title=self._title_for_ac_code(rules, ac_code),
+            summary=summary,
+            judge_status="to_be_judged",
+            human_status="proposed",
+            evidence_item=evidence_item,
+            snippet_override=snippet_override,
+            severity=severity,
+            confidence=confidence,
+            generator_model=generator_model,
+        )
+
     def process_vision_findings(
         self,
         doc: Document,
@@ -171,43 +236,37 @@ class BaseLLMAnalyser(BaseAnalyser):
         """Convert vision model findings into standard Findings."""
         known_codes: set[str] = {r.ac_code for r in rules}
         findings: list[Finding] = []
-        from docling_core.types.doc.document import RefItem
 
         for f in vision_findings:
-            if f.ac_code not in known_codes:
-                logger.warning(
-                    "Ignoring vision finding with unknown AC code %r", f.ac_code
-                )
+            output_code = self._output_vision_ac_code(f.ac_code)
+            if output_code not in known_codes:
+                if output_code == f.ac_code:
+                    logger.warning(
+                        "Ignoring vision finding with unknown AC code %r", output_code
+                    )
+                else:
+                    logger.warning(
+                        (
+                            "Ignoring vision finding with unknown AC code %r "
+                            "(mapped from %r)"
+                        ),
+                        output_code,
+                        f.ac_code,
+                    )
                 continue
-            try:
-                _ev = RefItem.model_validate({"$ref": f.item_cref}).resolve(
-                    doc=doc.docling_doc
-                )
-            except Exception:
-                logger.warning(
-                    "Failed to resolve vision finding item_cref %r", f.item_cref
-                )
-                _ev = None
-            finding = self._make_finding(
+            finding = self._make_generated_finding(
                 doc=doc,
-                ac_code=f.ac_code,
-                title=self._title_for_ac_code(rules, f.ac_code),
+                rules=rules,
+                ac_code=output_code,
+                item_cref=f.item_cref,
                 summary=f.reason,
-                judge_status="to_be_judged",
-                human_status="proposed",
-                evidence_item=_ev,
                 snippet_override=f.reason,
                 severity=f.severity,
                 confidence=f.confidence,
                 generator_model=f.model_name,
+                source_name="vision finding",
             )
-            if f.model_name:
-                finding.model_evals.append(
-                    ModelEval(
-                        model_name=f.model_name,
-                        label=f.ac_code,
-                    )
-                )
+            self._finalise_vision_finding(finding, f, output_code)
             findings.append(finding)
         return findings
 
@@ -301,25 +360,15 @@ class BaseLLMAnalyser(BaseAnalyser):
         rules: list[LLMRule],
     ) -> Finding:
         """Convert an LLMFinding to a Finding."""
-        from docling_core.types.doc.document import RefItem
-
-        try:
-            _ev = RefItem.model_validate({"$ref": f.item_cref}).resolve(
-                doc=doc.docling_doc
-            )
-        except Exception:
-            logger.warning("Failed to resolve LLM finding item_cref %r", f.item_cref)
-            _ev = None
-        return self._make_finding(
+        return self._make_generated_finding(
             doc=doc,
+            rules=rules,
             ac_code=f.ac_code,
-            title=self._title_for_ac_code(rules, f.ac_code),
+            item_cref=f.item_cref,
             summary=f.reason,
-            judge_status="to_be_judged",
-            human_status="proposed",
-            evidence_item=_ev,
             snippet_override=f.snippet,
             severity=f.severity,
             confidence=f.confidence,
             generator_model=f.model_name,
+            source_name="LLM finding",
         )

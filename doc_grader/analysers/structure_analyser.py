@@ -29,8 +29,8 @@ class StructureAnalyser(BaseAnalyser):
     Deterministic checks for document structure and completeness.
 
     Implemented AC codes:
-    - SHORT: Document is too short based on word/char/paragraph counts.
-    - KAPTXT: Consecutive headings without intervening content.
+    - SHORT: Legacy document-too-short heuristic retained for older rulebooks.
+    - CONSEC_HEADINGS: Consecutive headings without intervening content.
     """
 
     analyser_id: ClassVar[str] = "structure_analyser"
@@ -66,7 +66,9 @@ class StructureAnalyser(BaseAnalyser):
         # H(N) -> H(<N): section is completely empty before the block closes
         return 0.9, "Empty subsection at end of its block"
 
-    def check_kaptxt(self, doc: Document) -> list[Finding]:
+    def check_kaptxt(
+        self, doc: Document, ac_code: str = "CONSEC_HEADINGS"
+    ) -> list[Finding]:
         """Detect headings that have no content before the next heading."""
         findings: list[Finding] = []
 
@@ -94,7 +96,7 @@ class StructureAnalyser(BaseAnalyser):
                     findings.append(
                         self._make_finding(
                             doc=doc,
-                            ac_code="KAPTXT",
+                            ac_code=ac_code,
                             title="Empty section detected",
                             summary=f"{reason}: '{last_heading_item.text}'.",
                             judge_status="to_be_judged",
@@ -133,7 +135,7 @@ class StructureAnalyser(BaseAnalyser):
             findings.append(
                 self._make_finding(
                     doc=doc,
-                    ac_code="KAPTXT",
+                    ac_code=ac_code,
                     title="Empty section at end of document",
                     summary=f"{reason}: '{last_heading_item.text}'.",
                     judge_status="to_be_judged",
@@ -212,17 +214,26 @@ class StructureAnalyser(BaseAnalyser):
     ) -> list[Finding]:
         """Run all structure checks."""
         findings: list[Finding] = []
-
-        findings.extend(self.check_kaptxt(doc))
-
-        p = params or {}
-        findings.extend(
-            self.check_short(
-                doc,
-                min_words=int(p.get("min_words", SHORT_MIN_WORDS)),
-                min_chars=int(p.get("min_chars", SHORT_MIN_CHARS)),
-                min_struct=int(p.get("min_struct", SHORT_MIN_STRUCT)),
-            )
+        active_codes = (
+            {rule.ac_code for rule in rulebook.rules}
+            if rulebook is not None
+            else {"CONSEC_HEADINGS", "SHORT"}
         )
+
+        if "CONSEC_HEADINGS" in active_codes:
+            findings.extend(self.check_kaptxt(doc, ac_code="CONSEC_HEADINGS"))
+        elif "KAPTXT" in active_codes:
+            findings.extend(self.check_kaptxt(doc, ac_code="KAPTXT"))
+
+        if "SHORT" in active_codes:
+            p = params or {}
+            findings.extend(
+                self.check_short(
+                    doc,
+                    min_words=int(p.get("min_words", SHORT_MIN_WORDS)),
+                    min_chars=int(p.get("min_chars", SHORT_MIN_CHARS)),
+                    min_struct=int(p.get("min_struct", SHORT_MIN_STRUCT)),
+                )
+            )
 
         return findings
