@@ -268,6 +268,7 @@ def main(argv: list[str] | None = None) -> int:
 
     llm_client = None
     from .analysers.base_analyser import BaseLLMAnalyser
+
     need_llm = config.judge or any(
         a_cfg.enabled
         and (ANALYSER_LIST.get(a_cfg.analyser_id) is not None)
@@ -383,7 +384,7 @@ def main(argv: list[str] | None = None) -> int:
         write_json(file_outdir / "raw_findings.json", analyser_findings)
         logger.debug("Wrote raw_findings.json (%d findings)", len(analyser_findings))
 
-        if llm_client:
+        if llm_client and config.judge:
             judge_batch = rule_engine.prepare_judge_batch(analyser_findings)
             if judge_batch:
                 logger.info("Running judge model on %d findings...", len(judge_batch))
