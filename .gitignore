@@ -17,4 +17,4 @@ baduml-classifier
 # Data
 data/
 !data/clean_ipp_data.csv
-
+pilot/
