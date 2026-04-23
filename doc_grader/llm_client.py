@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     )
 
 from .schemas.document import get_picture_pil
+from .utils import model_eval_spec_text
 
 # Pricing table: (input_usd_per_1m, cached_usd_per_1m, output_usd_per_1m)
 # Sources: https://developers.openai.com/api/docs/pricing and microsoft (as of 4/7/2026)
@@ -682,7 +683,7 @@ class LLMClient:
             eval_lines: list[str] = []
             for ev in f.model_evals:
                 score_str = f"{ev.score:.3f}" if ev.score is not None else "n/a"
-                spec_text = (ev.raw or {}).get("spec_text", "") if ev.raw else ""
+                spec_text = model_eval_spec_text(ev.raw)
                 if spec_text:
                     eval_lines.append(
                         f"sim={score_str} ({ev.label or 'match'})"

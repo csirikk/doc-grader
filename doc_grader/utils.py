@@ -138,6 +138,14 @@ def log_json(logger: logging.Logger, label: str, payload: Any) -> None:
         logger.exception("Failed to dump JSON for %s", label)
 
 
+def model_eval_spec_text(raw: Any) -> str:
+    """Return embedded spec text from ModelEval.raw when present."""
+    if not isinstance(raw, dict):
+        return ""
+    spec_text = raw.get("spec_text", "")
+    return spec_text if isinstance(spec_text, str) else ""
+
+
 def summarise_usage_payload(by_model: dict[str, Any]) -> dict[str, Any]:
     """Return a serialisable usage summary with per-model cost convenience data."""
     from .llm_client import summarise_usage
@@ -382,11 +390,7 @@ def format_finding_short(finding: Finding) -> str:
                 lines.append(f'  Evidence [{i}]: "{snippet}"')
             else:
                 lines.append(f"  Evidence [{i}]: (No snippet provided)")
-            if (
-                model_eval
-                and model_eval.raw
-                and (spec_text := model_eval.raw.get("spec_text"))
-            ):
+            if model_eval and (spec_text := model_eval_spec_text(model_eval.raw)):
                 spec_text = spec_text.replace("\n", " ")
                 if len(spec_text) > 500:
                     spec_text = spec_text[:500] + "..."

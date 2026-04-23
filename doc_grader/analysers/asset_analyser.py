@@ -185,7 +185,9 @@ class AssetAnalyser(BaseLLMAnalyser):
     ) -> None:
         super()._finalise_vision_finding(finding, vision_finding, output_code)
         if finding.model_evals:
-            finding.model_evals[-1].raw = vision_finding.raw_response
+            finding.model_evals[-1].raw = {
+                "classifier_raw_response": vision_finding.raw_response
+            }
         if vision_finding.ac_code != output_code:
             finding.meta = {"internal_ac_code": vision_finding.ac_code}
 
