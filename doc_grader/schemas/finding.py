@@ -9,7 +9,7 @@ from docling_core.types.doc.document import FineRef, ProvenanceItem  # noqa: TC0
 from pydantic import Field
 
 from .base import StrictModel
-from .ir import DocumentRef  # noqa: TC001
+from .document import DocumentRef  # noqa: TC001
 
 JudgeStatus = Literal[
     "not_to_be_judged",

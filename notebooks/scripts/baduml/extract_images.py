@@ -18,7 +18,7 @@ from urllib.parse import unquote
 import pandas as pd
 from PIL import Image
 
-from doc_grader.parser import DocumentParser
+from doc_grader.document_parser import DocumentParser
 
 from .models import StudentImageRecord
 
