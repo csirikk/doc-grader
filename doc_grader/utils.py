@@ -138,6 +138,148 @@ def log_json(logger: logging.Logger, label: str, payload: Any) -> None:
         logger.exception("Failed to dump JSON for %s", label)
 
 
+def summarise_usage_payload(by_model: dict[str, Any]) -> dict[str, Any]:
+    """Return a serialisable usage summary with per-model cost convenience data."""
+    from .llm_client import summarise_usage
+
+    summary = summarise_usage(by_model)
+    summary["costs_by_model_eur"] = {
+        model: entry.get("cost_eur") for model, entry in summary["by_model"].items()
+    }
+    return summary
+
+
+def merge_stage_timings(
+    aggregate: dict[str, dict[str, float | int]],
+    stage_times: dict[str, float],
+) -> dict[str, dict[str, float | int]]:
+    """Accumulate per-document stage timings into a run-level aggregate."""
+    merged = {stage: dict(stats) for stage, stats in aggregate.items()}
+    for stage, seconds in stage_times.items():
+        seconds = round(float(seconds), 2)
+        existing = merged.get(stage)
+        if existing is None:
+            merged[stage] = {
+                "calls": 1,
+                "total_seconds": seconds,
+                "min_seconds": seconds,
+                "max_seconds": seconds,
+            }
+            continue
+        existing_calls = int(existing["calls"])
+        existing_total = float(existing["total_seconds"])
+        existing_min = float(existing["min_seconds"])
+        existing_max = float(existing["max_seconds"])
+        merged[stage] = {
+            "calls": existing_calls + 1,
+            "total_seconds": round(existing_total + seconds, 2),
+            "min_seconds": round(min(existing_min, seconds), 2),
+            "max_seconds": round(max(existing_max, seconds), 2),
+        }
+    return merged
+
+
+def summarise_stage_timings(
+    aggregate: dict[str, dict[str, float | int]],
+) -> dict[str, Any]:
+    """Summarise run-level timing aggregates into a compact JSON payload."""
+    by_stage: dict[str, dict[str, float | int]] = {}
+    total_tracked_seconds = 0.0
+    total_invocations = 0
+    for stage in sorted(aggregate):
+        stats = aggregate[stage]
+        calls = int(stats["calls"])
+        total_seconds = round(float(stats["total_seconds"]), 2)
+        min_seconds = round(float(stats["min_seconds"]), 2)
+        max_seconds = round(float(stats["max_seconds"]), 2)
+        avg_seconds = round(total_seconds / calls, 2) if calls else 0.0
+        by_stage[stage] = {
+            "calls": calls,
+            "total_seconds": total_seconds,
+            "avg_seconds": avg_seconds,
+            "min_seconds": min_seconds,
+            "max_seconds": max_seconds,
+        }
+        total_tracked_seconds += total_seconds
+        total_invocations += calls
+    return {
+        "by_stage": by_stage,
+        "total_tracked_seconds": round(total_tracked_seconds, 2),
+        "total_stage_invocations": total_invocations,
+    }
+
+
+def build_doc_info(
+    *,
+    input_payload: dict[str, Any],
+    run_id: str,
+    config_hash: str,
+    course: str | None,
+    max_doc_points: int | None,
+    parse_payload: dict[str, Any],
+    parser_findings_count: int,
+    finding_count: int,
+    usage_by_model: dict[str, Any],
+    stage_times: dict[str, float],
+    elapsed_seconds: float,
+    document_stats: dict[str, Any] | None = None,
+    analyser_errors: dict[str, list[str]] | None = None,
+    extra_summary: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build the canonical per-document info.json payload."""
+    info = {
+        "input": input_payload,
+        "run": {"run_id": run_id, "config_hash": config_hash},
+        "config": {
+            "course": course,
+            "max_doc_points": max_doc_points,
+        },
+        "parse": parse_payload,
+        "counts": {
+            "n_parser_findings": parser_findings_count,
+            "n_findings": finding_count,
+        },
+        "stage_times": {
+            stage: round(float(seconds), 2) for stage, seconds in stage_times.items()
+        },
+        "usage": summarise_usage_payload(usage_by_model),
+        "elapsed_seconds": round(elapsed_seconds, 2),
+    }
+    if extra_summary:
+        info.update(extra_summary)
+    if document_stats is not None:
+        info["document"] = document_stats
+    if analyser_errors:
+        info["analyser_errors"] = analyser_errors
+    return info
+
+
+def build_run_summary(
+    *,
+    run_id: str,
+    config_hash: str,
+    config_path: Path,
+    output_dir: Path,
+    counts: dict[str, Any],
+    usage_by_model: dict[str, Any],
+    stage_timings: dict[str, dict[str, float | int]],
+    elapsed_seconds: float,
+) -> dict[str, Any]:
+    """Build the canonical aggregated run summary JSON payload."""
+    return {
+        "run": {
+            "run_id": run_id,
+            "config_hash": config_hash,
+            "config_path": str(config_path),
+            "output_dir": str(output_dir),
+        },
+        "counts": counts,
+        "stage_times": summarise_stage_timings(stage_timings),
+        "usage": summarise_usage_payload(usage_by_model),
+        "elapsed_seconds": round(elapsed_seconds, 2),
+    }
+
+
 _id_counters: dict[str, int] = {}
 
 

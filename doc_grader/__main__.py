@@ -23,17 +23,20 @@ from .analysers.content_analyser import ContentAnalyser
 from .analysers.grammar_analyser import GrammarAnalyser
 from .analysers.integrity_analyser import IntegrityAnalyser
 from .analysers.structure_analyser import StructureAnalyser
-from .llm_client import LLMClient, merge_usage, summarise_usage
+from .llm_client import LLMClient, merge_usage
 from .rule_engine import RuleEngine
 from .schemas.config import AppConfig, load_app_config, load_rulebook
 from .scorer import Scorer
 from .utils import (
+    build_doc_info,
+    build_run_summary,
     compute_config_hash,
     configure_logging,
     findings_to_csv_rows,
     findings_to_grader_row,
     format_finding_short,
     log_json,
+    merge_stage_timings,
     reset_id_counters,
     write_csv,
     write_json,
@@ -139,10 +142,11 @@ def _load_app_config(config_path: str | None) -> AppConfig:
 
 def _run_analysers(
     ir: Document, config: AppConfig, rulebook: Rulebook, llm_client: Any | None = None
-) -> tuple[list[Finding], dict, dict[str, float]]:
+) -> tuple[list[Finding], dict, dict[str, float], dict[str, list[str]]]:
     findings: list[Finding] = []
     accumulated_usage: dict = {}
     stage_times: dict[str, float] = {}
+    analyser_errors: dict[str, list[str]] = {}
 
     for analyser_cfg in config.analysers:
         if not analyser_cfg.enabled:
@@ -177,10 +181,20 @@ def _run_analysers(
             analyser_usage = getattr(instance, "_accumulated_usage", None)
             if analyser_usage is not None:
                 accumulated_usage = merge_usage(accumulated_usage, analyser_usage)
+            # collect analyser diagnostics
+            instance_diagnostics = getattr(instance, "_diagnostics", None)
+            if instance_diagnostics:
+                analyser_errors.setdefault(analyser_cfg.analyser_id, []).extend(
+                    instance_diagnostics
+                )
         except Exception:
-            logger.exception("Error running analyser %s", analyser_cfg.analyser_id)
+            import traceback
 
-    return findings, accumulated_usage, stage_times
+            tb = traceback.format_exc()
+            logger.exception("Error running analyser %s", analyser_cfg.analyser_id)
+            analyser_errors.setdefault(analyser_cfg.analyser_id, []).append(tb)
+
+    return findings, accumulated_usage, stage_times, analyser_errors
 
 
 def _run_id_from_config(config: AppConfig) -> str:
@@ -288,7 +302,13 @@ def main(argv: list[str] | None = None) -> int:
     config_hash = compute_config_hash(_config_for_hash(config))
 
     base_outdir = Path(args.out)
+    total_run_start = time.monotonic()
     exit_code = 0
+    run_usage: dict = {}
+    run_stage_timings: dict[str, dict[str, float | int]] = {}
+    docs_processed = 0
+    docs_parsed = 0
+    docs_failed_parse = 0
     clean_csv_rows: list = []  # accumulated per-finding rows for --clean-csv-out
     grader_rows: list = []  # one row per document for --csv-out
 
@@ -303,6 +323,7 @@ def main(argv: list[str] | None = None) -> int:
         expected_filename=config.expected_filename,
         allowed_extensions=config.allowed_extensions,
     ):
+        docs_processed += 1
         reset_id_counters()
         if llm_client:
             pass
@@ -323,37 +344,43 @@ def main(argv: list[str] | None = None) -> int:
         _parse_elapsed = round(time.monotonic() - _parse_t0, 2)
         parser_findings = parse_output.parser_findings
         ir_doc = parse_output.ir
+        doc_stage_times: dict[str, float] = {"parse": _parse_elapsed}
 
         logger.debug("Parsing done")
 
         doc_ref = parse_output.doc_ref
-
-        info = {
-            "input": doc_ref.model_dump(mode="json", by_alias=True, exclude_none=True),
-            "run": {"run_id": run_id, "config_hash": config_hash},
-            "config": {
-                "course": config.course,
-                "max_doc_points": config.max_doc_points,
-            },
-            "parse": parse_output.parse_meta.model_dump(
-                mode="json", by_alias=True, exclude_none=True
-            ),
-            "counts": {"n_parser_findings": len(parser_findings), "n_findings": 0},
-        }
+        input_payload = doc_ref.model_dump(
+            mode="json", by_alias=True, exclude_none=True
+        )
+        parse_payload = parse_output.parse_meta.model_dump(
+            mode="json", by_alias=True, exclude_none=True
+        )
 
         write_json(file_outdir / "parser_findings.json", parser_findings)
 
         if ir_doc is None:
+            docs_failed_parse += 1
             write_json(file_outdir / "raw_findings.json", parser_findings)
             write_json(file_outdir / "findings.json", parser_findings)
             logger.debug(
                 "Wrote raw_findings.json and findings.json (%d findings)",
                 len(parser_findings),
             )
-            info["counts"]["n_findings"] = len(parser_findings)
-            info["usage"] = summarise_usage({})
-            info["elapsed_seconds"] = round(time.monotonic() - run_start, 2)
+            info = build_doc_info(
+                input_payload=input_payload,
+                run_id=run_id,
+                config_hash=config_hash,
+                course=config.course,
+                max_doc_points=config.max_doc_points,
+                parse_payload=parse_payload,
+                parser_findings_count=len(parser_findings),
+                finding_count=len(parser_findings),
+                usage_by_model={},
+                stage_times=doc_stage_times,
+                elapsed_seconds=time.monotonic() - run_start,
+            )
             write_json(file_outdir / "info.json", info)
+            run_stage_timings = merge_stage_timings(run_stage_timings, doc_stage_times)
             clean_csv_rows.extend(
                 findings_to_csv_rows(
                     path,
@@ -371,12 +398,17 @@ def main(argv: list[str] | None = None) -> int:
             logger.warning("Parsing failed for %s", path)
             continue
 
+        docs_parsed += 1
         write_json(file_outdir / "docling.json", ir_doc.docling_doc)
         write_json(file_outdir / "ir.json", ir_doc)
 
-        analyser_findings, doc_usage, analyser_stage_times = _run_analysers(
-            ir_doc, config, rulebook, llm_client
-        )
+        (
+            analyser_findings,
+            doc_usage,
+            analyser_stage_times,
+            analyser_errors,
+        ) = _run_analysers(ir_doc, config, rulebook, llm_client)
+        doc_stage_times.update(analyser_stage_times)
 
         if parser_findings:
             analyser_findings = parser_findings + analyser_findings
@@ -424,8 +456,13 @@ def main(argv: list[str] | None = None) -> int:
             write_json(file_outdir / "judged_findings.json", analyser_findings)
             logger.debug("Wrote judged_findings.json")
 
+        _rule_engine_t0 = time.monotonic()
         final_findings, re_summary = rule_engine.process(analyser_findings)
+        doc_stage_times["rule_engine"] = round(time.monotonic() - _rule_engine_t0, 2)
+
+        _score_t0 = time.monotonic()
         scorer.score(final_findings, rulebook, max_doc_points=config.max_doc_points)
+        doc_stage_times["score"] = round(time.monotonic() - _score_t0, 2)
         write_json(file_outdir / "findings.json", final_findings)
         logger.debug("Wrote findings.json (%d final findings)", len(final_findings))
 
@@ -443,17 +480,29 @@ def main(argv: list[str] | None = None) -> int:
         row["id"] = student_id
         grader_rows.append(row)
 
-        info["counts"]["n_findings"] = len(final_findings)
-        info.update(re_summary)
-        info["document"] = {
-            "total_words": ir_doc.total_words,
-            "total_paragraphs": ir_doc.total_paragraphs,
-            "total_pictures": ir_doc.total_pictures,
-        }
-        info["stage_times"] = {"parse": _parse_elapsed, **analyser_stage_times}
-        info["usage"] = summarise_usage(doc_usage)
-        info["elapsed_seconds"] = round(time.monotonic() - run_start, 2)
+        info = build_doc_info(
+            input_payload=input_payload,
+            run_id=run_id,
+            config_hash=config_hash,
+            course=config.course,
+            max_doc_points=config.max_doc_points,
+            parse_payload=parse_payload,
+            parser_findings_count=len(parser_findings),
+            finding_count=len(final_findings),
+            usage_by_model=doc_usage,
+            stage_times=doc_stage_times,
+            elapsed_seconds=time.monotonic() - run_start,
+            document_stats={
+                "total_words": ir_doc.total_words,
+                "total_paragraphs": ir_doc.total_paragraphs,
+                "total_pictures": ir_doc.total_pictures,
+            },
+            analyser_errors=analyser_errors,
+            extra_summary=re_summary,
+        )
         write_json(file_outdir / "info.json", info)
+        run_usage = merge_usage(run_usage, doc_usage)
+        run_stage_timings = merge_stage_timings(run_stage_timings, doc_stage_times)
 
         for finding in final_findings:
             logger.info("\n%s\n", format_finding_short(finding))
@@ -484,6 +533,41 @@ def main(argv: list[str] | None = None) -> int:
         ]
         write_csv(csv_path, grader_rows, fieldnames=grader_fieldnames)
         logger.info("Grader CSV with %d rows written to %s", len(grader_rows), csv_path)
+
+    run_summary = build_run_summary(
+        run_id=run_id,
+        config_hash=config_hash,
+        config_path=Path(args.config),
+        output_dir=base_outdir,
+        counts={
+            "n_documents": docs_processed,
+            "n_parsed_documents": docs_parsed,
+            "n_parse_failures": docs_failed_parse,
+            "n_grader_rows": len(grader_rows),
+            "n_clean_csv_rows": len(clean_csv_rows),
+        },
+        usage_by_model=run_usage,
+        stage_timings=run_stage_timings,
+        elapsed_seconds=time.monotonic() - total_run_start,
+    )
+    write_json(base_outdir / "run_summary.json", run_summary)
+
+    run_usage_summary = run_summary["usage"]
+    total_cost = run_usage_summary["total_cost_eur"]
+    logger.info(
+        (
+            "Run LLM cost summary: docs=%d parsed=%d parse_failures=%d "
+            "prompt_tokens=%d completion_tokens=%d cached_tokens=%d cost_eur=%s"
+        ),
+        docs_processed,
+        docs_parsed,
+        docs_failed_parse,
+        run_usage_summary["total_prompt_tokens"],
+        run_usage_summary["total_completion_tokens"],
+        run_usage_summary["total_cached_tokens"],
+        f"{total_cost:.6f}" if total_cost is not None else "n/a",
+    )
+    log_json(logger, "Run LLM usage", run_usage_summary)
 
     return exit_code
 
