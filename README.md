@@ -32,6 +32,7 @@ CLI options:
 - `-o, --out PATH` path to output directory (default: `out/default/`)
 - `-c, --config PATH` path to a JSON config file (default: `config/default.json`)
 - `--csv-out PATH` path where to write a combined CSV of all findings, mirroring the original csv grading workflow
+- `--skip-existing` skip documents that already have `findings.json` and `info.json` in the target output directory
 
 ### Inputs
 

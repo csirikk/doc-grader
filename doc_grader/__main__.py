@@ -6,6 +6,7 @@ Licensed under the GNU General Public License v3.0 (GPL-3.0).
 """
 
 import argparse
+import json
 import logging
 import os
 import sys
@@ -209,6 +210,38 @@ def _config_for_hash(config: AppConfig) -> dict[str, Any]:
     return payload
 
 
+def _has_completed_outputs(file_outdir: Path) -> bool:
+    """Return ``True`` when per-document final outputs already exist."""
+    required_files = ("findings.json", "info.json")
+    return all((file_outdir / filename).is_file() for filename in required_files)
+
+
+def _load_existing_findings_for_csv(file_outdir: Path) -> list[Finding] | None:
+    """Load existing findings from disk for CSV export reuse."""
+    findings_path = file_outdir / "findings.json"
+    if not findings_path.is_file():
+        return None
+
+    try:
+        payload = json.loads(findings_path.read_text(encoding="utf-8"))
+        if not isinstance(payload, list):
+            logger.warning(
+                "Cannot reuse findings from %s: expected a list payload", findings_path
+            )
+            return None
+
+        from .schemas.finding import Finding
+
+        return [Finding.model_validate(item) for item in payload]
+    except Exception:
+        logger.warning(
+            "Cannot reuse findings from %s for CSV export",
+            findings_path,
+            exc_info=True,
+        )
+        return None
+
+
 def main(argv: list[str] | None = None) -> int:
     """Command-line entry point for the doc-grader pipeline.
 
@@ -254,6 +287,14 @@ def main(argv: list[str] | None = None) -> int:
             "If provided, write all findings as a CSV to this path. "
             "Cols match the clean_ipp_data.csv schema from dataset_parser.py, "
             "enabling direct comparison with the ground-truth assessment dataset."
+        ),
+    )
+    arg_parser.add_argument(
+        "--skip-existing",
+        action="store_true",
+        help=(
+            "Skip documents that already have findings.json and info.json "
+            "in their output directory."
         ),
     )
     args = arg_parser.parse_args(argv)
@@ -306,7 +347,9 @@ def main(argv: list[str] | None = None) -> int:
     exit_code = 0
     run_usage: dict = {}
     run_stage_timings: dict[str, dict[str, float | int]] = {}
+    docs_discovered = 0
     docs_processed = 0
+    docs_skipped = 0
     docs_parsed = 0
     docs_failed_parse = 0
     clean_csv_rows: list = []  # accumulated per-finding rows for --clean-csv-out
@@ -323,13 +366,52 @@ def main(argv: list[str] | None = None) -> int:
         expected_filename=config.expected_filename,
         allowed_extensions=config.allowed_extensions,
     ):
+        docs_discovered += 1
+        path = doc_path
+        file_outdir = base_outdir / student_id
+
+        if args.skip_existing and _has_completed_outputs(file_outdir):
+            docs_skipped += 1
+            logger.info(
+                "Skipping already processed document: %s (student_id=%s)",
+                path,
+                student_id,
+            )
+
+            existing_findings = _load_existing_findings_for_csv(file_outdir)
+            if args.clean_csv_out and existing_findings is not None:
+                clean_csv_rows.extend(
+                    findings_to_csv_rows(
+                        path,
+                        existing_findings,
+                        student_id=student_id,
+                        max_doc_points=config.max_doc_points,
+                    )
+                )
+            if args.csv_out and existing_findings is not None:
+                row = findings_to_grader_row(
+                    path,
+                    existing_findings,
+                    max_doc_points=config.max_doc_points,
+                )
+                row["id"] = student_id
+                grader_rows.append(row)
+
+            if (args.clean_csv_out or args.csv_out) and existing_findings is None:
+                logger.warning(
+                    (
+                        "Skipped %s but existing findings could not be loaded; "
+                        "this document will be missing from current CSV outputs"
+                    ),
+                    path,
+                )
+            continue
+
         docs_processed += 1
         reset_id_counters()
         if llm_client:
             pass
         run_start = time.monotonic()
-        path = doc_path
-        file_outdir = base_outdir / student_id
         rule_engine = RuleEngine()
 
         _parse_t0 = time.monotonic()
@@ -540,7 +622,9 @@ def main(argv: list[str] | None = None) -> int:
         config_path=Path(args.config),
         output_dir=base_outdir,
         counts={
-            "n_documents": docs_processed,
+            "n_documents": docs_discovered,
+            "n_processed_documents": docs_processed,
+            "n_skipped_documents": docs_skipped,
             "n_parsed_documents": docs_parsed,
             "n_parse_failures": docs_failed_parse,
             "n_grader_rows": len(grader_rows),
@@ -556,10 +640,13 @@ def main(argv: list[str] | None = None) -> int:
     total_cost = run_usage_summary["total_cost_eur"]
     logger.info(
         (
-            "Run LLM cost summary: docs=%d parsed=%d parse_failures=%d "
+            "Run LLM cost summary: docs=%d processed=%d skipped=%d parsed=%d "
+            "parse_failures=%d "
             "prompt_tokens=%d completion_tokens=%d cached_tokens=%d cost_eur=%s"
         ),
+        docs_discovered,
         docs_processed,
+        docs_skipped,
         docs_parsed,
         docs_failed_parse,
         run_usage_summary["total_prompt_tokens"],
