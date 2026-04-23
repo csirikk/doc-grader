@@ -1,4 +1,4 @@
-"""Intermediate Representation schema.
+"""Document Intermediate Representation schema.
 
 Author: Matúš Csirik
 """

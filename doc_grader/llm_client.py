@@ -13,19 +13,19 @@ from typing import TYPE_CHECKING, TypedDict
 from openai import OpenAI
 
 if TYPE_CHECKING:
+    from .schemas.document import Document
     from .schemas.finding import Finding
-    from .schemas.ir import Document
     from .schemas.llm import (
         JudgeModelResponse,
         LLMFinding,
         Rulebook,
     )
 
-from .schemas.ir import get_picture_pil
+from .schemas.document import get_picture_pil
 
 # Pricing table: (input_usd_per_1m, cached_usd_per_1m, output_usd_per_1m)
 # Sources: https://developers.openai.com/api/docs/pricing and microsoft (as of 4/7/2026)
-_MODEL_PRICING: list[tuple[str, tuple[float, float, float]]] = [
+MODEL_PRICING: list[tuple[str, tuple[float, float, float]]] = [
     ("gpt-5.4-nano", (0.20, 0.02, 1.25)),
     ("gpt-5.4-mini", (0.75, 0.075, 4.50)),
     ("gpt-5.4", (2.50, 0.25, 15.00)),
@@ -34,13 +34,13 @@ _MODEL_PRICING: list[tuple[str, tuple[float, float, float]]] = [
     ("gpt-4.1", (2.00, 0.50, 8.00)),  # fine-tuned baduml binary classifier base
 ]
 
-_USD_TO_EUR: float = 0.92
+USD_TO_EUR: float = 0.92
 
 
 def _lookup_pricing(model: str) -> tuple[float, float, float] | None:
     """Return (input, cached_input, output) rates in USD per 1M tokens, or None."""
     lower = model.lower()
-    for prefix, rates in _MODEL_PRICING:
+    for prefix, rates in MODEL_PRICING:
         if prefix in lower:
             return rates
     return None
@@ -157,7 +157,7 @@ class LLMClient:
             call_cost_usd = (
                 billable_input * in_rate + cached * cached_rate + completion * out_rate
             ) / 1_000_000.0
-            call_cost_eur: float | None = round(call_cost_usd * _USD_TO_EUR, 6)
+            call_cost_eur: float | None = round(call_cost_usd * USD_TO_EUR, 6)
         else:
             call_cost_eur = None
 
@@ -542,10 +542,10 @@ class LLMClient:
             )
             raw_content = (response.choices[0].message.content or "").strip()
 
-            u = raw_content.upper()
-            if "BADUML" in u:
+            raw_upper = raw_content.upper()
+            if "BADUML" in raw_upper:
                 label = "BADUML"
-            elif "GOODUML" in u:
+            elif "GOODUML" in raw_upper:
                 label = "GOODUML"
             else:
                 label = "UNKNOWN"

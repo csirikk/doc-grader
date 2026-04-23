@@ -25,14 +25,14 @@ if TYPE_CHECKING:
     import numpy as np
     from numpy.typing import NDArray
 
+    from ..schemas.document import Document
     from ..schemas.finding import Finding
-    from ..schemas.ir import Document
     from ..schemas.llm import LLMRule, Rulebook
 
 logger = logging.getLogger(__name__)
 
 # -- Embedding model --------------------------------------------------------
-_EMBEDDING_MODEL: str = "BAAI/bge-m3"
+EMBEDDING_MODEL: str = "BAAI/bge-m3"
 
 # -- Similarity thresholds --------------------------------------------------
 CHUNK_SIM_THRESHOLD: float = 0.80
@@ -53,12 +53,12 @@ TOP_K_ANCHORS: int = 5
 MIN_SENTENCE_LEN: int = 20
 
 # -- Filtering patterns -----------------------------------------------------
-_TITLE_RE = re.compile(
+TITLE_RE = re.compile(
     r"^(implementa[cv]n[iy]|dokumentace|student|login|jmeno|xlogin|zadani)",
     re.IGNORECASE,
 )
-_TOC_RE = re.compile(r"^\s*(\d+\.)+\s*$")
-_YEAR_RE = re.compile(r"(20\d{2}\s*/\s*20\d{2}|IPP\s*20\d{2})", re.IGNORECASE)
+TOC_RE = re.compile(r"^\s*(\d+\.)+\s*$")
+YEAR_RE = re.compile(r"(20\d{2}\s*/\s*20\d{2}|IPP\s*20\d{2})", re.IGNORECASE)
 
 
 # -- Data containers --------------------------------------------------------
@@ -123,8 +123,8 @@ def _get_model() -> Any:
     if _model is None:
         from sentence_transformers import SentenceTransformer
 
-        logger.info("Loading embedding model %s ...", _EMBEDDING_MODEL)
-        _model = SentenceTransformer(_EMBEDDING_MODEL)
+        logger.info("Loading embedding model %s ...", EMBEDDING_MODEL)
+        _model = SentenceTransformer(EMBEDDING_MODEL)
         logger.info("Embedding model loaded")
     return _model
 
@@ -168,15 +168,15 @@ def _is_boilerplate(text: str) -> bool:
     stripped = text.strip()
     return (
         not stripped
-        or bool(_TITLE_RE.search(stripped))
-        or bool(_TOC_RE.match(stripped))
-        or (bool(_YEAR_RE.match(stripped)) and len(stripped) < 80)
+        or bool(TITLE_RE.search(stripped))
+        or bool(TOC_RE.match(stripped))
+        or (bool(YEAR_RE.match(stripped)) and len(stripped) < 80)
     )
 
 
 def _clean_and_filter(text: str, min_len: int) -> str | None:
     """Return cleaned text or ``None`` if it should be skipped."""
-    from ..parser import clean_pdf_text
+    from ..document_parser import clean_pdf_text
 
     cleaned = clean_pdf_text(text).strip()
     if len(cleaned) < min_len or _is_boilerplate(cleaned):
@@ -226,13 +226,13 @@ def _split_sentences(text: str) -> list[str]:
 def _spec_cache_path(spec_path: Path) -> Path:
     """Return the path for the cached spec embeddings."""
     content_hash = hashlib.sha256(spec_path.read_bytes()).hexdigest()[:16]
-    model_tag = _EMBEDDING_MODEL.replace("/", "_")
+    model_tag = EMBEDDING_MODEL.replace("/", "_")
     return spec_path.parent / f".integrity_cache_{model_tag}_{content_hash}.npz"
 
 
 def _build_spec_index(spec_path: Path, min_chunk_len: int) -> SpecIndex:
     """Parse, chunk, sentence-split and embed the specification."""
-    from ..parser import DocumentParser
+    from ..document_parser import DocumentParser
 
     cache_key = str(spec_path.resolve())
     if cache_key in _spec_cache:
@@ -488,7 +488,7 @@ class IntegrityAnalyser(BaseLLMAnalyser):
 
         has_copy_rule = any(r.ac_code == "COPY" for r in rules)
         if has_copy_rule and (params or {}).get("spec_path"):
-            from ..parser import DocumentParser
+            from ..document_parser import DocumentParser
 
             spec_path = Path(params["spec_path"])  # type: ignore
             try:
@@ -709,7 +709,7 @@ class IntegrityAnalyser(BaseLLMAnalyser):
 
         finding.model_evals = [
             ModelEval(
-                model_name=_EMBEDDING_MODEL,
+                model_name=EMBEDDING_MODEL,
                 label=src["label"],
                 score=round(src["sim"], 4),
                 raw={"spec_text": src["spec_text"]},

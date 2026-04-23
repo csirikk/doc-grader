@@ -44,8 +44,8 @@ if TYPE_CHECKING:
     from schemas.llm import Rulebook
 
     from .analysers.base_analyser import BaseAnalyser
+    from .schemas.document import Document
     from .schemas.finding import Finding
-    from .schemas.ir import Document
 
 logger = logging.getLogger(__name__)
 
@@ -222,7 +222,7 @@ def main(argv: list[str] | None = None) -> int:
     clean_csv_rows: list = []  # accumulated per-finding rows for --clean-csv-out
     grader_rows: list = []  # one row per document for --csv-out
 
-    from .parser import DocumentParser
+    from .document_parser import DocumentParser
 
     logger.info("Initialising parser...")
     parser = DocumentParser()

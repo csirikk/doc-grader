@@ -23,7 +23,7 @@ from ..utils import next_id
 if TYPE_CHECKING:
     from docling_core.types.doc.document import DocItem
 
-    from ..schemas.ir import Document
+    from ..schemas.document import Document
     from ..schemas.llm import LLMFinding, LLMRule, Rulebook, VisionFinding
 
 logger = logging.getLogger(__name__)

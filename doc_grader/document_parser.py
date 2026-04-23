@@ -26,8 +26,8 @@ from docling_core.types.io import DocumentStream
 from pydantic import Field
 
 from .schemas.base import StrictModel
+from .schemas.document import Document, DocumentRef
 from .schemas.finding import AnalyserInfo, Finding, HumanStatus, JudgeStatus
-from .schemas.ir import Document, DocumentRef
 from .utils import next_id
 
 if TYPE_CHECKING:

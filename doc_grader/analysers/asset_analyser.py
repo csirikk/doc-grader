@@ -28,20 +28,20 @@ from ..llm_client import merge_usage
 from .base_analyser import BaseLLMAnalyser
 
 if TYPE_CHECKING:
+    from ..schemas.document import Document
     from ..schemas.finding import Finding
-    from ..schemas.ir import Document
     from ..schemas.llm import LLMRule, Rulebook
 
 logger = logging.getLogger(__name__)
 
 # OpenAI fine-tuned binary classifier default model ID
-_BADUML_MODEL = "ft:gpt-4.1-2025-04-14:personal:baduml-classifier-gold:DU8txcxh"
+BADUML_MODEL = "ft:gpt-4.1-2025-04-14:personal:baduml-classifier-gold:DU8txcxh"
 
 # pymarkdownlnt rules targeted by the MD SAZBA check
-_SAZBA_LINT_RULES: frozenset[str] = frozenset({"md009", "md010"})
+SAZBA_LINT_RULES: frozenset[str] = frozenset({"md009", "md010"})
 
 # Regex for programming identifiers likely missing monospace formatting
-_IDENT_RE = re.compile(
+IDENT_RE = re.compile(
     r"\b(?:"
     r"[a-z][a-zA-Z0-9]*[A-Z][a-zA-Z0-9]*"  # camelCase
     r"|[a-zA-Z_][a-zA-Z0-9]*_[a-zA-Z][a-zA-Z0-9]*"  # snake_case
@@ -51,7 +51,7 @@ _IDENT_RE = re.compile(
 )
 
 # Regex for incorrect spacing around brackets (MEZ)
-_MEZ_RE = re.compile(r"\( | \)")
+MEZ_RE = re.compile(r"\( | \)")
 
 
 class AssetAnalyser(BaseLLMAnalyser):
@@ -108,7 +108,7 @@ class AssetAnalyser(BaseLLMAnalyser):
 
         model = (params or {}).get("model")
         temperature = (params or {}).get("temperature")
-        ft_model = (params or {}).get("classifier_model") or _BADUML_MODEL
+        ft_model = (params or {}).get("classifier_model") or BADUML_MODEL
         usage: dict = {}
         findings: list[VisionFinding] = []
 
@@ -205,7 +205,7 @@ class AssetAnalyser(BaseLLMAnalyser):
 
             scan_result = PyMarkdownApi().scan_string(content)
             for failure in scan_result.scan_failures:
-                if failure.rule_id.lower() in _SAZBA_LINT_RULES:
+                if failure.rule_id.lower() in SAZBA_LINT_RULES:
                     violations.append(
                         f"Line {failure.line_number}: "
                         f"[{failure.rule_id.upper()}] {failure.rule_description}"
@@ -229,12 +229,12 @@ class AssetAnalyser(BaseLLMAnalyser):
                     if child.type != "text":
                         continue
                     text = child.content
-                    for m in _IDENT_RE.finditer(text):
+                    for m in IDENT_RE.finditer(text):
                         violations.append(
                             f"Line {line_no or '?'}: "
                             f"Identifier '{m.group()}' should use monospace formatting"
                         )
-                    if _MEZ_RE.search(text):
+                    if MEZ_RE.search(text):
                         violations.append(
                             f"Line {line_no or '?'}: Incorrect spacing around bracket"
                         )

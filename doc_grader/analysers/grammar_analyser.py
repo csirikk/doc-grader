@@ -11,8 +11,8 @@ from docling_core.types.doc.document import TextItem
 from .base_analyser import BaseLLMAnalyser
 
 if TYPE_CHECKING:
+    from ..schemas.document import Document
     from ..schemas.finding import Finding
-    from ..schemas.ir import Document
     from ..schemas.llm import LLMRule, Rulebook
 
 logger = logging.getLogger(__name__)
