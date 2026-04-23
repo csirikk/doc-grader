@@ -398,9 +398,9 @@ class DocumentParser:
             findings.append(
                 self._make_finding(
                     doc_ref,
-                    "EMPTY_FILE",
+                    "MISSING",
                     "Empty Document",
-                    "File is 0 bytes.",
+                    "File is 0 bytes and therefore counts as missing documentation.",
                     run_id,
                     config_hash,
                 )
