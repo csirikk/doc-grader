@@ -1,13 +1,31 @@
-"""Helpers to prepare and run fine-tuning of the BADUML vision classifier.
+"""Fine-tuning helpers for a local BADUML vision classifier.
 
-Author: Matúš Csirik
+Author: Matús Csirik
 
-This script is intended to be run from a development environment and is
-not part of the grader production pipeline. It provides dataset generation
-and a small ``main`` entry point to launch a quick fine-tuning job.
+STANDALONE SCRIPT, NOT PART OF THE DOC-GRADER PACKAGE
 
-Requires the ``unsloth`` library and therefore a different version of Python
-than the rest of the tool.
+The ``unsloth`` library requires a separate Python environment that is
+incompatible with the version used by the rest of the project. Do NOT run
+this script inside the virtual environment used by ``doc-grader``.
+Create a dedicated ``unsloth`` environment before running it:
+    # example
+    conda activate unsloth-env
+    python notebooks/scripts/train.py
+
+Required packages (install into the dedicated environment only):
+- ``unsloth``
+- ``torch``
+- ``datasets``
+- ``trl``
+- ``Pillow``
+
+Place labelled images in the following directory structure::
+    data/vision-training/
+        gooduml/
+        baduml/
+
+The fine-tuned model and tokeniser will be saved to ``baduml-classifier/``
+at the project root.
 """
 
 import logging
