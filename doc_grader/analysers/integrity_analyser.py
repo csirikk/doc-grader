@@ -112,9 +112,10 @@ class ScoredResult(StrictModel):
 
 # -- Module-level singletons ----------------------------------------
 _model: Any = None
-_stanza_pipeline: Any = None
 _spec_cache: dict[str, SpecIndex] = {}
 _tok_cache: dict[str, Any] = {}
+
+_SUPPORTED_SENTENCE_LANGS: frozenset[str] = frozenset({"cs", "sk", "en"})
 
 
 def _get_model() -> Any:
@@ -129,21 +130,45 @@ def _get_model() -> Any:
     return _model
 
 
-def _get_stanza() -> Any:
-    """Lazy-load the stanza tokeniser for sentence boundary detection."""
-    global _stanza_pipeline
-    if _stanza_pipeline is None:
-        import stanza
+def _sentence_lang(text: str, preferred_lang: str | None = None) -> str:
+    """Choose a supported tokenizer language for sentence splitting."""
+    if preferred_lang in _SUPPORTED_SENTENCE_LANGS:
+        return preferred_lang
 
-        logger.info("Loading stanza multilingual tokeniser ...")
-        _stanza_pipeline = stanza.Pipeline(
-            "multilingual",
-            processors="langid",
-            download_method=stanza.DownloadMethod.REUSE_RESOURCES,
-            verbose=False,
-        )
-        logger.info("Stanza pipeline loaded")
-    return _stanza_pipeline
+    from ..document_parser import _detect_language
+
+    detected_lang = _detect_language(text)
+    if detected_lang in _SUPPORTED_SENTENCE_LANGS:
+        return detected_lang
+    return "en"
+
+
+def _get_sentence_tokenizer(lang: str) -> Any:
+    """Return a cached stanza tokenizer pipeline for a supported language."""
+    import stanza
+
+    if lang not in _tok_cache:
+        try:
+            _tok_cache[lang] = stanza.Pipeline(
+                lang,
+                processors="tokenize",
+                download_method=stanza.DownloadMethod.REUSE_RESOURCES,
+                verbose=False,
+            )
+        except Exception:
+            logger.debug(
+                "Stanza tokenizer for '%s' unavailable, falling back to 'cs'",
+                lang,
+            )
+            if "cs" not in _tok_cache:
+                _tok_cache["cs"] = stanza.Pipeline(
+                    "cs",
+                    processors="tokenize",
+                    download_method=stanza.DownloadMethod.REUSE_RESOURCES,
+                    verbose=False,
+                )
+            _tok_cache[lang] = _tok_cache["cs"]
+    return _tok_cache[lang]
 
 
 def _encode(texts: list[str]) -> NDArray[np.float32]:
@@ -187,36 +212,10 @@ def _clean_and_filter(text: str, min_len: int) -> str | None:
 # -- Sentence splitting -----------------------------------------------------
 
 
-def _split_sentences(text: str) -> list[str]:
-    """Split text into sentences using stanza multilingual langid."""
-    import stanza
-
-    langid_doc = _get_stanza()(text)
-    lang = langid_doc.lang or "cs"
-
-    if lang not in _tok_cache:
-        try:
-            _tok_cache[lang] = stanza.Pipeline(
-                lang,
-                processors="tokenize",
-                download_method=stanza.DownloadMethod.REUSE_RESOURCES,
-                verbose=False,
-            )
-        except Exception:
-            logger.debug(
-                "Stanza model for '%s' unavailable, falling back to 'cs'",
-                lang,
-            )
-            if "cs" not in _tok_cache:
-                _tok_cache["cs"] = stanza.Pipeline(
-                    "cs",
-                    processors="tokenize",
-                    download_method=stanza.DownloadMethod.REUSE_RESOURCES,
-                    verbose=False,
-                )
-            _tok_cache[lang] = _tok_cache["cs"]
-
-    doc = _tok_cache[lang](text)
+def _split_sentences(text: str, preferred_lang: str | None = None) -> list[str]:
+    """Split text into sentences using a tokenizer for the document language."""
+    lang = _sentence_lang(text, preferred_lang)
+    doc = _get_sentence_tokenizer(lang)(text)
     return [sent.text for sent in doc.sentences]
 
 
@@ -342,7 +341,7 @@ def _extract_chunks(doc: Document, min_chunk_len: int) -> list[TextUnit]:
 
 
 def _extract_sentences(doc: Document, min_len: int) -> list[TextUnit]:
-    """Extract sentences from all text items using stanza SBD."""
+    """Extract sentences from all text items using doc-level language SBD."""
     from docling_core.types.doc.document import TextItem
 
     units: list[TextUnit] = []
@@ -353,7 +352,7 @@ def _extract_sentences(doc: Document, min_len: int) -> list[TextUnit]:
         if not item.text or not item.text.strip():
             continue
         cref = item.get_ref().cref
-        for sent in _split_sentences(item.text):
+        for sent in _split_sentences(item.text, preferred_lang=doc.language):
             cleaned = _clean_and_filter(sent, effective_min)
             if cleaned is not None:
                 units.append(TextUnit(text=cleaned, cref=cref))
