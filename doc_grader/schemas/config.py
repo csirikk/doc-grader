@@ -6,10 +6,28 @@ Author: Matúš Csirik
 from pathlib import Path  # noqa: TC003
 from typing import Any
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from .base import StrictModel
 from .llm import Rulebook
+
+
+def normalise_allowed_extensions(
+    allowed_extensions: list[str] | None,
+) -> list[str] | None:
+    """Return lower-case extensions with a leading dot."""
+    if allowed_extensions is None:
+        return None
+
+    normalised: list[str] = []
+    for suffix in allowed_extensions:
+        cleaned = suffix.lower()
+        if not cleaned.startswith("."):
+            cleaned = f".{cleaned}"
+        if cleaned not in normalised:
+            normalised.append(cleaned)
+
+    return normalised
 
 
 class AnalyserConfig(StrictModel):
@@ -91,6 +109,25 @@ class AppConfig(StrictModel):
     analysers: list[AnalyserConfig] = Field(
         default_factory=list, description="List of analyser configurations"
     )
+
+    @field_validator("allowed_extensions", mode="before")
+    @classmethod
+    def _normalise_allowed_extensions(cls, value: object) -> list[str]:
+        if value is None:
+            return [".pdf", ".md"]
+
+        if not isinstance(value, list):
+            msg = "allowed_extensions must be a list of strings"
+            raise TypeError(msg)
+
+        suffixes: list[str] = []
+        for suffix in value:
+            if not isinstance(suffix, str):
+                msg = "allowed_extensions must contain only strings"
+                raise TypeError(msg)
+            suffixes.append(suffix)
+
+        return normalise_allowed_extensions(suffixes) or [".pdf", ".md"]
 
 
 def load_app_config(path: Path) -> AppConfig:

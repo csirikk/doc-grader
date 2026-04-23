@@ -10,6 +10,7 @@ import logging
 import os
 import sys
 import time
+from collections import deque
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -60,6 +61,75 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 _CONFIG_DIR = _PROJECT_ROOT / "config"
 _DEFAULT_CONFIG = _CONFIG_DIR / "default.json"
 _RULEBOOK_PATH = _CONFIG_DIR / "rulebook.json"
+
+
+def discover_cases(
+    inputs: list[str],
+    *,
+    expected_filename: str | None,
+    allowed_extensions: list[str] | None,
+) -> Iterator[tuple[Path, str]]:
+    """Yield ``(doc_path, student_id)`` pairs for CLI inputs."""
+    allowed_suffixes = set(allowed_extensions or [".pdf", ".md"])
+
+    for raw_input in inputs:
+        path = Path(raw_input)
+
+        if path.is_file():
+            yield path, path.stem
+            continue
+
+        if not path.is_dir():
+            logger.warning("Input not found or invalid: %s", path)
+            continue
+
+        pending_dirs = deque([path])
+        while pending_dirs:
+            candidate_dir = pending_dirs.popleft()
+            files = sorted(
+                candidate
+                for candidate in candidate_dir.iterdir()
+                if candidate.is_file()
+            )
+            doc = None
+
+            if expected_filename is not None:
+                doc = next(
+                    (
+                        candidate
+                        for candidate in files
+                        if candidate.stem == expected_filename
+                    ),
+                    None,
+                )
+
+            if doc is None:
+                doc = next(
+                    (
+                        candidate
+                        for candidate in files
+                        if candidate.suffix.lower() in allowed_suffixes
+                    ),
+                    None,
+                )
+
+            if doc is not None:
+                yield doc, candidate_dir.name
+                if candidate_dir == path:
+                    break
+                continue
+
+            if candidate_dir == path:
+                subdirs = sorted(
+                    (candidate for candidate in path.iterdir() if candidate.is_dir()),
+                    key=lambda candidate: candidate.name,
+                )
+                if subdirs:
+                    pending_dirs.extend(subdirs)
+                else:
+                    logger.warning("No document found in: %s", path)
+            else:
+                logger.warning("No document found in: %s", candidate_dir)
 
 
 def _load_app_config(config_path: str | None) -> AppConfig:
@@ -198,7 +268,6 @@ def main(argv: list[str] | None = None) -> int:
 
     llm_client = None
     from .analysers.base_analyser import BaseLLMAnalyser
-
     need_llm = config.judge or any(
         a_cfg.enabled
         and (ANALYSER_LIST.get(a_cfg.analyser_id) is not None)
@@ -228,45 +297,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = DocumentParser()
     scorer = Scorer()
 
-    def discover_cases(inputs: list[str]) -> Iterator[tuple[Path, str]]:
-        """Yields (doc_path, student_id) per target."""
-
-        def get_primary_doc(directory: Path) -> Path | None:
-            """Grabs the first doc file."""
-            for pattern in ("*.pdf", "*.md"):
-                if match := next(directory.glob(pattern), None):
-                    return match
-            return None
-
-        for raw_input in inputs:
-            path = Path(raw_input)
-
-            # Single doc file
-            if path.is_file() and path.suffix.lower() in {".pdf", ".md"}:
-                yield path, path.stem
-                continue
-
-            if not path.is_dir():
-                logger.warning("Input not found or invalid: %s", path)
-                continue
-
-            # If the directory itself contains a primary document, prefer it
-            if doc := get_primary_doc(path):
-                yield doc, path.name
-                continue
-
-            # Otherwise check for subdirectories containing documents
-            subdirs = [p for p in path.iterdir() if p.is_dir()]
-            if subdirs:
-                for sd in sorted(subdirs, key=lambda p: p.name):
-                    if doc := get_primary_doc(sd):
-                        yield doc, sd.name
-                    else:
-                        logger.warning("No document found in: %s", sd)
-            else:
-                logger.warning("No document found in: %s", path)
-
-    for doc_path, student_id in discover_cases(args.inputs):
+    for doc_path, student_id in discover_cases(
+        args.inputs,
+        expected_filename=config.expected_filename,
+        allowed_extensions=config.allowed_extensions,
+    ):
         reset_id_counters()
         if llm_client:
             pass

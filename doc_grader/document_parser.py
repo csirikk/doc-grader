@@ -26,6 +26,7 @@ from docling_core.types.io import DocumentStream
 from pydantic import Field
 
 from .schemas.base import StrictModel
+from .schemas.config import normalise_allowed_extensions
 from .schemas.document import Document, DocumentRef
 from .schemas.finding import AnalyserInfo, Finding, HumanStatus, JudgeStatus
 from .utils import next_id
@@ -351,26 +352,39 @@ class DocumentParser:
             )
 
         findings: list[Finding] = []
+        normalised_allowed_extensions = normalise_allowed_extensions(allowed_extensions)
 
-        if allowed_extensions is not None and suffix not in allowed_extensions:
+        if (
+            normalised_allowed_extensions is not None
+            and suffix not in normalised_allowed_extensions
+        ):
+            summary = (
+                f"Document extension '{path.suffix}' is not among the allowed "
+                f"extensions {allowed_extensions}."
+            )
             findings.append(
                 self._make_finding(
                     doc_ref,
                     "DOCTYPE",
                     "Incorrect Document Type",
-                    f"Document extension '{path.suffix}' is not among the allowed extensions {allowed_extensions}.",
+                    summary,
                     run_id,
                     config_hash,
                 )
             )
 
         if expected_filename and path.stem != path.with_name(expected_filename).stem:
+            summary = (
+                "Document was expected to be named "
+                f"'{path.with_name(expected_filename).stem}', but found "
+                f"'{path.name}'."
+            )
             findings.append(
                 self._make_finding(
                     doc_ref,
                     "DOCTYPE",
                     "Incorrect Document Name",
-                    f"Document was expected to be named '{path.with_name(expected_filename).stem}', but found '{path.name}'.",
+                    summary,
                     run_id,
                     config_hash,
                 )
