@@ -43,7 +43,7 @@ def _severity_label(severity: float | None) -> str:
 def _impact_label(impact: float | None) -> str:
     if impact is None:
         return "n/a"
-    return f"{impact:+.1f} pts"
+    return f"{impact:+.2f}"
 
 
 def _impact_title(impact: float | None) -> str:
