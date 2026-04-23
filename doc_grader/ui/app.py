@@ -9,6 +9,8 @@ Launch with:
 from pathlib import Path
 
 import streamlit as st
+from document_panel import render_document
+from findings_panel import render_findings
 
 from doc_grader.ui.data import (
     available_stages,
@@ -16,9 +18,6 @@ from doc_grader.ui.data import (
     run_display_name,
     source_path_from_info,
 )
-
-from .document_panel import render_document
-from .findings_panel import render_findings
 
 _PROJECT_ROOT = Path(__file__).parent.parent.parent
 
