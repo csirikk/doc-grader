@@ -3,7 +3,6 @@
 Author: Matúš Csirik
 """
 
-import codecs
 import io
 import logging
 import re
@@ -424,18 +423,6 @@ class DocumentParser:
                 encoding = best_match.encoding if best_match else "utf-8"
 
                 logger.debug("Markdown decode encoding: %s", encoding)
-                if codecs.lookup(encoding).name != "utf-8":
-                    findings.append(
-                        self._make_finding(
-                            doc_ref,
-                            "DOCTYPE",
-                            "Auto-detected Encoding",
-                            f"Converted from {encoding} to UTF-8",
-                            run_id,
-                            config_hash,
-                        )
-                    )
-
                 clean_text = raw_bytes.decode(encoding, errors="replace")
                 md_image_uris = extract_md_image_uris(clean_text)
 
