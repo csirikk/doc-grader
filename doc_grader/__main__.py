@@ -74,7 +74,11 @@ def discover_cases(
     allowed_extensions: list[str] | None,
 ) -> Iterator[tuple[Path, str]]:
     """Yield ``(doc_path, student_id)`` pairs for CLI inputs."""
-    allowed_suffixes = set(allowed_extensions or [".pdf", ".md"])
+    configured_extensions = allowed_extensions or [".pdf", ".md"]
+    allowed_suffixes = {
+        (extension if extension.startswith(".") else f".{extension}").lower()
+        for extension in configured_extensions
+    }
 
     for raw_input in inputs:
         path = Path(raw_input)
@@ -132,8 +136,15 @@ def discover_cases(
                     pending_dirs.extend(subdirs)
                 else:
                     logger.warning("No document found in: %s", path)
+                    missing_name = expected_filename or "missing_document"
+                    yield path / missing_name, path.name
             else:
                 logger.warning("No document found in: %s", candidate_dir)
+                missing_name = expected_filename or "missing_document"
+                yield (
+                    candidate_dir / missing_name,
+                    candidate_dir.name,
+                )
 
 
 def _load_app_config(config_path: str | None) -> AppConfig:
