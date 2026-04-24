@@ -13,9 +13,11 @@ from document_panel import render_document
 from findings_panel import render_findings
 
 from doc_grader.ui.data import (
-    available_stages,
+    load_dismissed_candidates,
     load_run,
+    rubric_lookup,
     run_display_name,
+    run_student_prefix,
     source_path_from_info,
 )
 
@@ -66,29 +68,109 @@ _CUSTOM_SCROLL_CSS = """
 st.html(_CUSTOM_SCROLL_CSS)
 
 
-def _on_stage_change():
-    new_stage = st.session_state["stage_radio"]
-    current_dir = st.session_state["out_dir"]
-    new_findings, _ = load_run(current_dir, stage=new_stage)
+def _normalise_student_prefix(value: str | None) -> str | None:
+    """Return the first 6 characters from a student identifier value."""
+    if not value:
+        return None
+    clean_value = str(value).strip()
+    if not clean_value:
+        return None
+    return clean_value[:6]
 
-    st.session_state["findings"] = new_findings
-    st.session_state["active_finding_id"] = None  # Reset selection on stage change
+
+def _get_query_student_prefix() -> str | None:
+    """Get student prefix from URL query parameter ``student_id``."""
+    query_value = st.query_params.get("student_id")
+    if isinstance(query_value, list):
+        query_value = query_value[0] if query_value else None
+    return _normalise_student_prefix(query_value)
 
 
-def _reset_run_ui_state(initial_stage: str = "Final") -> None:
+def _set_query_student_prefix(prefix: str | None) -> None:
+    """Set URL query parameter ``student_id`` to a 6-character prefix."""
+    clean_prefix = _normalise_student_prefix(prefix)
+    current = _get_query_student_prefix()
+    if current == clean_prefix:
+        return
+
+    if clean_prefix is None:
+        if "student_id" in st.query_params:
+            del st.query_params["student_id"]
+        return
+
+    st.query_params["student_id"] = clean_prefix
+
+
+def _run_for_student_prefix(
+    discovered: list[Path], student_prefix: str | None
+) -> Path | None:
+    """Return the first discovered run matching a student prefix."""
+    if student_prefix is None:
+        return None
+    for run_dir in discovered:
+        if run_student_prefix(run_dir) == student_prefix:
+            return run_dir
+    return None
+
+
+def _points_over_max(
+    findings: list[dict], max_doc_points: int | float | str | None
+) -> str:
+    """Return current_points/max_points string computed from finding impacts."""
+    if max_doc_points is None:
+        return "n/a"
+
+    try:
+        max_points = float(max_doc_points)
+    except TypeError, ValueError:
+        return "n/a"
+
+    total_impact = 0.0
+    for finding in findings:
+        impact = finding.get("impact")
+        if impact is None:
+            continue
+        try:
+            total_impact += float(impact)
+        except TypeError, ValueError:
+            continue
+
+    return f"{max_points + total_impact:.2f}/{max_points:.2f}"
+
+
+def _load_target_run(target: Path) -> None:
+    """Load final findings, dismissed candidates and run info into state."""
+    findings, info = load_run(target, stage="Final")
+    dismissed_candidates = load_dismissed_candidates(target)
+    st.session_state.update(
+        {
+            "out_dir": target,
+            "findings": findings,
+            "dismissed_candidates": dismissed_candidates,
+            "info": info,
+        }
+    )
+    _reset_run_ui_state()
+
+
+def _reset_run_ui_state() -> None:
     st.session_state["active_finding_id"] = None
-    st.session_state["stage_radio"] = initial_stage
-    st.session_state["findings_filter"] = "All"
-    st.session_state["findings_sort"] = "Severity"
+    st.session_state["findings_code_filter"] = "All"
+    st.session_state["findings_sort"] = "Deduction"
+    st.session_state["show_dismissed_candidates"] = False
 
 
 def _init_state() -> None:
     st.session_state.setdefault("out_dir", None)
     st.session_state.setdefault("findings", [])
+    st.session_state.setdefault("dismissed_candidates", [])
     st.session_state.setdefault("info", {})
     st.session_state.setdefault("active_finding_id", None)
-    st.session_state.setdefault("findings_filter", "All")
-    st.session_state.setdefault("findings_sort", "Severity")
+    st.session_state.setdefault("findings_code_filter", "All")
+    st.session_state.setdefault("findings_sort", "Deduction")
+    st.session_state.setdefault("show_dismissed_candidates", False)
+    st.session_state.setdefault("show_technical_details", False)
+    st.session_state.setdefault("last_query_student_prefix", None)
 
 
 _init_state()
@@ -105,17 +187,56 @@ with st.sidebar:
             {p.parent for p in base_out.rglob("findings.json")},
             key=lambda p: p.name,
         )
+
     selected_run: Path | None = None
     if discovered:
+        query_student_prefix = _get_query_student_prefix()
+        query_target_run = _run_for_student_prefix(discovered, query_student_prefix)
+        last_query_student_prefix = st.session_state.get("last_query_student_prefix")
+        query_changed_externally = query_student_prefix != last_query_student_prefix
+
+        if "selected_run_picker" not in st.session_state:
+            initial_picker_value = query_target_run or st.session_state.get("out_dir")
+            st.session_state["selected_run_picker"] = (
+                initial_picker_value
+                if initial_picker_value in discovered
+                else discovered[0]
+            )
+
+        if st.session_state["selected_run_picker"] not in discovered:
+            st.session_state["selected_run_picker"] = discovered[0]
+
+        if (
+            query_changed_externally
+            and query_target_run is not None
+            and st.session_state["selected_run_picker"] != query_target_run
+        ):
+            st.session_state["selected_run_picker"] = query_target_run
+
         selected_run = st.selectbox(
-            "Discovered runs",
+            "Discovered directories",
             discovered,
             format_func=run_display_name,
+            key="selected_run_picker",
         )
+
+        selected_prefix = run_student_prefix(selected_run)
+        _set_query_student_prefix(selected_prefix)
+        st.session_state["last_query_student_prefix"] = _get_query_student_prefix()
+
+        if query_student_prefix and query_target_run is None:
+            st.caption(f"No run found for student ID prefix `{query_student_prefix}`.")
+
+        if (
+            query_changed_externally
+            and query_target_run is not None
+            and st.session_state.get("out_dir") != query_target_run
+        ):
+            _load_target_run(query_target_run)
     else:
         st.caption(f"No runs found under `{base_out}`.")
 
-    load_clicked = st.button("Load run", type="primary", use_container_width=True)
+    load_clicked = st.button("Load", type="primary", use_container_width=True)
 
     if load_clicked:
         target = selected_run
@@ -128,87 +249,41 @@ with st.sidebar:
             elif not (target / "findings.json").exists():
                 st.error(f"No `findings.json` in `{target}`")
             else:
-                initial_stage = "Final"
-                findings, info = load_run(target, stage=initial_stage)
-                st.session_state.update(
-                    {
-                        "out_dir": target,
-                        "findings": findings,
-                        "info": info,
-                    }
-                )
-                _reset_run_ui_state(initial_stage)
+                _load_target_run(target)
 
-    # Run info
-    if st.session_state["out_dir"]:
-        current_dir: Path = st.session_state["out_dir"]
-        info = st.session_state["info"]
-        run_meta = info.get("run", {})
-        parse_meta = info.get("parse", {})
-
-        st.markdown(f"Run: `{run_meta.get('run_id', '-')}`")
-        st.markdown(f"Parsed OK: `{parse_meta.get('parsed_ok', '-')}`")
-        source = source_path_from_info(info)
-        student_id = info.get("input", {}).get("student_id")
-
-        config_meta = info.get("config", {}) if info else {}
-        course = config_meta.get("course")
-        max_doc_points = config_meta.get("max_doc_points")
-        if course:
-            st.markdown(f"Course: `{course}`")
-        if max_doc_points is not None:
-            st.markdown(f"Max doc points: `{max_doc_points}`")
-        if student_id:
-            st.markdown(f"Student: `{student_id}`")
-        elif source:
-            st.markdown(f"Source: `{Path(source).name}`")
-
-        # Pipeline stage selector
-        stages = available_stages(current_dir)
-        if len(stages) > 1:
-            st.radio(
-                "Pipeline stage",
-                stages,
-                index=stages.index(st.session_state.get("stage_radio", "Final"))
-                if st.session_state.get("stage_radio", "Final") in stages
-                else 0,
-                horizontal=True,
-                key="stage_radio",
-                on_change=_on_stage_change,
-            )
-        current_findings = st.session_state["findings"]
-
-        n_total = len(current_findings)
-        n_not_to_be_judged = sum(
-            1 for f in current_findings if f["judge_status"] == "not_to_be_judged"
-        )
-        n_to_be_judged = sum(
-            1 for f in current_findings if f["judge_status"] == "to_be_judged"
-        )
-        n_judged_approved = sum(
-            1 for f in current_findings if f["judge_status"] == "judged_approved"
-        )
-        n_judged_adjusted = sum(
-            1 for f in current_findings if f["judge_status"] == "judged_adjusted"
-        )
-        n_judged_dismissed = sum(
-            1 for f in current_findings if f["judge_status"] == "judged_dismissed"
-        )
-
-        st.markdown(
-            f"{n_total} findings total:\n"
-            f"- {n_not_to_be_judged} not to be judged\n"
-            f"- {n_to_be_judged} to be judged\n"
-            f"- {n_judged_approved} judged approved\n"
-            f"- {n_judged_adjusted} judged adjusted\n"
-            f"- {n_judged_dismissed} judged dismissed\n"
-        )
+    st.markdown("## Overview")
+    st.text(
+        "This user interface showcases suggestions from a prototype machine learning "
+        "based tool, designed to aid human graders. It is not a finalised grading "
+        "interface to adjust or add codes. Due to likely false negatives, it is meant "
+        "as a purely complementary prototype to the existing manual grading process."
+    )
+    st.caption(
+        "The findings within the finding panel on the right are tinted "
+        "based on the confidence of the model. This confidence "
+        "value is not always reliable, extra caution is always advised. "
+        "Especially, when the related document is non-traditionally formatted."
+    )
+    st.markdown("### Usage")
+    st.caption(
+        "1. Navigate the external grading .csv and click links embedded in the student"
+        " rows to show their document within this UI. "
+        "Alternatively, search for any student in the picker above and click Load."
+    )
+    st.caption("2. View findings on the right and use Jump to evidence confirm.")
 
 out_dir: Path = st.session_state["out_dir"]
 findings: list[dict] = st.session_state["findings"]
+dismissed_candidates: list[dict] = st.session_state["dismissed_candidates"]
 info: dict = st.session_state["info"]
 
 source_path = source_path_from_info(info)
+course = info.get("config", {}).get("course") if info else None
+rubric_by_code = rubric_lookup(course)
+student_id = run_student_prefix(out_dir) if out_dir is not None else None
+max_doc_points = info.get("config", {}).get("max_doc_points") if info else None
+points_over_max = _points_over_max(findings, max_doc_points)
+total_findings = len(findings)
 
 if out_dir is not None:
 
@@ -216,11 +291,15 @@ if out_dir is not None:
     def workspace():
         doc_col, findings_col = st.columns([0.55, 0.45], gap="medium")
 
+        findings_for_selection = list(findings)
+        if st.session_state.get("show_dismissed_candidates"):
+            findings_for_selection.extend(dismissed_candidates)
+
         active_id = st.session_state.get("active_finding_id")
         selected_finding = next(
             (
                 f
-                for f in findings
+                for f in findings_for_selection
                 if f.get("finding_id", "").replace(":", "-") == active_id
             ),
             None,
@@ -231,6 +310,14 @@ if out_dir is not None:
 
         with findings_col:
             with st.container(border=False):
-                render_findings(findings, out_dir)
+                render_findings(
+                    findings,
+                    dismissed_candidates,
+                    out_dir,
+                    rubric_by_code,
+                    student_id,
+                    points_over_max,
+                    total_findings,
+                )
 
     workspace()
