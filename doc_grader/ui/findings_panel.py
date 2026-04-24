@@ -54,10 +54,10 @@ def _code_filter_options(findings: list[dict]) -> list[str]:
     return ["All", *codes]
 
 
-def _severity_label(severity: float | None) -> str:
-    if severity is None:
+def _severity_confidence_label(value: float | None) -> str:
+    if value is None:
         return "n/a"
-    return f"{severity:.2f}"
+    return f"{value:.2f}"
 
 
 def _impact_label(impact: float | None) -> str:
@@ -392,8 +392,8 @@ def render_findings(
                 "Confidence shows how certain the automated analysis is. Lower "
                 "confidence findings should be reviewed more carefully."
             )
-            severity_value = _severity_label(severity)
-            confidence_value = _severity_label(confidence)
+            severity_value = _severity_confidence_label(severity)
+            confidence_value = _severity_confidence_label(confidence)
             deduction_html = ""
             if impact is not None and impact < 0:
                 deduction_html = (
@@ -434,7 +434,9 @@ def render_findings(
                     st.markdown(f"Finding ID: `{fid}`")
                     st.markdown(f"Analyser: `{analyser}`")
                     st.markdown(f"Judge status: `{judge_status}`")
-                    st.markdown(f"Confidence: `{_severity_label(confidence)}`")
+                    st.markdown(
+                        f"Confidence: `{_severity_confidence_label(confidence)}`"
+                    )
 
                     judge = (finding.get("meta") or {}).get("judge") or {}
                     change = judge.get("change") or {}
