@@ -264,54 +264,52 @@ def render_findings(
 
     summary_student = student_id or "n/a"
     with st.container(border=True):
-        summary_col_l, summary_col_m, summary_col_r = st.columns([1.0, 1.0, 1.0])
-        summary_col_l.markdown(f"Student ID: **{summary_student}**")
-        summary_col_m.markdown(f"Points: **{points_over_max}**")
-        summary_col_r.markdown(f"Total findings: **{total_findings}**")
+        info_col, toggles_col = st.columns([1, 1])
+        info_col.markdown(f"Student ID: **{summary_student}**")
+        info_col.markdown(f"Points: **{points_over_max}**")
 
-    toggle_col_l, toggle_col_m = st.columns([1.0, 1.0], vertical_alignment="bottom")
-    toggle_col_l.checkbox(
-        "Show dismissed candidates",
-        key="show_dismissed_candidates",
-        help=(
-            "When enabled, the list includes unscored finding candidates "
-            "dismissed by the a judge model during the pipeline, enabling this "
-            "allows viewing these exclusioons can serve as supplementary information "
-            "for other possible uncaught findings."
-        ),
-    )
-    toggle_col_m.checkbox(
-        "Show technical details",
-        key="show_technical_details",
-        help=(
-            "Shows extra diagnostic content inside each finding, including "
-            "model evaluations and raw outputs in Evidence from the "
-            "document, plus technical metadata and judge before/after "
-            "field changes in Technical details."
-        ),
-    )
+        toggles_col.checkbox(
+            "Show dismissed candidates",
+            key="show_dismissed_candidates",
+            help=(
+                "When enabled, the list includes unscored finding candidates "
+                "dismissed by the a judge model during the pipeline, enabling this "
+                "allows viewing these exclusioons can serve as supplementary "
+                "information for other possible uncaught findings."
+            ),
+        )
+        toggles_col.checkbox(
+            "Show technical details",
+            key="show_technical_details",
+            help=(
+                "Shows extra diagnostic content inside each finding, including "
+                "model evaluations and raw outputs in Evidence from the "
+                "document, plus technical metadata and judge before/after "
+                "field changes in Technical details."
+            ),
+        )
 
-    merged_findings = list(findings)
-    if st.session_state.get("show_dismissed_candidates"):
-        merged_findings.extend(dismissed_candidates)
+        merged_findings = list(findings)
+        if st.session_state.get("show_dismissed_candidates"):
+            merged_findings.extend(dismissed_candidates)
 
-    code_options = _code_filter_options(merged_findings)
-    if st.session_state.get("findings_code_filter") not in code_options:
-        st.session_state["findings_code_filter"] = "All"
+        code_options = _code_filter_options(merged_findings)
+        if st.session_state.get("findings_code_filter") not in code_options:
+            st.session_state["findings_code_filter"] = "All"
 
-    filter_col, sort_col = st.columns([1.0, 1.0], vertical_alignment="bottom")
+        filter_col, sort_col = st.columns([1.0, 1.0], vertical_alignment="bottom")
 
-    code_filter = filter_col.selectbox(
-        "Filter by criterion",
-        code_options,
-        key="findings_code_filter",
-    )
-    sort_by = sort_col.radio(
-        "Sort findings by (descending)",
-        ["Deduction", "Confidence"],
-        horizontal=True,
-        key="findings_sort",
-    )
+        code_filter = filter_col.selectbox(
+            "Filter by criterion",
+            code_options,
+            key="findings_code_filter",
+        )
+        sort_by = sort_col.radio(
+            "Sort findings by (descending)",
+            ["Deduction", "Confidence"],
+            horizontal=True,
+            key="findings_sort",
+        )
 
     show_technical_details = bool(st.session_state.get("show_technical_details"))
 
@@ -370,44 +368,7 @@ def render_findings(
             header_l, header_r = st.columns([3, 1], vertical_alignment="center")
 
             with header_l:
-                st.markdown(f"### {ac_code}: {criterion_title}")
-                criterion_text = _criterion_text(finding, rubric_by_code)
-                if criterion_text:
-                    st.caption(f"{ac_code} definition:\n {criterion_text}")
-
-                severity_help = (
-                    "Severity scale for this criterion: 1.00 means the worst error "
-                    "of this type under this AC, 0.00 means it still belongs to this "
-                    "criterion but is very minor."
-                )
-                confidence_help = (
-                    "Confidence shows how certain the automated analysis is. Lower "
-                    "confidence findings should be reviewed more carefully."
-                )
-                severity_value = _severity_label(severity)
-                confidence_value = _severity_label(confidence)
-                deduction_html = ""
-                if impact is not None and impact < 0:
-                    deduction_html = (
-                        f"<div>Estimated deduction: {_impact_label(impact)} "
-                        "minipoints</div>"
-                    )
-
-                st.markdown(
-                    f"<div><span title='{severity_help}'>"
-                    f"Severity {severity_value}</span></div>"
-                    f"<span title='{confidence_help}'>"
-                    f"<div>Confidence: {confidence_value}</span></div>"
-                    f"{deduction_html}",
-                    unsafe_allow_html=True,
-                )
-
-                if is_dismissed_candidate:
-                    st.warning(
-                        "Dismissed candidate: this was considered by the automatic "
-                        "judge but excluded from final findings."
-                    )
-
+                st.markdown(f"#### {ac_code}: {criterion_title}")
             with header_r:
                 st.button(
                     "Show anchor",
@@ -416,6 +377,43 @@ def render_findings(
                     on_click=_on_view_anchor,
                     args=(safe_fid,),
                     disabled=not has_anchors,
+                )
+
+            criterion_text = _criterion_text(finding, rubric_by_code)
+            if criterion_text:
+                st.caption(f"{ac_code} definition:\n {criterion_text}")
+
+            severity_help = (
+                "Severity scale for this criterion: 1.00 means the worst error "
+                "of this type under this AC, 0.00 means it still belongs to this "
+                "criterion but is very minor."
+            )
+            confidence_help = (
+                "Confidence shows how certain the automated analysis is. Lower "
+                "confidence findings should be reviewed more carefully."
+            )
+            severity_value = _severity_label(severity)
+            confidence_value = _severity_label(confidence)
+            deduction_html = ""
+            if impact is not None and impact < 0:
+                deduction_html = (
+                    f"<div>Estimated deduction: {_impact_label(impact)} "
+                    "minipoints</div>"
+                )
+
+            st.markdown(
+                f"<div><span title='{severity_help}'>"
+                f"Severity {severity_value}</span></div>"
+                f"<span title='{confidence_help}'>"
+                f"<div>Confidence: {confidence_value}</span></div>"
+                f"{deduction_html}",
+                unsafe_allow_html=True,
+            )
+
+            if is_dismissed_candidate:
+                st.warning(
+                    "Dismissed candidate: this was considered by the automatic "
+                    "judge but excluded from final findings."
                 )
 
             st.markdown("#### What was detected:")

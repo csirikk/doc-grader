@@ -214,7 +214,7 @@ with st.sidebar:
             st.session_state["selected_run_picker"] = query_target_run
 
         selected_run = st.selectbox(
-            "Discovered directories",
+            "Available directories",
             discovered,
             format_func=run_display_name,
             key="selected_run_picker",
@@ -306,26 +306,31 @@ with st.sidebar:
                 use_container_width=True,
             )
 
-    st.markdown("## Overview")
-    st.text(
-        "This user interface showcases suggestions from a prototype machine learning "
-        "based tool, designed to aid human graders. It is not a finalised grading "
-        "interface to adjust or add codes. Due to likely false negatives, it is meant "
-        "as a purely complementary prototype to the existing manual grading process."
+    st.warning(
+        "## Disclaimer\n"
+        "This user interface showcases suggestions from a prototype "
+        "**machine learning-based** based tool. It is designed to aid graders "
+        "and is not a meant to be a full grading interface. "
+        "Please expect both false positives and false negatives. This tool is designed"
+        " to be used only as a complementary aid to the current manual grading process."
     )
-    st.caption(
-        "The findings within the finding panel on the right are tinted "
-        "based on the confidence of the model. This confidence "
-        "value is not always reliable, extra caution is always advised. "
-        "Especially, when the related document is non-traditionally formatted."
-    )
-    st.markdown("### Usage")
-    st.caption(
-        "1. Navigate the external grading .csv and click links embedded in the student"
-        " rows to show their document within this UI. "
-        "Alternatively, search for any student in the picker above and click Load."
-    )
-    st.caption("2. View findings on the right and use Jump to evidence confirm.")
+
+    with st.expander("Usage", expanded=True):
+        st.markdown(
+            "1. Navigate the external grading CSV and click the links embedded in "
+            " the link columns, or search for any student in the picker above.\n"
+            "2. View and filter findings within the right panel."
+        )
+    with st.expander("Help", expanded=False):
+        st.markdown(
+            "- Findings are tinted based on the confidence of the model."
+            " The confidence value is not always reliable.\n"
+            "- Extra caution is advised when the related document is non-traditionally"
+            " formatted or a **DOCTYPE** finding is present.\n"
+            "- Due to some students not following file-naming instructions, "
+            "it is possible that the scored document is not a documentation.\n"
+            "- Evidence anchors do not always point to the exact intended evidence."
+        )
 
 out_dir: Path = st.session_state["out_dir"]
 findings: list[dict] = st.session_state["findings"]
