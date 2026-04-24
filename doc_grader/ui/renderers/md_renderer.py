@@ -87,6 +87,59 @@ def _inject_html_highlights(
     return html_body
 
 
+def get_standalone_html(path: Path) -> str:
+    """Generate a complete, styled HTML string for the given Markdown file.
+
+    The returned HTML embeds local images as data URIs using the existing
+    `_embed_html_images` helper so the document is self-contained and can be
+    opened in a new browser tab or saved as a standalone HTML file.
+    """
+    md_content = path.read_text(encoding="utf-8")
+    raw_html = marko.Markdown().convert(md_content)
+    full_body = _embed_html_images(raw_html, path.parent)
+
+    return (
+        """
+        <html>
+            <head>
+                <meta charset="utf-8" />
+                <style>
+                    body {
+                        font-family: sans-serif;
+                        line-height: 1.6;
+                        padding: 3rem;
+                        max-width: 900px;
+                        margin: auto;
+                        color: #333;
+                    }
+                    img {
+                        max-width: 100%;
+                        height: auto;
+                        border: 1px solid #ddd;
+                        border-radius: 4px;
+                    }
+                    pre {
+                        background: #f4f4f4;
+                        padding: 1rem;
+                        border-radius: 4px;
+                        overflow-x: auto;
+                    }
+                    code {
+                        background: #f0f0f0;
+                        padding: 0.2rem 0.4rem;
+                        border-radius: 3px;
+                    }
+                </style>
+            </head>
+            <body>"""
+        + full_body
+        + """
+            </body>
+        </html>
+        """
+    )
+
+
 def render_markdown(path: Path, selected_finding: dict | None) -> None:
     """Render Markdown content with highlights and embedded local images.
 

@@ -251,6 +251,61 @@ with st.sidebar:
             else:
                 _load_target_run(target)
 
+    info_local = st.session_state.get("info", {})
+    source_path_local = source_path_from_info(info_local)
+
+    # Determine a short student prefix to use for downloaded filenames.
+    student_prefix_local: str | None = None
+    if isinstance(info_local, dict):
+        student_id_val = info_local.get("input", {}).get("student_id")
+        if isinstance(student_id_val, str):
+            s = student_id_val.strip()
+            if s:
+                student_prefix_local = s[:6]
+
+    if not student_prefix_local:
+        out_dir_local = st.session_state.get("out_dir")
+        if isinstance(out_dir_local, Path) and out_dir_local is not None:
+            student_prefix_local = run_student_prefix(out_dir_local)
+
+    if source_path_local:
+        path_local = Path(source_path_local)
+        suffix = path_local.suffix.lower()
+
+        if suffix == ".pdf":
+            pdf_bytes = path_local.read_bytes()
+            file_name = (
+                f"{student_prefix_local}_review{suffix}"
+                if student_prefix_local
+                else path_local.name
+            )
+
+            st.download_button(
+                label="Download original PDF",
+                data=pdf_bytes,
+                file_name=file_name,
+                mime="application/pdf",
+                use_container_width=True,
+            )
+
+        elif suffix == ".md":
+            from renderers.md_renderer import get_standalone_html
+
+            html_content = get_standalone_html(path_local)
+            file_name = (
+                f"{student_prefix_local}_review.html"
+                if student_prefix_local
+                else f"{path_local.stem}_rendered.html"
+            )
+
+            st.download_button(
+                label="Download rendered HTML",
+                data=html_content,
+                file_name=file_name,
+                mime="text/html",
+                use_container_width=True,
+            )
+
     st.markdown("## Overview")
     st.text(
         "This user interface showcases suggestions from a prototype machine learning "
