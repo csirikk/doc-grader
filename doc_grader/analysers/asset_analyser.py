@@ -104,7 +104,7 @@ class AssetAnalyser(BaseLLMAnalyser):
         rules: list[LLMRule],
         rulebook: Rulebook,
         params: dict[str, Any] | None = None,
-    ) -> tuple[list[Any], dict]:
+    ) -> tuple[list[Any], dict, int]:
         """Dispatch all active rules to the appropriate sub-engine.
 
         - backend='classifier': fine-tuned vision classifier.
@@ -119,13 +119,17 @@ class AssetAnalyser(BaseLLMAnalyser):
         ft_model = (params or {}).get("classifier_model") or BADUML_MODEL
         usage: dict = {}
         findings: list[VisionFinding] = []
+        images_sent: int = 0
 
         raw_labels: dict = {}
         if any(r.backend == "classifier" for r in rules):
-            raw_labels, classifier_usage = llm_client.run_vision_classifier(
-                doc, rulebook.classifier_system_prompt, ft_model
+            raw_labels, classifier_usage, classifier_images = (
+                llm_client.run_vision_classifier(
+                    doc, rulebook.classifier_system_prompt, ft_model
+                )
             )
             usage = merge_usage(usage, classifier_usage)
+            images_sent += classifier_images
         baduml_count = 0
         for cref, item in raw_labels.items():
             label = (item.get("label") or "").strip().upper()
@@ -156,11 +160,12 @@ class AssetAnalyser(BaseLLMAnalyser):
             diagram_prompt = self.build_vision_system_prompt(
                 diagram_rules, rulebook, doc
             )
-            diagram_findings, diagram_usage = llm_client.analyse_assets(
+            diagram_findings, diagram_usage, diagram_images = llm_client.analyse_assets(
                 doc, diagram_prompt, rulebook, model=model, temperature=temperature
             )
             findings.extend(diagram_findings)
             usage = merge_usage(usage, diagram_usage)
+            images_sent += diagram_images
 
         page_rules = [
             r
@@ -169,13 +174,14 @@ class AssetAnalyser(BaseLLMAnalyser):
         ]
         if page_rules and doc.docling_doc.pages:
             page_prompt = self.build_vision_system_prompt(page_rules, rulebook, doc)
-            page_findings, page_usage = llm_client.analyse_pages_only(
+            page_findings, page_usage, page_images = llm_client.analyse_pages_only(
                 doc, page_prompt, rulebook, model=model, temperature=temperature
             )
             findings.extend(page_findings)
             usage = merge_usage(usage, page_usage)
+            images_sent += page_images
 
-        return findings, usage
+        return findings, usage, images_sent
 
     def _finalise_vision_finding(
         self,
@@ -185,11 +191,66 @@ class AssetAnalyser(BaseLLMAnalyser):
     ) -> None:
         super()._finalise_vision_finding(finding, vision_finding, output_code)
         if finding.model_evals:
-            finding.model_evals[-1].raw = {
-                "classifier_raw_response": vision_finding.raw_response
+            existing = finding.model_evals[-1].raw or {}
+            existing = {
+                **existing,
+                "classifier_raw_response": vision_finding.raw_response,
             }
+            finding.model_evals[-1].raw = existing
         if vision_finding.ac_code != output_code:
-            finding.meta = {"internal_ac_code": vision_finding.ac_code}
+            finding.meta = {
+                **(finding.meta or {}),
+                "internal_ac_code": vision_finding.ac_code,
+            }
+
+    def _has_resolvable_md_images(self, doc: Document) -> bool:
+        """Return True when any Markdown image URI resolves to a local image file.
+
+        This is a lightweight check used to decide whether the Markdown branch
+        should invoke the vision/classifier path instead of emitting a
+        deterministic "UML_MISSING" finding.
+        """
+        from pathlib import Path
+
+        md_uris = getattr(doc, "md_image_uris", None) or []
+        if not md_uris:
+            return False
+
+        source_path = getattr(doc.doc_ref, "source_path", None)
+        if not source_path:
+            return False
+
+        base_resolved = Path(source_path).parent.resolve()
+        for img_uri in md_uris:
+            img_path_str = str(img_uri)
+            if img_path_str.startswith("file://"):
+                img_path_str = img_path_str[7:]
+            try:
+                img_path = (base_resolved / img_path_str).resolve()
+            except Exception:
+                continue
+            # ensure the resolved path is inside the document folder
+            try:
+                if not img_path.is_relative_to(base_resolved):
+                    continue
+            except Exception:
+                continue
+            if not img_path.is_file():
+                continue
+            if img_path.suffix.lower() in {
+                ".png",
+                ".jpg",
+                ".jpeg",
+                ".svg",
+                ".gif",
+                ".bmp",
+                ".webp",
+                ".tif",
+                ".tiff",
+                ".ico",
+            }:
+                return True
+        return False
 
     def _check_sazba_md(
         self,
@@ -308,10 +369,49 @@ class AssetAnalyser(BaseLLMAnalyser):
             findings: list[Finding] = []
             if sazba_rules:
                 findings.extend(self._check_sazba_md(doc, sazba_rules))
-            if doc.total_pictures and llm_client:
-                raw, usage = self.execute_llm(llm_client, doc, rules, rulebook, params)
+
+            has_md_images = self._has_resolvable_md_images(doc)
+            if (doc.total_pictures or has_md_images) and llm_client:
+                raw, usage, images_sent = self.execute_llm(
+                    llm_client, doc, rules, rulebook, params
+                )
                 self._accumulated_usage = merge_usage(self._accumulated_usage, usage)
                 findings.extend(self.process_vision_findings(doc, raw, rules, params))
+                # If no images were actually encoded/sent, emit deterministic UML_MISSING
+                if images_sent == 0:
+                    nouml_active = any(r.ac_code == "UML_MISSING" for r in rules)
+                    if nouml_active:
+                        findings.append(
+                            self._make_finding(
+                                doc=doc,
+                                ac_code="UML_MISSING",
+                                title=self._title_for_ac_code(rules, "UML_MISSING"),
+                                summary="No UML Class Diagram was found in the document.",
+                                judge_status="to_be_judged",
+                                human_status="proposed",
+                                evidence_item=None,
+                                severity=1.0,
+                                confidence=1.0,
+                            )
+                        )
+                return findings
+
+            # No resolvable images found for Markdown, emit deterministic UML_MISSING
+            nouml_active = any(r.ac_code == "UML_MISSING" for r in rules)
+            if nouml_active:
+                findings.append(
+                    self._make_finding(
+                        doc=doc,
+                        ac_code="UML_MISSING",
+                        title=self._title_for_ac_code(rules, "UML_MISSING"),
+                        summary="No UML Class Diagram was found in the document.",
+                        judge_status="to_be_judged",
+                        human_status="proposed",
+                        evidence_item=None,
+                        severity=1.0,
+                        confidence=1.0,
+                    )
+                )
             return findings
 
         # PDF branch: execute_llm dispatches diagram/page/classifier rules internally.
@@ -321,13 +421,12 @@ class AssetAnalyser(BaseLLMAnalyser):
             # No extracted diagrams: execute_llm will skip analyse_assets (no images)
             # and use analyse_pages_only for page-level rules.
             if llm_client:
-                raw, usage = self.execute_llm(llm_client, doc, rules, rulebook, params)
+                raw, usage, images_sent = self.execute_llm(
+                    llm_client, doc, rules, rulebook, params
+                )
                 self._accumulated_usage = merge_usage(self._accumulated_usage, usage)
                 findings.extend(self.process_vision_findings(doc, raw, rules, params))
-            nouml_active = any(
-                r.backend == "deterministic" and r.ac_code == "UML_MISSING"
-                for r in rules
-            )
+            nouml_active = any(r.ac_code == "UML_MISSING" for r in rules)
             if nouml_active:
                 findings.append(
                     self._make_finding(
@@ -346,6 +445,25 @@ class AssetAnalyser(BaseLLMAnalyser):
 
         if not llm_client:
             return []
-        raw, usage = self.execute_llm(llm_client, doc, rules, rulebook, params)
+        raw, usage, images_sent = self.execute_llm(
+            llm_client, doc, rules, rulebook, params
+        )
         self._accumulated_usage = merge_usage(self._accumulated_usage, usage)
-        return self.process_vision_findings(doc, raw, rules, params)
+        findings = self.process_vision_findings(doc, raw, rules, params)
+        if images_sent == 0:
+            nouml_active = any(r.ac_code == "UML_MISSING" for r in rules)
+            if nouml_active:
+                findings.append(
+                    self._make_finding(
+                        doc=doc,
+                        ac_code="UML_MISSING",
+                        title=self._title_for_ac_code(rules, "UML_MISSING"),
+                        summary="No UML Class Diagram was found in the document.",
+                        judge_status="to_be_judged",
+                        human_status="proposed",
+                        evidence_item=None,
+                        severity=1.0,
+                        confidence=1.0,
+                    )
+                )
+        return findings

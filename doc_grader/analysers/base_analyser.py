@@ -55,24 +55,43 @@ class BaseAnalyser(ABC):
         generator_model: str | None = None,
     ) -> Finding:
         """Helper to create a unified Finding object."""
-
         anchors: list[Anchor] = []
+        meta: dict[str, Any] | None = None
+
         if evidence_item is not None:
             if isinstance(evidence_item, PageItem):
-                # Pages dont have stable crefs
                 ref = f"#/pages/{evidence_item.page_no}"
-                snippet = snippet_override
+                snippet: str | None = None
+                if snippet_override is not None:
+                    meta = {**(meta or {}), "model_snippet": snippet_override}
             else:
                 ref = evidence_item.get_ref().cref
-                snippet = (
-                    snippet_override
-                    if snippet_override is not None
-                    else (
+                # Prefer a true document substring for the anchor snippet.
+                if snippet_override is None:
+                    snippet = (
                         evidence_item.text
                         if isinstance(evidence_item, TextItem)
                         else None
                     )
-                )
+                else:
+                    # If the override exactly matches or is contained within the
+                    # source text, keep it as the anchor snippet. Otherwise
+                    # preserve the model-provided text in finding.meta and use
+                    # the document text (when available) as the anchor snippet.
+                    if isinstance(evidence_item, TextItem) and evidence_item.text:
+                        try:
+                            contains = snippet_override in evidence_item.text
+                        except Exception:
+                            contains = False
+                        if contains:
+                            snippet = snippet_override
+                        else:
+                            snippet = evidence_item.text
+                            meta = {**(meta or {}), "model_snippet": snippet_override}
+                    else:
+                        snippet = None
+                        meta = {**(meta or {}), "model_snippet": snippet_override}
+
             anchors.append(
                 Anchor(
                     target=FineRef.model_validate({"$ref": ref}),
@@ -86,7 +105,6 @@ class BaseAnalyser(ABC):
 
         prefix = f"{self.analyser_id.upper()}:{ac_code}"
         finding_id = next_id(prefix)
-
         return Finding(
             analyser=AnalyserInfo(
                 analyser_id=self.analyser_id,
@@ -105,6 +123,7 @@ class BaseAnalyser(ABC):
             human_status=human_status,
             generator_model=generator_model,
             anchors=anchors,
+            meta=meta,
         )
 
     @abstractmethod
@@ -179,6 +198,8 @@ class BaseLLMAnalyser(BaseAnalyser):
                     label=vision_finding.ac_code,
                 )
             )
+            # Move any preserved model snippet into the most recent ModelEval
+            self._consume_model_snippet_into_modeleval(finding)
 
     def _resolve_item_cref(
         self,
@@ -196,6 +217,23 @@ class BaseLLMAnalyser(BaseAnalyser):
         except Exception:
             logger.warning("Failed to resolve %s item_cref %r", source_name, item_cref)
             return None
+
+    def _consume_model_snippet_into_modeleval(self, finding: Finding) -> None:
+        """If a model-provided snippet was stored in ``finding.meta['model_snippet']``,
+        attach it to the last ModelEval's ``raw`` dict and remove it from meta.
+        """
+        if not (finding.meta and "model_snippet" in finding.meta):
+            return
+        if not finding.model_evals:
+            return
+        try:
+            model_snip = finding.meta.pop("model_snippet")
+        except Exception:
+            return
+        last_ev = finding.model_evals[-1]
+        existing = last_ev.raw or {}
+        existing = {**existing, "model_snippet": model_snip}
+        last_ev.raw = existing
 
     def _make_generated_finding(
         self,
@@ -298,6 +336,8 @@ class BaseLLMAnalyser(BaseAnalyser):
                 finding.model_evals.append(
                     ModelEval(model_name=model_name, label=f.ac_code)
                 )
+                # Attach any model-provided snippet to the appended ModelEval
+                self._consume_model_snippet_into_modeleval(finding)
             findings.append(finding)
         return findings
 
@@ -324,17 +364,22 @@ class BaseLLMAnalyser(BaseAnalyser):
         rules: list[LLMRule],
         rulebook: Rulebook,
         params: dict[str, Any] | None = None,
-    ) -> tuple[list[Any], dict]:
-        """Call the grader LLM and return (raw_findings, usage).
+    ) -> tuple[list[Any], dict, int]:
+        """Call the grader LLM and return (raw_findings, usage, images_sent).
+
+        The base implementation wraps a text-only grader call and returns
+        ``images_sent=0`` to keep the return shape compatible with vision
+        analysers.
 
         Subclasses may override.
         """
         model = (params or {}).get("model")
         temperature = (params or {}).get("temperature")
         system_prompt = self.build_system_prompt(rules, rulebook, params)
-        return llm_client.analyse_document(
+        findings, usage = llm_client.analyse_document(
             doc, system_prompt, model=model, temperature=temperature
         )
+        return findings, usage, 0
 
     def analyse(
         self,
@@ -349,7 +394,9 @@ class BaseLLMAnalyser(BaseAnalyser):
         rules = self.get_rules(rulebook, params)
         if not rules:
             return []
-        raw, usage = self.execute_llm(llm_client, doc, rules, rulebook, params)
+        raw, usage, _images_sent = self.execute_llm(
+            llm_client, doc, rules, rulebook, params
+        )
         self._accumulated_usage = usage
         return self.process_llm_findings(doc, raw, rules, params)
 

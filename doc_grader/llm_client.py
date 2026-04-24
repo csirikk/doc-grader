@@ -301,7 +301,7 @@ class LLMClient:
         rulebook: Rulebook,
         model: str | None = None,
         temperature: float | None = None,
-    ) -> tuple[list, dict[str, _UsageEntry]]:
+    ) -> tuple[list, dict[str, _UsageEntry], int]:
         """Run the vision LLM on all pictures in the document.
 
         The method collects images from the document, attaches optional
@@ -316,7 +316,7 @@ class LLMClient:
             temperature: Optional temperature override.
 
         Returns:
-            Tuple of (vision findings list, by-model usage mapping).
+            Tuple of (vision findings list, by-model usage mapping, images_sent).
         """
         from .schemas.llm import VisionModelResponse
 
@@ -348,9 +348,72 @@ class LLMClient:
                 )
                 n_images += 1
 
+        # Fallback: when Docling did not produce PictureItem objects but the
+        # parser extracted Markdown image URIs, try to resolve and include
+        # those images as inline diagrams for the vision model.
+        if n_images == 0 and getattr(doc, "md_image_uris", None):
+            import io
+            from pathlib import Path
+            from urllib.parse import unquote
+
+            from PIL import Image
+
+            source_path = getattr(doc.doc_ref, "source_path", None)
+            base_resolved = Path(source_path).parent.resolve() if source_path else None
+            for idx, md_uri in enumerate(doc.md_image_uris):
+                if not base_resolved:
+                    break
+                img_path_str = str(md_uri)
+                if img_path_str.startswith("file://"):
+                    img_path_str = img_path_str[7:]
+                img_path_str = unquote(img_path_str)
+                try:
+                    img_path = (base_resolved / img_path_str).resolve()
+                except Exception:
+                    continue
+                try:
+                    if not img_path.is_file():
+                        continue
+                except Exception:
+                    continue
+
+                # Prevent escaping the document folder
+                try:
+                    if not img_path.is_relative_to(base_resolved):
+                        continue
+                except Exception:
+                    continue
+
+                try:
+                    if img_path.suffix.lower() == ".svg":
+                        import cairosvg
+
+                        png_bytes = cairosvg.svg2png(url=str(img_path))
+                        if not png_bytes:
+                            continue
+                        pil_img = Image.open(io.BytesIO(png_bytes))
+                    else:
+                        pil_img = Image.open(img_path)
+                        pil_img.load()
+                except Exception as exc:
+                    logger.warning("Failed to load md image %s: %s", img_path, exc)
+                    continue
+
+                b64 = self._encode_pil(pil_img)
+                user_content.append(
+                    {"type": "text", "text": f"[Ref: #/pictures/{idx}]"}
+                )
+                user_content.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/png;base64,{b64}"},
+                    }
+                )
+                n_images += 1
+
         if n_images == 0:
             logger.debug("No picture images available. Skipping vision LLM call.")
-            return [], {}
+            return [], {}, 0
 
         user_content.append({"type": "text", "text": rulebook.vision_diagrams_footer})
 
@@ -373,13 +436,13 @@ class LLMClient:
             )
         except Exception:
             logger.exception("Vision LLM API call failed.")
-            return [], {}
+            return [], {}, 0
 
         call_usage = self._build_call_usage(response.model, response.usage)
         parsed_response = response.choices[0].message.parsed
         if parsed_response is None:
             logger.error("Vision LLM returned unparseable response.")
-            return [], call_usage
+            return [], call_usage, 0
 
         for f in parsed_response.findings:
             f.model_name = response.model
@@ -388,7 +451,7 @@ class LLMClient:
         logger.info(
             "Successfully parsed %d vision findings.", len(parsed_response.findings)
         )
-        return parsed_response.findings, call_usage
+        return parsed_response.findings, call_usage, n_images
 
     def analyse_pages_only(
         self,
@@ -397,7 +460,7 @@ class LLMClient:
         rulebook: Rulebook,
         model: str | None = None,
         temperature: float | None = None,
-    ) -> tuple[list, dict[str, _UsageEntry]]:
+    ) -> tuple[list, dict[str, _UsageEntry], int]:
         """Run the vision LLM on document pages when no diagrams are present.
 
         This is used for PDFs without diagram images so the vision model can
@@ -412,7 +475,7 @@ class LLMClient:
             temperature: Optional temperature override.
 
         Returns:
-            Tuple of (vision findings list, by-model usage mapping).
+            Tuple of (vision findings list, by-model usage mapping, images_sent).
         """
         from .schemas.llm import VisionModelResponse
 
@@ -434,7 +497,7 @@ class LLMClient:
 
         if not n_pages:
             logger.debug("No page images available. Skipping pages-only vision call.")
-            return [], {}
+            return [], {}, 0
 
         user_content.append({"type": "text", "text": rulebook.vision_pages_only_footer})
 
@@ -456,13 +519,13 @@ class LLMClient:
             )
         except Exception:
             logger.exception("Pages-only vision LLM API call failed.")
-            return [], {}
+            return [], {}, 0
 
         call_usage = self._build_call_usage(response.model, response.usage)
         parsed_response = response.choices[0].message.parsed
         if parsed_response is None:
             logger.error("Pages-only vision LLM returned unparseable response.")
-            return [], call_usage
+            return [], call_usage, 0
 
         for f in parsed_response.findings:
             f.model_name = response.model
@@ -474,14 +537,14 @@ class LLMClient:
             "Successfully parsed %d pages-only vision findings.",
             len(parsed_response.findings),
         )
-        return parsed_response.findings, call_usage
+        return parsed_response.findings, call_usage, n_pages
 
     def run_vision_classifier(
         self,
         doc: Document,
         system_prompt: str,
         model: str,
-    ) -> tuple[dict[str, dict[str, str]], dict[str, _UsageEntry]]:
+    ) -> tuple[dict[str, dict[str, str]], dict[str, _UsageEntry], int]:
         """Classify each picture using a fine-tuned vision classifier.
 
         Args:
@@ -490,12 +553,15 @@ class LLMClient:
             model: Model name of the fine-tuned classifier.
 
         Returns:
-            A tuple ``(results, usage)`` where ``results`` maps picture cref to
-            a dict containing the assigned label and raw response text, and
-            ``usage`` aggregates token usage across classifier calls.
+            A tuple ``(results, usage, images_sent)`` where ``results`` maps
+            picture cref to a dict containing the assigned label and raw
+            response text, ``usage`` aggregates token usage across classifier
+            calls, and ``images_sent`` is the number of images actually sent
+            to the classifier.
         """
         results: dict[str, dict[str, str]] = {}
         call_usage: dict[str, _UsageEntry] = {}
+        n_images: int = 0
 
         for idx, item in enumerate(doc.docling_doc.pictures):
             cref = item.get_ref().cref
@@ -541,6 +607,7 @@ class LLMClient:
             call_usage = merge_usage(
                 call_usage, self._build_call_usage(model, response.usage)
             )
+            n_images += 1
             raw_content = (response.choices[0].message.content or "").strip()
 
             raw_upper = raw_content.upper()
@@ -554,7 +621,104 @@ class LLMClient:
             results[cref] = {"label": label, "raw": raw_content}
             logger.debug("Classified %s as %r", cref, label)
 
-        return results, call_usage
+        # Classify md_image_uris when no PictureItem
+        if not results and getattr(doc, "md_image_uris", None):
+            import io
+            from pathlib import Path
+            from urllib.parse import unquote
+
+            from PIL import Image
+
+            source_path = getattr(doc.doc_ref, "source_path", None)
+            base_resolved = Path(source_path).parent.resolve() if source_path else None
+
+            for idx, md_uri in enumerate(doc.md_image_uris):
+                if not base_resolved:
+                    break
+                img_path_str = str(md_uri)
+                if img_path_str.startswith("file://"):
+                    img_path_str = img_path_str[7:]
+                img_path_str = unquote(img_path_str)
+                try:
+                    img_path = (base_resolved / img_path_str).resolve()
+                except Exception:
+                    continue
+                try:
+                    if not img_path.is_file():
+                        continue
+                except Exception:
+                    continue
+
+                try:
+                    if not img_path.is_relative_to(base_resolved):
+                        continue
+                except Exception:
+                    continue
+
+                try:
+                    if img_path.suffix.lower() == ".svg":
+                        import cairosvg
+
+                        png_bytes = cairosvg.svg2png(url=str(img_path))
+                        if not png_bytes:
+                            continue
+                        pil_img = Image.open(io.BytesIO(png_bytes))
+                    else:
+                        pil_img = Image.open(img_path)
+                        pil_img.load()
+                except Exception as exc:
+                    logger.warning("Failed to load md image %s: %s", img_path, exc)
+                    continue
+
+                b64 = self._encode_pil(pil_img)
+                cref = f"#/pictures/{idx}"
+                try:
+                    response = self._client.beta.chat.completions.parse(
+                        model=model,
+                        temperature=self.temperature,
+                        max_completion_tokens=self.max_completion_tokens,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {
+                                "role": "user",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "Analyze this diagram for UML compliance.",
+                                    },
+                                    {
+                                        "type": "image_url",
+                                        "image_url": {
+                                            "url": f"data:image/png;base64,{b64}",
+                                            "detail": "high",
+                                        },
+                                    },
+                                ],
+                            },
+                        ],
+                    )
+                except Exception:
+                    logger.exception("Classifier call failed for %s", cref)
+                    continue
+
+                call_usage = merge_usage(
+                    call_usage, self._build_call_usage(model, response.usage)
+                )
+                n_images += 1
+                raw_content = (response.choices[0].message.content or "").strip()
+
+                raw_upper = raw_content.upper()
+                if "BADUML" in raw_upper:
+                    label = "BADUML"
+                elif "GOODUML" in raw_upper:
+                    label = "GOODUML"
+                else:
+                    label = "UNKNOWN"
+
+                results[cref] = {"label": label, "raw": raw_content}
+                logger.debug("Classified %s as %r", cref, label)
+
+        return results, call_usage, n_images
 
     def judge_findings(
         self,
@@ -749,7 +913,7 @@ class LLMClient:
                 logger.warning(
                     "Could not read source file %s for judge context: %s", source, e
                 )
-
+            pics_added = 0
             for idx, item in enumerate(doc.docling_doc.pictures):
                 cref = item.get_ref().cref
                 pil_img = get_picture_pil(doc, idx, item)
@@ -762,5 +926,70 @@ class LLMClient:
                             "image_url": {"url": f"data:image/png;base64,{b64}"},
                         }
                     )
+                    pics_added += 1
+
+            # If no Docling PictureItems were present (common for Markdown
+            # sources), include any resolved Markdown image URIs so the judge
+            # receives the actual images the classifier/asset analyser saw.
+            if pics_added == 0 and getattr(doc, "md_image_uris", None):
+                import io
+                from pathlib import Path
+                from urllib.parse import unquote
+
+                from PIL import Image
+
+                source_path = getattr(doc.doc_ref, "source_path", None)
+                base_resolved = (
+                    Path(source_path).parent.resolve() if source_path else None
+                )
+                if base_resolved:
+                    for idx, md_uri in enumerate(doc.md_image_uris):
+                        img_path_str = str(md_uri)
+                        if img_path_str.startswith("file://"):
+                            img_path_str = img_path_str[7:]
+                        img_path_str = unquote(img_path_str)
+                        try:
+                            img_path = (base_resolved / img_path_str).resolve()
+                        except Exception:
+                            continue
+                        try:
+                            if not img_path.is_file():
+                                continue
+                        except Exception:
+                            continue
+                        try:
+                            if not img_path.is_relative_to(base_resolved):
+                                continue
+                        except Exception:
+                            continue
+
+                        try:
+                            if img_path.suffix.lower() == ".svg":
+                                import cairosvg
+
+                                png_bytes = cairosvg.svg2png(url=str(img_path))
+                                if not png_bytes:
+                                    continue
+                                pil_img = Image.open(io.BytesIO(png_bytes))
+                            else:
+                                pil_img = Image.open(img_path)
+                                pil_img.load()
+                        except Exception as exc:
+                            logger.warning(
+                                "Failed to load md image %s: %s", img_path, exc
+                            )
+                            continue
+
+                        b64 = self._encode_pil(pil_img)
+                        cref = f"#/pictures/{idx}"
+                        user_content.append(
+                            {"type": "text", "text": f"[Diagram {cref}]"}
+                        )
+                        user_content.append(
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/png;base64,{b64}"},
+                            }
+                        )
 
         return user_content
