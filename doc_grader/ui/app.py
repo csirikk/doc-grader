@@ -310,7 +310,7 @@ with st.sidebar:
         "## Disclaimer\n"
         "This user interface showcases suggestions from a prototype "
         "**machine learning-based** based tool. It is designed to aid graders "
-        "and is not a meant to be a full grading interface. "
+        "and is not meant to be a full grading interface. "
         "Please expect both false positives and false negatives. This tool is designed"
         " to be used only as a complementary aid to the current manual grading process."
     )

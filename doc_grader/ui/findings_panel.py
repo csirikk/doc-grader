@@ -273,9 +273,9 @@ def render_findings(
             key="show_dismissed_candidates",
             help=(
                 "When enabled, the list includes unscored finding candidates "
-                "dismissed by the a judge model during the pipeline, enabling this "
-                "allows viewing these exclusioons can serve as supplementary "
-                "information for other possible uncaught findings."
+                "dismissed by a judge model during the pipeline, viewing these "
+                "exclusions can serve as supplementary information for other "
+                "possible uncaught findings."
             ),
         )
         toggles_col.checkbox(
