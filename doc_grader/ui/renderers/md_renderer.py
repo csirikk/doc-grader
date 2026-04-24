@@ -115,13 +115,13 @@ def render_markdown(path: Path, selected_finding: dict | None) -> None:
         """
         <style>
             .finding-mark { 
-                background-color: rgba(255, 170, 0, 0.18);
+                background-color: rgba(255, 45, 45, 0.18);
                 border-radius: 3px;
                 padding: 0 0.15rem;
             }
             .finding-mark[data-active="true"] { 
-                background-color: rgba(255, 170, 0, 0.42);
-                outline: 1px solid rgba(255, 140, 0, 0.85);
+                background-color: rgba(255, 45, 45, 0.35);
+                outline: 1px solid rgba(255, 45, 45, 0.95);
             }
             .markdown-surface { background-color: rgba(255, 255, 255, 0.02);
                 border-radius: 0.5rem;
@@ -133,7 +133,7 @@ def render_markdown(path: Path, selected_finding: dict | None) -> None:
                 border-radius: 4px;
             }
             .finding-mark img {
-                outline: 3px solid rgba(255, 140, 0, 0.85);
+                outline: 3px solid rgba(255, 45, 45, 0.95);
                 border-radius: 4px;
             }
         </style>
@@ -150,8 +150,14 @@ def render_markdown(path: Path, selected_finding: dict | None) -> None:
             f"""
             <script>
                 setTimeout(() => {{
-                    const el = window.parent.document.querySelector('[data-finding-id="{active_id}"]');
-                    if (el) el.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+                    const selector = '[data-finding-id="{active_id}"]';
+                    const el = window.parent.document.querySelector(selector);
+                    if (el) {{
+                        el.scrollIntoView({{
+                            behavior: 'smooth',
+                            block: 'center'
+                        }});
+                    }}
                 }}, 150);
             </script>
         """,

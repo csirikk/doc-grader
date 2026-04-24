@@ -8,10 +8,11 @@ from typing import TYPE_CHECKING
 import streamlit as st
 from streamlit_pdf_viewer import pdf_viewer
 
-from doc_grader.ui.ui_utils import STATUS_COLOURS
-
 if TYPE_CHECKING:
     from pathlib import Path
+
+
+_ANNOTATION_COLOUR = "#ff2d2d"
 
 
 def _handle_annotation_click(clicked_annotation: dict) -> None:
@@ -26,7 +27,6 @@ def _get_annotations(finding: dict | None) -> list[dict]:
         return []
 
     safe_id = finding.get("finding_id", "").replace(":", "-")
-    status_colour = STATUS_COLOURS.get(finding["judge_status"], "blue")
 
     annotations = []
     for anchor in finding.get("anchors", []):
@@ -42,7 +42,7 @@ def _get_annotations(finding: dict | None) -> list[dict]:
                     "y": bbox["t"],
                     "width": bbox["r"] - bbox["l"],
                     "height": bbox["b"] - bbox["t"],
-                    "color": status_colour,
+                    "color": _ANNOTATION_COLOUR,
                     "id": safe_id,
                 }
             )
