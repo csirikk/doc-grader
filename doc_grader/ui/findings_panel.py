@@ -49,7 +49,7 @@ STATUS_LABELS: dict[str, str] = {
 
 
 def _code_filter_options(findings: list[dict]) -> list[str]:
-    """Return code filter options as [All, ...sorted unique codes]."""
+    """Return criterion filter options as [All, ...sorted unique codes]."""
     codes = sorted({str(f.get("ac_code") or "-") for f in findings})
     return ["All", *codes]
 
@@ -111,39 +111,6 @@ def _criterion_text(
     rubric = rubric_by_code.get(ac_code, {})
     criterion_text = rubric.get("criterion_text")
     return criterion_text or None
-
-
-def _impact_explanation(finding: dict) -> str:
-    impact = finding.get("impact")
-    severity = finding.get("severity")
-    confidence = finding.get("confidence")
-    confidence_text = (
-        f"{float(confidence):.2f}" if confidence is not None else "unavailable"
-    )
-
-    if impact is None:
-        return (
-            "This finding may affect minipoints under the matched criterion. "
-            f"Evidence confidence is {confidence_text}."
-        )
-
-    if impact < 0:
-        return (
-            f"Estimated deduction: {abs(float(impact)):.2f} minipoints. "
-            f"The deduction size reflects issue severity ({_severity_label(severity)}) "
-            f"and evidence confidence ({confidence_text})."
-        )
-
-    if impact > 0:
-        return (
-            f"Estimated positive adjustment: {float(impact):.2f} minipoints. "
-            f"Evidence confidence is {confidence_text}."
-        )
-
-    return (
-        "No point change estimated for this item. "
-        f"Evidence confidence is {confidence_text}."
-    )
 
 
 def _render_judge(finding: dict, show_technical_details: bool) -> None:
@@ -303,12 +270,12 @@ def render_findings(
     filter_col, sort_col = st.columns([1.0, 1.0], vertical_alignment="bottom")
 
     code_filter = filter_col.selectbox(
-        "Filter by code",
+        "Filter by criterion",
         code_options,
         key="findings_code_filter",
     )
     sort_by = sort_col.radio(
-        "Sort findings by (Descending)",
+        "Sort findings by (descending)",
         ["Deduction", "Confidence"],
         horizontal=True,
         key="findings_sort",
@@ -356,7 +323,7 @@ def render_findings(
 
         impact = finding.get("impact")
         with st.expander(
-            f"[{ac_code}] {criterion_title}{_impact_title(impact)}",
+            f"[{ac_code}] {criterion_title} {_impact_title(impact)}",
             expanded=is_active,
         ):
             # colour the expander
@@ -371,8 +338,8 @@ def render_findings(
             header_l, header_r = st.columns([3, 1], vertical_alignment="center")
 
             with header_l:
-                st.markdown(f"### Criterion {ac_code}")
-                st.markdown(criterion_title)
+                st.markdown(f"### {criterion_title}")
+                st.caption(f"Criterion code: `{ac_code}`")
 
                 criterion_text = _criterion_text(finding, rubric_by_code)
                 if criterion_text:
@@ -380,8 +347,8 @@ def render_findings(
 
                 severity_help = (
                     "Severity scale for this criterion: 1.00 means the worst error "
-                    "of this type under this AC; 0.00 means it still belongs to this "
-                    "AC but is very minor."
+                    "of this type under this AC, 0.00 means it still belongs to this "
+                    "criterion but is very minor."
                 )
                 confidence_help = (
                     "Confidence shows how certain the automated analysis is. Lower "
@@ -389,21 +356,19 @@ def render_findings(
                 )
                 severity_value = _severity_label(severity)
                 confidence_value = _severity_label(confidence)
+                deduction_html = ""
+                if impact is not None and impact < 0:
+                    deduction_html = (
+                        f"<div>Estimated deduction: {_impact_label(impact)} "
+                        "minipoints</div>"
+                    )
 
                 st.markdown(
-                    "Status: "
-                    f"{STATUS_LABELS.get(judge_status, judge_status)} | "
-                    "Severity: "
-                    f"<span title='{severity_help}'>{severity_value}</span> | "
-                    "Confidence: "
-                    f"<span title='{confidence_help}'>{confidence_value}</span> "
-                    f"{
-                        '| Estimated deduction: '
-                        + _impact_label(impact)
-                        + ' minipoints'
-                        if impact is not None and impact < 0
-                        else ''
-                    }",
+                    f"<div><span title='{severity_help}'>"
+                    f"Severity {severity_value}</span></div>"
+                    f"<span title='{confidence_help}'>"
+                    f"<div>Confidence: {confidence_value}</span></div>"
+                    f"{deduction_html}",
                     unsafe_allow_html=True,
                 )
 
@@ -425,9 +390,6 @@ def render_findings(
 
             st.markdown("**What was detected**")
             st.markdown(finding.get("summary", "No summary available."))
-
-            st.markdown("**Why this affected points**")
-            st.markdown(_impact_explanation(finding))
 
             if notes := finding.get("notes"):
                 st.caption(", ".join(notes))
