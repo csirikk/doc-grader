@@ -357,17 +357,25 @@ def main(argv: list[str] | None = None) -> int:
 
     from .document_parser import DocumentParser
 
+    # Discover all cases first so we can report a total for progress
+    cases = list(
+        discover_cases(
+            args.inputs,
+            expected_filename=config.expected_filename,
+            allowed_extensions=config.allowed_extensions,
+        )
+    )
+    total_cases = len(cases)
+    docs_discovered = total_cases
+    logger.info("Discovered %d documents to process", total_cases)
+
     logger.info("Initialising parser...")
     parser = DocumentParser()
     scorer = Scorer()
 
-    for doc_path, student_id in discover_cases(
-        args.inputs,
-        expected_filename=config.expected_filename,
-        allowed_extensions=config.allowed_extensions,
-    ):
-        docs_discovered += 1
-        path = doc_path
+    for idx, (path, student_id) in enumerate(cases, start=1):
+        logger.info(f"Processing [{idx}/{total_cases}] {path}")
+
         file_outdir = base_outdir / student_id
 
         if args.skip_existing and _has_completed_outputs(file_outdir):
