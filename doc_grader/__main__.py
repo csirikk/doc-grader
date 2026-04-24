@@ -613,14 +613,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.csv_out:
         csv_path = Path(args.csv_out)
-        grader_fieldnames = [
-            "points",
-            "comment",
-            "bonus_points",
-            "points_mentioned_in_comment",
-            "id",
-            "doc_type",
-        ]
+        grader_fieldnames = ["id", "doc_type", "points", "comment"]
         write_csv(csv_path, grader_rows, fieldnames=grader_fieldnames)
         logger.info("Grader CSV with %d rows written to %s", len(grader_rows), csv_path)
 
