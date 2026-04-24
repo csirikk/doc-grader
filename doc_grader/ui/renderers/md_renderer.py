@@ -4,7 +4,6 @@ Author: Matúš Csirik
 """
 
 import base64
-import html
 import mimetypes
 import re
 from typing import TYPE_CHECKING
@@ -94,7 +93,7 @@ def get_standalone_html(path: Path) -> str:
     `_embed_html_images` helper so the document is self-contained and can be
     opened in a new browser tab or saved as a standalone HTML file.
     """
-    md_content = path.read_text(encoding="utf-8")
+    md_content = path.read_text(encoding="utf-8").replace("<", "&lt;")
     raw_html = marko.Markdown().convert(md_content)
     full_body = _embed_html_images(raw_html, path.parent)
 
@@ -151,7 +150,7 @@ def render_markdown(path: Path, selected_finding: dict | None) -> None:
     Returns:
         None
     """
-    md_content = html.escape(path.read_text(encoding="utf-8"), quote=False)
+    md_content = path.read_text(encoding="utf-8").replace("<", "&lt;")
     html_body = marko.Markdown().convert(md_content)
 
     active_id = (selected_finding or {}).get("finding_id", "").replace(":", "-")
