@@ -194,6 +194,21 @@ def _run_analysers(
             tb = traceback.format_exc()
             logger.exception("Error running analyser %s", analyser_cfg.analyser_id)
             analyser_errors.setdefault(analyser_cfg.analyser_id, []).append(tb)
+        finally:
+            if llm_client is not None and hasattr(llm_client, "consume_diagnostics"):
+                try:
+                    llm_diagnostics = llm_client.consume_diagnostics()
+                except Exception:
+                    llm_diagnostics = []
+                    logger.debug(
+                        "Could not consume LLM diagnostics for %s",
+                        analyser_cfg.analyser_id,
+                        exc_info=True,
+                    )
+                if llm_diagnostics:
+                    analyser_errors.setdefault(analyser_cfg.analyser_id, []).extend(
+                        llm_diagnostics
+                    )
 
     return findings, accumulated_usage, stage_times, analyser_errors
 
@@ -522,6 +537,19 @@ def main(argv: list[str] | None = None) -> int:
                 doc_usage = merge_usage(doc_usage, judge_usage)
                 if judge_response:
                     rule_engine.apply_judge_response(judge_batch, judge_response)
+                if hasattr(llm_client, "consume_diagnostics"):
+                    try:
+                        judge_diagnostics = llm_client.consume_diagnostics()
+                    except Exception:
+                        judge_diagnostics = []
+                        logger.debug(
+                            "Could not consume judge LLM diagnostics",
+                            exc_info=True,
+                        )
+                    if judge_diagnostics:
+                        analyser_errors.setdefault("judge", []).extend(
+                            judge_diagnostics
+                        )
             judged_approved = sum(
                 1 for f in analyser_findings if f.judge_status == "judged_approved"
             )

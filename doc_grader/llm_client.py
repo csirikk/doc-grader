@@ -8,6 +8,7 @@ workloads, token usage accounting and simple cost estimation helpers.
 
 import logging
 import os
+import traceback
 from typing import TYPE_CHECKING, TypedDict
 
 from openai import OpenAI
@@ -132,13 +133,29 @@ class LLMClient:
         self,
         model: str = "gpt-5.4-nano-2026-03-17",
         temperature: float = 0.0,
-        max_completion_tokens: int = 8192,
+        max_completion_tokens: int = 16384,
         api_key_env: str = "OPENAI_API_KEY",
     ) -> None:
         self.model = model
         self.temperature = temperature
         self.max_completion_tokens = max_completion_tokens
         self._client = OpenAI(api_key=os.environ.get(api_key_env))
+        self._diagnostics: list[str] = []
+
+    def _record_diagnostic(self, scope: str, exc: Exception | None = None) -> None:
+        """Store a diagnostic message for later inclusion in info.json output."""
+        if exc is None:
+            self._diagnostics.append(scope)
+            return
+        self._diagnostics.append(
+            f"{scope}: {type(exc).__name__}: {exc}\n{traceback.format_exc()}"
+        )
+
+    def consume_diagnostics(self) -> list[str]:
+        """Return and clear accumulated diagnostics from LLM operations."""
+        out = list(self._diagnostics)
+        self._diagnostics.clear()
+        return out
 
     def _build_call_usage(
         self, model: str, usage: object | None
@@ -245,13 +262,15 @@ class LLMClient:
                 response_format=GraderModelResponse,
                 messages=messages,
             )
-        except Exception:
+        except Exception as exc:
+            self._record_diagnostic("analyse_document failed", exc)
             logger.exception("LLM API call or processing failed.")
             return [], {}
 
         call_usage = self._build_call_usage(response.model, response.usage)
         parsed_response = response.choices[0].message.parsed
         if parsed_response is None:
+            self._record_diagnostic("analyse_document returned unparseable response")
             logger.error("LLM returned unparseable response.")
             return [], call_usage
 
@@ -434,13 +453,15 @@ class LLMClient:
                 response_format=VisionModelResponse,
                 messages=messages,
             )
-        except Exception:
+        except Exception as exc:
+            self._record_diagnostic("analyse_assets failed", exc)
             logger.exception("Vision LLM API call failed.")
             return [], {}, 0
 
         call_usage = self._build_call_usage(response.model, response.usage)
         parsed_response = response.choices[0].message.parsed
         if parsed_response is None:
+            self._record_diagnostic("analyse_assets returned unparseable response")
             logger.error("Vision LLM returned unparseable response.")
             return [], call_usage, 0
 
@@ -517,13 +538,15 @@ class LLMClient:
                 response_format=VisionModelResponse,
                 messages=messages,
             )
-        except Exception:
+        except Exception as exc:
+            self._record_diagnostic("analyse_pages_only failed", exc)
             logger.exception("Pages-only vision LLM API call failed.")
             return [], {}, 0
 
         call_usage = self._build_call_usage(response.model, response.usage)
         parsed_response = response.choices[0].message.parsed
         if parsed_response is None:
+            self._record_diagnostic("analyse_pages_only returned unparseable response")
             logger.error("Pages-only vision LLM returned unparseable response.")
             return [], call_usage, 0
 
@@ -587,7 +610,9 @@ class LLMClient:
                             "content": [
                                 {
                                     "type": "text",
-                                    "text": "Analyze this diagram for UML compliance.",
+                                    "text": (
+                                        "Analyze this diagram for UML compliance."
+                                    ),
                                 },
                                 {
                                     "type": "image_url",
@@ -600,7 +625,8 @@ class LLMClient:
                         },
                     ],
                 )
-            except Exception:
+            except Exception as exc:
+                self._record_diagnostic(f"run_vision_classifier failed for {cref}", exc)
                 logger.exception("Classifier call failed for %s", cref)
                 continue
 
@@ -684,7 +710,9 @@ class LLMClient:
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": "Analyze this diagram for UML compliance.",
+                                        "text": (
+                                            "Analyze this diagram for UML compliance."
+                                        ),
                                     },
                                     {
                                         "type": "image_url",
@@ -697,7 +725,10 @@ class LLMClient:
                             },
                         ],
                     )
-                except Exception:
+                except Exception as exc:
+                    self._record_diagnostic(
+                        f"run_vision_classifier failed for {cref}", exc
+                    )
                     logger.exception("Classifier call failed for %s", cref)
                     continue
 
@@ -768,13 +799,15 @@ class LLMClient:
                 response_format=JudgeModelResponse,
                 messages=messages,
             )
-        except Exception:
+        except Exception as exc:
+            self._record_diagnostic("judge_findings failed", exc)
             logger.exception("Judge model LLM call failed.")
             return None, {}
 
         call_usage = self._build_call_usage(response.model, response.usage)
         parsed_response = response.choices[0].message.parsed
         if parsed_response is None:
+            self._record_diagnostic("judge_findings returned unparseable response")
             logger.error("Judge LLM returned unparseable response.")
             return None, call_usage
 
