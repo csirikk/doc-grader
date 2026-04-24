@@ -122,13 +122,44 @@ def _render_judge(finding: dict, show_technical_details: bool) -> None:
     if not judge:
         return
 
-    with st.expander("Automatic review note", expanded=False):
-        rationale = judge.get("rationale")
-        if rationale:
-            st.markdown(rationale)
+    # Extract any before/after change recorded by the judge (grader -> judge)
+    change: dict = judge.get("change") or {}
+    before: dict = change.get("before") or {}
+    after: dict = change.get("after") or {}
 
+    grader_summary = before.get("summary")
+    adjusted_summary = after.get("summary")
+
+    with st.expander("Automatic review note", expanded=False):
+        if grader_summary:
+            st.caption("Grader model summary (original):")
+            st.markdown(grader_summary)
+        else:
+            # Fall back to the current finding summary when original not recorded
+            if finding.get("summary"):
+                st.caption("Grader model summary:")
+                st.markdown(finding.get("summary"))
+
+        decision = judge.get("decision")
+        rationale = judge.get("rationale")
+        if decision or rationale or adjusted_summary:
+            st.caption("Judge model response:")
+            if decision:
+                st.markdown(f"**Decision:** {decision}")
+            if rationale:
+                st.markdown(rationale)
+
+            if adjusted_summary:
+                # Show adjusted summary only if it differs from the grader summary
+                if adjusted_summary != grader_summary:
+                    st.caption("Judge-adjusted summary:")
+                    st.markdown(adjusted_summary)
+                else:
+                    st.markdown(adjusted_summary)
+
+        # Optional reasoning from the judge model
         if show_technical_details and (reasoning := judge.get("reasoning_chain")):
-            st.caption("Technical reasoning trace")
+            st.caption("Judge model reasoning:")
             st.markdown(reasoning)
 
         _ = show_technical_details
@@ -148,7 +179,8 @@ def _render_evidence(finding: dict, show_technical_details: bool) -> None:
     if not has_evidence:
         return
 
-    with st.expander("Evidence from the document", expanded=False):
+    with st.expander("Anchors within the document", expanded=False):
+        st.caption("Document excerpts and locations that triggered this finding:")
         if anchors:
             for i, anchor in enumerate(anchors, 1):
                 ref = (anchor.get("target") or {}).get("$ref", "")
@@ -168,7 +200,7 @@ def _render_evidence(finding: dict, show_technical_details: bool) -> None:
 
                 st.text(f"[{i}] {label} ({loc})")
                 if snippet:
-                    st.caption(snippet)
+                    st.markdown(f"*{snippet}*")
 
         if stats:
             st.caption("Stats")
@@ -338,12 +370,10 @@ def render_findings(
             header_l, header_r = st.columns([3, 1], vertical_alignment="center")
 
             with header_l:
-                st.markdown(f"### {criterion_title}")
-                st.caption(f"Criterion code: `{ac_code}`")
-
+                st.markdown(f"### {ac_code}: {criterion_title}")
                 criterion_text = _criterion_text(finding, rubric_by_code)
                 if criterion_text:
-                    st.caption(f"Criterion definition:\n {criterion_text}")
+                    st.caption(f"{ac_code} definition:\n {criterion_text}")
 
                 severity_help = (
                     "Severity scale for this criterion: 1.00 means the worst error "
@@ -388,7 +418,7 @@ def render_findings(
                     disabled=not has_anchors,
                 )
 
-            st.markdown("**What was detected**")
+            st.markdown("#### What was detected:")
             st.markdown(finding.get("summary", "No summary available."))
 
             if notes := finding.get("notes"):
