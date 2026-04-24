@@ -325,12 +325,15 @@ class AssetAnalyser(BaseLLMAnalyser):
         severity = min(len(violations) / max(doc.total_words, 1) * 100, 1.0)
         severity = max(round(severity, 3), 0.1)
 
-        summary_lines = "\n".join(f"  - {v}" for v in violations[:20])
+        formatted_violations = [" ".join(v.split()) for v in violations]
+        max_items = 20
+        items = formatted_violations[:max_items]
         summary = (
-            f"{len(violations)} typography/formatting issue(s) found:\n{summary_lines}"
+            f"{len(violations)} typography/formatting issue(s) found: "
+            + "; ".join(items)
         )
-        if len(violations) > 20:
-            summary += f"\n  ... and {len(violations) - 20} more"
+        if len(violations) > max_items:
+            summary += f"; ... and {len(violations) - max_items} more"
 
         return [
             self._make_finding(
