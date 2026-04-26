@@ -43,6 +43,24 @@ _WARNING_TYPE_PALETTE: dict[str, str] = {
     "Unknown": "#7f7f7f",
 }
 
+
+def _normalise_year_token(value: str) -> str:
+    """
+    Normalise academic-year tokens,
+    (for example 2021, meaning 20/21) to start year (2020).
+    """
+    token = value.strip()
+    if not re.fullmatch(r"\d{4}", token):
+        return token
+
+    start_yy = int(token[:2])
+    end_yy = int(token[2:])
+    if end_yy == (start_yy + 1) % 100:
+        return f"20{start_yy:02d}"
+
+    return token
+
+
 # --- DATA ---
 
 
@@ -58,11 +76,8 @@ def load_clean_data(path: Path | None = None) -> pd.DataFrame:
 
     df = pd.read_csv(path)
 
-    df["year"] = df["year"].astype(str)
+    df["year"] = df["year"].astype(str).map(_normalise_year_token)
     df["task_variant"] = df["task_variant"].astype(str)
-    df["year"] = df["year"].apply(
-        lambda y: "20" + y[:2] if len(y) == 4 and not y.startswith("20") else y
-    )
 
     years = sorted(df["year"].unique())
 
