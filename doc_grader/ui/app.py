@@ -67,6 +67,16 @@ _CUSTOM_SCROLL_CSS = """
 """
 st.html(_CUSTOM_SCROLL_CSS)
 
+_EXCLUDED_UI_CODES = frozenset({"AIDOC", "DSC_EXT"})
+
+
+def _is_ui_excluded_finding(finding: dict) -> bool:
+    return str(finding.get("ac_code") or "").strip().upper() in _EXCLUDED_UI_CODES
+
+
+def _filter_ui_findings(findings: list[dict]) -> list[dict]:
+    return [finding for finding in findings if not _is_ui_excluded_finding(finding)]
+
 
 def _normalise_student_prefix(value: str | None) -> str | None:
     """Return the first 6 characters from a student identifier value."""
@@ -111,31 +121,6 @@ def _run_for_student_prefix(
         if run_student_prefix(run_dir) == student_prefix:
             return run_dir
     return None
-
-
-def _points_over_max(
-    findings: list[dict], max_doc_points: int | float | str | None
-) -> str:
-    """Return current_points/max_points string computed from finding impacts."""
-    if max_doc_points is None:
-        return "n/a"
-
-    try:
-        max_points = float(max_doc_points)
-    except TypeError, ValueError:
-        return "n/a"
-
-    total_impact = 0.0
-    for finding in findings:
-        impact = finding.get("impact")
-        if impact is None:
-            continue
-        try:
-            total_impact += float(impact)
-        except TypeError, ValueError:
-            continue
-
-    return f"{max_points + total_impact:.2f}/{max_points:.2f}"
 
 
 def _load_target_run(target: Path) -> None:
@@ -319,17 +304,36 @@ with st.sidebar:
         st.markdown(
             "1. Navigate the external grading CSV and click the links embedded in "
             " the link columns, or search for any student in the picker above.\n"
-            "2. View and filter findings within the right panel."
+            "2. Review findings in the right panel and use Filter by criterion "
+            "and Sort findings by (descending).\n"
+            "3. Use panel toggles to control visibility: Show summary panel, "
+            "Show findings excluded from summary, Show findings dismissed by "
+            "judge, and Show detailed diagnostics.\n"
+            "4. Inside each finding, use Include in summary, Show anchor, and "
+            "the expanders Automatic review note, Anchors within the document, "
+            "and Technical details."
+            "5. Hide this panel by clicking on the button in the top "
+            "right of this panel, to maximise document and findings view area."
         )
     with st.expander("Help", expanded=False):
         st.markdown(
             "- Findings are tinted based on the confidence of the model."
             " The confidence value is not always reliable.\n"
+            "- Show findings excluded from summary controls only list visibility; "
+            "Include in summary controls whether a finding contributes to the "
+            "Summary panel and Points.\n"
+            "- Show findings dismissed by judge includes candidates that were "
+            "reviewed and discarded by the judge model.\n"
+            "- Show detailed diagnostics reveals additional sections in each "
+            "finding, including Automatic review note, Anchors within the "
+            "document, and Technical details.\n"
             "- Extra caution is advised when the related document is non-traditionally"
             " formatted or a **DOCTYPE** finding is present.\n"
             "- Due to some students not following file-naming instructions, "
             "it is possible that the scored document is not a documentation.\n"
             "- Evidence anchors do not always point to the exact intended evidence."
+            "- Use the download buttom above to view the document in its original "
+            "format, if you find the rendering here unsatisfactory."
         )
 
 out_dir: Path = st.session_state["out_dir"]
@@ -341,9 +345,19 @@ source_path = source_path_from_info(info)
 course = info.get("config", {}).get("course") if info else None
 rubric_by_code = rubric_lookup(course)
 student_id = run_student_prefix(out_dir) if out_dir is not None else None
+student_storage_id: str | None = None
+if info:
+    raw_student_id = info.get("input", {}).get("student_id")
+    if isinstance(raw_student_id, str):
+        clean_student_id = raw_student_id.strip()
+        if clean_student_id:
+            student_storage_id = clean_student_id
+if student_storage_id is None:
+    student_storage_id = student_id
+
 max_doc_points = info.get("config", {}).get("max_doc_points") if info else None
-points_over_max = _points_over_max(findings, max_doc_points)
-total_findings = len(findings)
+filtered_findings = _filter_ui_findings(findings)
+filtered_dismissed_candidates = _filter_ui_findings(dismissed_candidates)
 
 if out_dir is not None:
 
@@ -351,9 +365,9 @@ if out_dir is not None:
     def workspace():
         doc_col, findings_col = st.columns([0.55, 0.45], gap="medium")
 
-        findings_for_selection = list(findings)
+        findings_for_selection = list(filtered_findings)
         if st.session_state.get("show_dismissed_candidates"):
-            findings_for_selection.extend(dismissed_candidates)
+            findings_for_selection.extend(filtered_dismissed_candidates)
 
         active_id = st.session_state.get("active_finding_id")
         selected_finding = next(
@@ -368,16 +382,14 @@ if out_dir is not None:
         with doc_col:
             render_document(source_path, selected_finding)
 
-        with findings_col:
-            with st.container(border=False):
-                render_findings(
-                    findings,
-                    dismissed_candidates,
-                    out_dir,
-                    rubric_by_code,
-                    student_id,
-                    points_over_max,
-                    total_findings,
-                )
+        with findings_col, st.container(border=False):
+            render_findings(
+                filtered_findings,
+                filtered_dismissed_candidates,
+                rubric_by_code,
+                student_id,
+                student_storage_id,
+                max_doc_points,
+            )
 
     workspace()

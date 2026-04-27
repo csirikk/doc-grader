@@ -3,12 +3,33 @@
 Author: Matúš Csirik
 """
 
-from typing import TYPE_CHECKING
+import json
+import re
+from importlib import import_module
+from typing import Any
 
 import streamlit as st
 
-if TYPE_CHECKING:
-    from pathlib import Path
+
+def _build_local_storage() -> Any:
+    try:
+        module = import_module("streamlit_local_storage")
+    except ModuleNotFoundError as exc:
+        msg = (
+            "Missing dependency 'streamlit-local-storage'. Install it to enable "
+            "summary state persistence in browser localStorage."
+        )
+        raise RuntimeError(msg) from exc
+
+    local_storage_cls = getattr(module, "LocalStorage", None)
+    if local_storage_cls is None:
+        raise RuntimeError(
+            "Package 'streamlit-local-storage' does not expose LocalStorage."
+        )
+    return local_storage_cls()
+
+
+_LOCAL_STORAGE = _build_local_storage()
 
 # CSS for tinting expander headers based on confidence: lower confidence gets
 # stronger red tint to draw reviewer attention.
@@ -93,24 +114,277 @@ def _confidence_tint_band(value: float | None) -> str:
     return "very_low"
 
 
-def _criterion_title(finding: dict, rubric_by_code: dict[str, dict[str, str]]) -> str:
+def _criterion_title(
+    finding: dict, rubric_by_code: dict[str, dict[str, str | float | None]]
+) -> str:
     ac_code = finding.get("ac_code", "")
     if not ac_code:
-        return finding.get("title", "Untitled finding")
+        title = finding.get("title")
+        return title if isinstance(title, str) and title else "Untitled finding"
 
     rubric = rubric_by_code.get(ac_code, {})
-    return rubric.get("title") or finding.get("title") or ac_code
+    rubric_title = _rubric_str_value(rubric, "title")
+    if rubric_title:
+        return rubric_title
+    title = finding.get("title")
+    if isinstance(title, str) and title:
+        return title
+    return str(ac_code)
 
 
 def _criterion_text(
-    finding: dict, rubric_by_code: dict[str, dict[str, str]]
+    finding: dict, rubric_by_code: dict[str, dict[str, str | float | None]]
 ) -> str | None:
     ac_code = finding.get("ac_code", "")
     if not ac_code:
         return None
     rubric = rubric_by_code.get(ac_code, {})
-    criterion_text = rubric.get("criterion_text")
-    return criterion_text or None
+    return _rubric_str_value(rubric, "criterion_text")
+
+
+def _rubric_str_value(rubric: dict[str, str | float | None], key: str) -> str | None:
+    value = rubric.get(key)
+    return value if isinstance(value, str) and value else None
+
+
+def _as_float(value: Any) -> float | None:
+    try:
+        return float(value)
+    except TypeError, ValueError:
+        return None
+
+
+def _safe_key_fragment(value: str | None, *, fallback: str, max_len: int = 96) -> str:
+    if value is None:
+        return fallback
+    clean_value = str(value).strip()
+    if not clean_value:
+        return fallback
+    safe = re.sub(r"[^a-zA-Z0-9:-]", "_", clean_value).strip("_")
+    if not safe:
+        return fallback
+    return safe[:max_len]
+
+
+def _summary_storage_key(student_storage_id: str | None) -> str:
+    student_key = _safe_key_fragment(student_storage_id, fallback="unknown_student")
+    return f"doc_grader.summary.include.{student_key}"
+
+
+def _summary_signature_key(student_storage_id: str | None) -> str:
+    student_key = _safe_key_fragment(student_storage_id, fallback="unknown_student")
+    return f"summary_storage_signature_{student_key}"
+
+
+def _summary_checkbox_key(student_storage_id: str | None, finding_id: str) -> str:
+    student_key = _safe_key_fragment(student_storage_id, fallback="student")
+    finding_key = _safe_key_fragment(finding_id, fallback="finding", max_len=140)
+    return f"summary_include_{student_key}_{finding_key}"
+
+
+def _finding_id(finding: dict) -> str:
+    raw_finding_id = finding.get("finding_id")
+    if raw_finding_id is None:
+        fallback_source = (
+            f"{finding.get('ac_code') or 'unknown'}_"
+            f"{finding.get('summary') or 'missing'}"
+        )
+        return _safe_key_fragment(
+            str(fallback_source), fallback="missing_finding_id", max_len=140
+        )
+    finding_id = str(raw_finding_id).strip()
+    if finding_id:
+        return finding_id
+    return "missing_finding_id"
+
+
+def _hydrate_summary_state(
+    findings: list[dict],
+    student_storage_id: str | None,
+) -> None:
+    storage_key = _summary_storage_key(student_storage_id)
+    signature_key = _summary_signature_key(student_storage_id)
+    raw_payload = _LOCAL_STORAGE.getItem(storage_key) or "{}"
+    payload_signature = raw_payload if isinstance(raw_payload, str) else ""
+
+    overrides: dict[str, bool] = {}
+    if isinstance(raw_payload, str):
+        try:
+            payload = json.loads(raw_payload) if raw_payload.startswith("{") else {}
+        except json.JSONDecodeError:
+            payload = {}
+        if isinstance(payload, dict):
+            overrides = {
+                finding_id: bool(include)
+                for finding_id, include in payload.items()
+                if isinstance(finding_id, str) and finding_id
+            }
+
+    # Re-apply only when browser payload changed (for example after hydration).
+    if st.session_state.get(signature_key) != payload_signature:
+        for finding in findings:
+            finding_id = _finding_id(finding)
+            state_key = _summary_checkbox_key(student_storage_id, finding_id)
+            if finding_id in overrides:
+                st.session_state[state_key] = overrides[finding_id]
+            elif state_key not in st.session_state:
+                st.session_state[state_key] = True
+        st.session_state[signature_key] = payload_signature
+        return
+
+    for finding in findings:
+        finding_id = _finding_id(finding)
+        state_key = _summary_checkbox_key(student_storage_id, finding_id)
+        if state_key in st.session_state:
+            continue
+        st.session_state[state_key] = overrides.get(finding_id, True)
+
+
+def _is_included_in_summary(finding: dict, student_storage_id: str | None) -> bool:
+    finding_id = _finding_id(finding)
+    state_key = _summary_checkbox_key(student_storage_id, finding_id)
+    return bool(st.session_state.get(state_key, True))
+
+
+def _persist_summary_state(
+    findings: list[dict],
+    student_storage_id: str | None,
+) -> None:
+    payload: dict[str, bool] = {}
+
+    for finding in findings:
+        finding_id = _finding_id(finding)
+        state_key = _summary_checkbox_key(student_storage_id, finding_id)
+        include = bool(st.session_state.get(state_key, True))
+        payload[finding_id] = include
+
+    payload_text = json.dumps(payload, separators=(",", ":"))
+    storage_key = _summary_storage_key(student_storage_id)
+    _LOCAL_STORAGE.setItem(storage_key, payload_text)
+    st.session_state[_summary_signature_key(student_storage_id)] = payload_text
+
+
+def _summary_rows(
+    findings: list[dict],
+    rubric_by_code: dict[str, dict[str, str | float | None]],
+    student_storage_id: str | None,
+    max_doc_points: int | float | str | None,
+) -> list[dict[str, str]]:
+    max_points = _as_float(max_doc_points)
+    by_code: dict[str, dict[str, float | int]] = {}
+
+    for finding in findings:
+        include = _is_included_in_summary(finding, student_storage_id)
+
+        code = str(finding.get("ac_code") or "-")
+        bucket = by_code.setdefault(
+            code,
+            {
+                "included_count": 0,
+                "total_count": 0,
+                "impact_sum": 0.0,
+                "inferred_max_penalty": 0.0,
+            },
+        )
+
+        bucket["total_count"] += 1
+
+        impact = _as_float(finding.get("impact"))
+        severity = _as_float(finding.get("severity"))
+        if impact is not None and severity is not None and severity > 0:
+            inferred_max_penalty = abs(impact) / severity
+            if inferred_max_penalty > float(bucket["inferred_max_penalty"]):
+                bucket["inferred_max_penalty"] = inferred_max_penalty
+
+        if include:
+            bucket["included_count"] += 1
+            if impact is not None:
+                bucket["impact_sum"] += abs(impact)
+
+    prepared_rows: list[dict[str, str]] = []
+    sortable_rows: list[tuple[float, str, dict[str, str]]] = []
+
+    for code, bucket in by_code.items():
+        included_count = int(bucket["included_count"])
+        total_count = int(bucket["total_count"])
+        impact_sum = float(bucket["impact_sum"])
+        inferred_max_penalty = float(bucket["inferred_max_penalty"])
+
+        severity_weight = _as_float(
+            (rubric_by_code.get(code) or {}).get("severity_weight")
+        )
+
+        max_penalty: float | None = None
+        if (
+            severity_weight is not None
+            and max_points is not None
+            and severity_weight > 0
+            and max_points > 0
+        ):
+            max_penalty = severity_weight * max_points
+        elif inferred_max_penalty > 0:
+            # Fallback for legacy codes missing rulebook metadata (for example ICH).
+            max_penalty = inferred_max_penalty
+
+        normalised: float | None = None
+        if max_penalty is not None and max_penalty > 0:
+            normalised = min(1.0, impact_sum / max_penalty)
+
+        row = {
+            "Code": code,
+            "Normalised deduction": (
+                f"{normalised:.2f}" if normalised is not None else "n/a"
+            ),
+            "Count": f"{included_count}/{total_count}",
+        }
+        sort_value = normalised if normalised is not None else -1.0
+        sortable_rows.append((sort_value, code, row))
+
+    for _, _, row in sorted(sortable_rows, key=lambda item: (-item[0], item[1])):
+        prepared_rows.append(row)
+
+    return prepared_rows
+
+
+def _points_over_max_for_summary(
+    findings: list[dict],
+    student_storage_id: str | None,
+    max_doc_points: int | float | str | None,
+) -> str:
+    max_points = _as_float(max_doc_points)
+    if max_points is None:
+        return "n/a"
+
+    total_impact = 0.0
+    for finding in findings:
+        if not _is_included_in_summary(finding, student_storage_id):
+            continue
+
+        impact = _as_float(finding.get("impact"))
+        if impact is None:
+            continue
+        total_impact += impact
+
+    return f"{max_points + total_impact:.2f}/{max_points:.2f}"
+
+
+def _render_summary(
+    findings: list[dict],
+    rubric_by_code: dict[str, dict[str, str | float | None]],
+    student_storage_id: str | None,
+    max_doc_points: int | float | str | None,
+) -> None:
+    rows = _summary_rows(findings, rubric_by_code, student_storage_id, max_doc_points)
+    with st.container(border=True):
+        st.markdown("### Summary")
+        st.caption(
+            "Normalised deduction is capped at 1.00 per code and reflects "
+            "accumulated finding frequency/intensity rather than a final grade."
+        )
+        if not rows:
+            st.info("No findings available for summary.")
+            return
+        st.dataframe(rows, width="stretch", hide_index=True)
 
 
 def _render_judge(finding: dict, show_technical_details: bool) -> None:
@@ -239,53 +513,83 @@ def _render_evidence(finding: dict, show_technical_details: bool) -> None:
 def _on_view_anchor(safe_fid: str):
     """Explicit button click to focus a finding."""
     st.session_state["active_finding_id"] = safe_fid
+    st.session_state["expanded_finding_id"] = safe_fid
+
+
+def _on_toggle_include(safe_fid: str) -> None:
+    """Keep the current finding expanded after Include checkbox rerun."""
+    st.session_state["expanded_finding_id"] = safe_fid
 
 
 def render_findings(
     findings: list[dict],
     dismissed_candidates: list[dict],
-    out_dir: Path,
-    rubric_by_code: dict[str, dict[str, str]],
+    rubric_by_code: dict[str, dict[str, str | float | None]],
     student_id: str | None,
-    points_over_max: str,
-    total_findings: int,
+    student_storage_id: str | None,
+    max_doc_points: int | float | str | None,
 ) -> None:
     """Render the full findings panel in the right column.
 
     Args:
-        findings: List of finding dictionaries as produced by the grader.
-        out_dir: Path to the run output directory (used for context if needed).
+        findings: Final findings pre-filtered for UI-excluded codes.
+        dismissed_candidates: Dismissed candidates pre-filtered for UI exclusions.
+        rubric_by_code: Rubric metadata keyed by assessment criterion code.
+        student_id: Student identifier shown in the panel header.
+        student_storage_id: Stable per-student key for UI state persistence.
+        max_doc_points: Maximum document points configured for the run.
 
     Returns:
         None
     """
 
-    _ = out_dir
-
     summary_student = student_id or "n/a"
+    all_known_findings = [*findings, *dismissed_candidates]
+    _hydrate_summary_state(all_known_findings, student_storage_id)
+    st.session_state.setdefault("show_summary", True)
+    st.session_state.setdefault("expanded_finding_id", None)
+    st.session_state.setdefault("show_excluded_summary_findings", True)
+
+    summary_findings = list(findings)
+    if st.session_state.get("show_dismissed_candidates"):
+        summary_findings.extend(dismissed_candidates)
+    dynamic_points_over_max = _points_over_max_for_summary(
+        summary_findings,
+        student_storage_id,
+        max_doc_points,
+    )
+
     with st.container(border=True):
-        info_col, toggles_col = st.columns([1, 1])
-        info_col.markdown(f"Student ID: **{summary_student}**")
-        info_col.markdown(f"Points: **{points_over_max}**")
+        info_col, toggles_col = st.columns([1.25, 1], vertical_alignment="top")
 
         toggles_col.checkbox(
-            "Show dismissed candidates",
-            key="show_dismissed_candidates",
+            "Show summary panel",
+            key="show_summary",
+            help="Display or hide the Summary panel.",
+        )
+        toggles_col.checkbox(
+            "Show findings excluded from summary",
+            key="show_excluded_summary_findings",
             help=(
-                "When enabled, the list includes unscored finding candidates "
-                "dismissed by a judge model during the pipeline, viewing these "
-                "exclusions can serve as supplementary information for other "
-                "possible uncaught findings."
+                "When disabled, only findings with Include in summary enabled "
+                "remain visible in this list."
             ),
         )
         toggles_col.checkbox(
-            "Show technical details",
+            "Show findings dismissed by judge",
+            key="show_dismissed_candidates",
+            help=(
+                "When enabled, the list includes finding candidates dismissed "
+                "by the judge model."
+            ),
+        )
+        toggles_col.checkbox(
+            "Show detailed diagnostics",
             key="show_technical_details",
             help=(
-                "Shows extra diagnostic content inside each finding, including "
-                "model evaluations and raw outputs in Evidence from the "
-                "document, plus technical metadata and judge before/after "
-                "field changes in Technical details."
+                "Shows additional content inside each finding, including "
+                "Automatic review note, Anchors within the document, and "
+                "Technical details."
             ),
         )
 
@@ -293,29 +597,49 @@ def render_findings(
         if st.session_state.get("show_dismissed_candidates"):
             merged_findings.extend(dismissed_candidates)
 
-        code_options = _code_filter_options(merged_findings)
+        display_findings = list(merged_findings)
+        if not st.session_state.get("show_excluded_summary_findings"):
+            display_findings = [
+                finding
+                for finding in merged_findings
+                if _is_included_in_summary(finding, student_storage_id)
+            ]
+
+        code_options = _code_filter_options(display_findings)
         if st.session_state.get("findings_code_filter") not in code_options:
             st.session_state["findings_code_filter"] = "All"
 
-        filter_col, sort_col = st.columns([1.0, 1.0], vertical_alignment="bottom")
+        with info_col:
+            st.markdown(f"Student ID: **{summary_student}**")
+            st.markdown(f"Points: **{dynamic_points_over_max}**")
 
-        code_filter = filter_col.selectbox(
-            "Filter by criterion",
-            code_options,
-            key="findings_code_filter",
+            code_filter = st.selectbox(
+                "Filter by criterion",
+                code_options,
+                key="findings_code_filter",
+            )
+            sort_by = st.radio(
+                "Sort findings by (descending)",
+                ["Deduction", "Confidence"],
+                horizontal=True,
+                key="findings_sort",
+            )
+
+    if st.session_state.get("show_summary"):
+        _render_summary(
+            summary_findings,
+            rubric_by_code,
+            student_storage_id,
+            max_doc_points,
         )
-        sort_by = sort_col.radio(
-            "Sort findings by (descending)",
-            ["Deduction", "Confidence"],
-            horizontal=True,
-            key="findings_sort",
-        )
+
+    _persist_summary_state(all_known_findings, student_storage_id)
 
     show_technical_details = bool(st.session_state.get("show_technical_details"))
 
     visible = [
         f
-        for f in merged_findings
+        for f in display_findings
         if code_filter in ("All", str(f.get("ac_code") or "-"))
     ]
     if sort_by == "Deduction":
@@ -337,7 +661,7 @@ def render_findings(
     st.html(_STATUS_TINT_CSS)
 
     for finding in visible:
-        fid = finding.get("finding_id", "?")
+        fid = _finding_id(finding)
         safe_fid = fid.replace(":", "-")
         judge_status = finding["judge_status"]
         severity = finding.get("severity")
@@ -347,13 +671,20 @@ def render_findings(
         confidence_tint_band = _confidence_tint_band(confidence)
         is_dismissed_candidate = bool(finding.get("is_dismissed_candidate"))
 
-        is_active = safe_fid == st.session_state.get("active_finding_id")
+        expanded_fid = st.session_state.get("expanded_finding_id")
+        active_fid = st.session_state.get("active_finding_id")
+        is_active = safe_fid == (expanded_fid or active_fid)
         anchors: list[dict] = finding.get("anchors") or []
         has_anchors = bool(anchors)
+        include_key = _summary_checkbox_key(student_storage_id, fid)
+        include_in_summary = _is_included_in_summary(finding, student_storage_id)
+        expander_criterion_title = (
+            criterion_title if include_in_summary else f"~~{criterion_title}~~"
+        )
 
         impact = finding.get("impact")
         with st.expander(
-            f"[{ac_code}] {criterion_title} {_impact_title(impact)}",
+            f"[{ac_code}] {expander_criterion_title} {_impact_title(impact)}",
             expanded=is_active,
         ):
             # colour the expander
@@ -365,19 +696,34 @@ def render_findings(
             )
             st.html(marker_html)
 
-            header_l, header_r = st.columns([3, 1], vertical_alignment="center")
+            header_l, header_r = st.columns([2, 2], vertical_alignment="center")
 
             with header_l:
                 st.markdown(f"#### {ac_code}: {criterion_title}")
             with header_r:
-                st.button(
-                    "Show anchor",
-                    key=f"btn_{safe_fid}",
-                    width="stretch",
-                    on_click=_on_view_anchor,
-                    args=(safe_fid,),
-                    disabled=not has_anchors,
+                include_col, anchor_col = st.columns(
+                    [1.2, 1], vertical_alignment="center"
                 )
+                with include_col:
+                    st.checkbox(
+                        "Include in summary",
+                        key=include_key,
+                        on_change=_on_toggle_include,
+                        args=(safe_fid,),
+                        help=(
+                            "Controls whether this finding contributes to the "
+                            "Summary panel and the Points value."
+                        ),
+                    )
+                with anchor_col:
+                    st.button(
+                        "Show anchor",
+                        key=f"btn_{safe_fid}",
+                        width="stretch",
+                        on_click=_on_view_anchor,
+                        args=(safe_fid,),
+                        disabled=not has_anchors,
+                    )
 
             criterion_text = _criterion_text(finding, rubric_by_code)
             if criterion_text:

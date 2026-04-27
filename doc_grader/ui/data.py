@@ -158,7 +158,9 @@ def run_student_prefix(out_dir: Path) -> str | None:
 
 
 @lru_cache(maxsize=4)
-def rubric_lookup(course: str | None = None) -> dict[str, dict[str, str]]:
+def rubric_lookup(
+    course: str | None = None,
+) -> dict[str, dict[str, str | float | None]]:
     """Return a rubric lookup keyed by assessment criterion code.
 
     Args:
@@ -171,7 +173,7 @@ def rubric_lookup(course: str | None = None) -> dict[str, dict[str, str]]:
     course_key = (course or "").strip().lower()
     file_names = _COURSE_RULEBOOK_FILES.get(course_key, _DEFAULT_RULEBOOK_FILES)
 
-    lookup: dict[str, dict[str, str]] = {}
+    lookup: dict[str, dict[str, str | float | None]] = {}
     for file_name in file_names:
         rulebook_path = _PROJECT_ROOT / "config" / file_name
         if not rulebook_path.exists():
@@ -186,9 +188,19 @@ def rubric_lookup(course: str | None = None) -> dict[str, dict[str, str]]:
 
             title = rule.get("title") or ac_code
             criterion_text = rule.get("prompt_instruction") or ""
+            severity_weight_raw = rule.get("severity_weight")
+            try:
+                severity_weight = (
+                    float(severity_weight_raw)
+                    if severity_weight_raw is not None
+                    else None
+                )
+            except TypeError, ValueError:
+                severity_weight = None
             lookup[ac_code] = {
                 "title": title,
                 "criterion_text": criterion_text,
+                "severity_weight": severity_weight,
             }
 
     return lookup
