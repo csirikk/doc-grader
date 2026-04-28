@@ -544,7 +544,7 @@ def main(argv: list[str] | None = None) -> int:
                     model=config.judge_model,
                     temperature=config.judge_temperature,
                 )
-                analyser_stage_times["judge"] = round(time.monotonic() - _judge_t0, 2)
+                doc_stage_times["judge"] = round(time.monotonic() - _judge_t0, 2)
                 doc_usage = merge_usage(doc_usage, judge_usage)
                 if judge_response:
                     rule_engine.apply_judge_response(judge_batch, judge_response)
