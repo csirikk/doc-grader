@@ -24,6 +24,9 @@ if TYPE_CHECKING:
     from .schemas.finding import Finding
 
 
+TIMING_PRECISION = 4
+
+
 def configure_logging(level: int = logging.INFO) -> None:
     """Configure module logging.
 
@@ -164,7 +167,7 @@ def merge_stage_timings(
     """Accumulate per-document stage timings into a run-level aggregate."""
     merged = {stage: dict(stats) for stage, stats in aggregate.items()}
     for stage, seconds in stage_times.items():
-        seconds = round(float(seconds), 2)
+        seconds = float(seconds)
         existing = merged.get(stage)
         if existing is None:
             merged[stage] = {
@@ -180,9 +183,9 @@ def merge_stage_timings(
         existing_max = float(existing["max_seconds"])
         merged[stage] = {
             "calls": existing_calls + 1,
-            "total_seconds": round(existing_total + seconds, 2),
-            "min_seconds": round(min(existing_min, seconds), 2),
-            "max_seconds": round(max(existing_max, seconds), 2),
+            "total_seconds": existing_total + seconds,
+            "min_seconds": min(existing_min, seconds),
+            "max_seconds": max(existing_max, seconds),
         }
     return merged
 
@@ -197,22 +200,22 @@ def summarise_stage_timings(
     for stage in sorted(aggregate):
         stats = aggregate[stage]
         calls = int(stats["calls"])
-        total_seconds = round(float(stats["total_seconds"]), 2)
-        min_seconds = round(float(stats["min_seconds"]), 2)
-        max_seconds = round(float(stats["max_seconds"]), 2)
-        avg_seconds = round(total_seconds / calls, 2) if calls else 0.0
+        total_seconds = float(stats["total_seconds"])
+        min_seconds = float(stats["min_seconds"])
+        max_seconds = float(stats["max_seconds"])
+        avg_seconds = (total_seconds / calls) if calls else 0.0
         by_stage[stage] = {
             "calls": calls,
-            "total_seconds": total_seconds,
-            "avg_seconds": avg_seconds,
-            "min_seconds": min_seconds,
-            "max_seconds": max_seconds,
+            "total_seconds": round(total_seconds, TIMING_PRECISION),
+            "avg_seconds": round(avg_seconds, TIMING_PRECISION),
+            "min_seconds": round(min_seconds, TIMING_PRECISION),
+            "max_seconds": round(max_seconds, TIMING_PRECISION),
         }
         total_tracked_seconds += total_seconds
         total_invocations += calls
     return {
         "by_stage": by_stage,
-        "total_tracked_seconds": round(total_tracked_seconds, 2),
+        "total_tracked_seconds": round(total_tracked_seconds, TIMING_PRECISION),
         "total_stage_invocations": total_invocations,
     }
 
@@ -248,10 +251,11 @@ def build_doc_info(
             "n_findings": finding_count,
         },
         "stage_times": {
-            stage: round(float(seconds), 2) for stage, seconds in stage_times.items()
+            stage: round(float(seconds), TIMING_PRECISION)
+            for stage, seconds in stage_times.items()
         },
         "usage": summarise_usage_payload(usage_by_model),
-        "elapsed_seconds": round(elapsed_seconds, 2),
+        "elapsed_seconds": round(elapsed_seconds, TIMING_PRECISION),
     }
     if extra_summary:
         info.update(extra_summary)
@@ -284,7 +288,7 @@ def build_run_summary(
         "counts": counts,
         "stage_times": summarise_stage_timings(stage_timings),
         "usage": summarise_usage_payload(usage_by_model),
-        "elapsed_seconds": round(elapsed_seconds, 2),
+        "elapsed_seconds": round(elapsed_seconds, TIMING_PRECISION),
     }
 
 

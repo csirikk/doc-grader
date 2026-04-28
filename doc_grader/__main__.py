@@ -187,7 +187,7 @@ def _run_analysers(
                 params=analyser_params,
                 llm_client=llm_client,
             )
-            stage_times[analyser_cfg.analyser_id] = round(time.monotonic() - _t0, 2)
+            stage_times[analyser_cfg.analyser_id] = time.monotonic() - _t0
             if result:
                 findings.extend(result)
             analyser_usage = getattr(instance, "_accumulated_usage", None)
@@ -457,7 +457,7 @@ def main(argv: list[str] | None = None) -> int:
             expected_filename=config.expected_filename,
             allowed_extensions=config.allowed_extensions,
         )
-        _parse_elapsed = round(time.monotonic() - _parse_t0, 2)
+        _parse_elapsed = time.monotonic() - _parse_t0
         parser_findings = parse_output.parser_findings
         ir_doc = parse_output.ir
         doc_stage_times: dict[str, float] = {"parse": _parse_elapsed}
@@ -544,7 +544,7 @@ def main(argv: list[str] | None = None) -> int:
                     model=config.judge_model,
                     temperature=config.judge_temperature,
                 )
-                doc_stage_times["judge"] = round(time.monotonic() - _judge_t0, 2)
+                doc_stage_times["judge"] = time.monotonic() - _judge_t0
                 doc_usage = merge_usage(doc_usage, judge_usage)
                 if judge_response:
                     rule_engine.apply_judge_response(judge_batch, judge_response)
@@ -587,11 +587,11 @@ def main(argv: list[str] | None = None) -> int:
 
         _rule_engine_t0 = time.monotonic()
         final_findings, re_summary = rule_engine.process(analyser_findings)
-        doc_stage_times["rule_engine"] = round(time.monotonic() - _rule_engine_t0, 2)
+        doc_stage_times["rule_engine"] = time.monotonic() - _rule_engine_t0
 
         _score_t0 = time.monotonic()
         scorer.score(final_findings, rulebook, max_doc_points=config.max_doc_points)
-        doc_stage_times["score"] = round(time.monotonic() - _score_t0, 2)
+        doc_stage_times["score"] = time.monotonic() - _score_t0
         write_json(file_outdir / "findings.json", final_findings)
         logger.debug("Wrote findings.json (%d final findings)", len(final_findings))
 
