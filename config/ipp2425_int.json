@@ -1,9 +1,10 @@
 {
     "course": "ipp",
     "rulebook_path": "config/rulebook2425_int.json",
-    "expected_filename": "readme.md",
+    "expected_filename": "readme",
     "allowed_extensions": [
-        ".md"
+        ".md",
+        ".pdf"
     ],
     "judge": true,
     "judge_model": "gpt-5.4",
