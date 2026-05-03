@@ -20,8 +20,11 @@ from .visual_utils import (
     _FIG_H_PER_ITEM,
     _FIG_W,
     AGREEMENT_PALETTE,
+    EXECUTION_STAGE_PALETTE,
     FORMAT_PALETTE,
     LANGUAGE_PALETTE,
+    METRIC_PALETTE,
+    OPERATIONAL_METRIC_PALETTE,
     REFERENCE_LINE_ALPHA,
     REFERENCE_LINE_COLOR,
     REFERENCE_LINE_STYLE,
@@ -33,10 +36,16 @@ from .visual_utils import (
     add_horizontal_reference_line,
     add_identity_reference_line,
     add_vertical_reference_line,
+    format_facet_grid,
+    move_legend_if_present,
+    render_plot,
     set_integer_count_ticks,
+    wrap_category_tick_labels,
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from matplotlib.axes import Axes
 
 logger = logging.getLogger(__name__)
@@ -54,17 +63,23 @@ _CODE_SOURCE_PALETTE: dict[str, str] = {
     "tool (raw)": "#9ecae1",
 }
 
-_STAGE_TIME_PALETTE: dict[str, str] = {
-    "parse": "#384238",
-    "analysers": "#4AA850",
-    "judge": "#DB3574",
-}
-
-# ,- DEFAULTS,-
-
 _DEFAULT_EVAL_DIR = Path(__file__).parent.parent.parent / "outputs" / "gold_eval"
-
-# ,- DATA LOADING,-
+_DEFAULT_DOCLING_BENCHMARK_DIR = (
+    Path(__file__).parent.parent.parent / "outputs" / "docling_parser_benchmark"
+)
+_PARSER_MODE_ORDER = ["base", "tables_only", "ocr_only", "ocr_and_tables"]
+_PARSER_MODE_LABELS = {
+    "base": "base",
+    "tables_only": "tables",
+    "ocr_only": "ocr",
+    "ocr_and_tables": "tables + ocr",
+}
+_PARSER_MODE_PALETTE = {
+    "base": "#6c757d",
+    "tables": "#4c78a8",
+    "ocr": "#f28e2b",
+    "tables + ocr": "#c44e52",
+}
 
 
 def load_eval_data(
@@ -100,10 +115,11 @@ def load_eval_data(
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    if "generator_models" in df.columns:
-        df["generator_models"] = df["generator_models"].apply(
-            lambda value: _format_model_name(value) if pd.notna(value) else value
-        )
+    for model_col in ("generator_models", "judge_models"):
+        if model_col in df.columns:
+            df[model_col] = df[model_col].apply(
+                lambda value: _format_model_name(value) if pd.notna(value) else value
+            )
 
     df = _add_percentage_score_columns(df)
 
@@ -139,6 +155,45 @@ def _add_percentage_score_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def prepare_per_student_metrics(per_student_df: pd.DataFrame) -> pd.DataFrame:
+    """Derive shared per-student quality columns used across evaluation charts."""
+
+    required_cols = [
+        "tool_code_count",
+        "gold_code_count",
+        "overlap_count",
+        "points_delta",
+        "points_delta_pct",
+        "generator_models",
+        "judge_models",
+    ]
+    missing_cols = sorted(set(required_cols) - set(per_student_df.columns))
+    if missing_cols:
+        missing_str = ", ".join(missing_cols)
+        raise ValueError(f"prepare_per_student_metrics requires columns: {missing_str}")
+
+    df = per_student_df.copy()
+    tool_code_count = pd.to_numeric(df["tool_code_count"], errors="coerce")
+    gold_code_count = pd.to_numeric(df["gold_code_count"], errors="coerce")
+    overlap_count = pd.to_numeric(df["overlap_count"], errors="coerce")
+    points_delta = pd.to_numeric(df["points_delta"], errors="coerce")
+    points_delta_pct = pd.to_numeric(df["points_delta_pct"], errors="coerce")
+
+    df["student_precision"] = (overlap_count / tool_code_count).where(
+        tool_code_count > 0
+    )
+    df["student_recall"] = (overlap_count / gold_code_count).where(gold_code_count > 0)
+    df["abs_points_delta"] = points_delta.abs()
+    df["abs_points_delta_pct"] = points_delta_pct.abs()
+    df["grader_judge_pair"] = (
+        df["generator_models"].fillna("").astype(str)
+        + " | "
+        + df["judge_models"].fillna("").astype(str)
+    )
+
+    return df
+
+
 def _per_code_df(summary: dict) -> pd.DataFrame:
     """Extract the per_code block from a summary dict into a tidy DataFrame."""
     if "per_code" not in summary:
@@ -157,34 +212,530 @@ def _pipeline_stats_df(summary: dict) -> pd.DataFrame:
     ).reset_index(names="code")
 
 
+def load_docling_parser_benchmark(
+    benchmark_dir: Path | None = None,
+) -> pd.DataFrame:
+    """Load the saved Docling parser benchmark timings table."""
+    if benchmark_dir is None:
+        benchmark_dir = _DEFAULT_DOCLING_BENCHMARK_DIR
+
+    csv_path = benchmark_dir / "docling_parser_timings.csv"
+    df = pd.read_csv(csv_path)
+    if "mode" in df.columns:
+        df["mode"] = pd.Categorical(
+            df["mode"], categories=_PARSER_MODE_ORDER, ordered=True
+        )
+    return df
+
+
 def visualise_score_scatter(
     per_student_df: pd.DataFrame, save_path: Path | None = None
 ) -> Axes | None:
     """Scatter plot of human vs tool score as percentage of max points."""
     df = _add_percentage_score_columns(per_student_df.copy())
     df = df.dropna(subset=["doc_score_pct", "tool_score_pct"])
-    all_pts = pd.concat([df["doc_score_pct"], df["tool_score_pct"]])
-    lo, hi = all_pts.min() - 5, all_pts.max() + 5
+    x_lo = min(0.0, df["doc_score_pct"].min() - 2.0)
+    x_hi = max(100.0, df["doc_score_pct"].max() + 2.0)
+    y_lo = min(0.0, df["tool_score_pct"].min() - 5.0)
+    y_hi = max(100.0, df["tool_score_pct"].max() + 5.0)
 
-    fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
-    sns.scatterplot(
+    def _plot_score_scatter(data: pd.DataFrame, ax: Axes, **kwargs) -> None:
+        sns.scatterplot(data=data, ax=ax, **kwargs)
+        add_identity_reference_line(ax, label="_nolegend_")
+        ax.set_xlim(x_lo, x_hi)
+        ax.set_ylim(y_lo, y_hi)
+        move_legend_if_present(ax, title="Task variant")
+
+    return render_plot(
+        _plot_score_scatter,
         data=df,
+        title="Human Vs Tool Score Comparison (Normalised)",
+        xlabel="Human Score (% of max points)",
+        ylabel="Tool Score (% of max points)",
+        save_path=save_path,
         x="doc_score_pct",
         y="tool_score_pct",
         hue="task_variant",
         palette=TASK_VARIANT_PALETTE,
         s=80,
         zorder=3,
+    )
+
+
+def _ordered_variants(values: pd.Series) -> list[str]:
+    """Return stable task-variant order limited to variants present in data."""
+
+    return [variant for variant in ["par", "int"] if variant in values.unique()]
+
+
+def _overlay_box_and_strip(
+    ax: Axes,
+    data: pd.DataFrame,
+    x_col: str,
+    y_col: str,
+    *,
+    order: list[str],
+    palette: Mapping[str, tuple | str] | None = None,
+    colour: tuple | str | None = None,
+    point_alpha: float = 0.45,
+    point_size: float = 4,
+    horizontal: bool = False,
+) -> None:
+    x_axis = y_col if horizontal else x_col
+    y_axis = x_col if horizontal else y_col
+    boxplot_kwargs = {
+        "data": data,
+        "x": x_axis,
+        "y": y_axis,
+        "order": order,
+        "showfliers": False,
+        "fill": False,
+        "linewidth": 1.5,
+        "zorder": 2,
+        "legend": False,
+        "ax": ax,
+    }
+    stripplot_kwargs = {
+        "data": data,
+        "x": x_axis,
+        "y": y_axis,
+        "order": order,
+        "dodge": False,
+        "alpha": point_alpha,
+        "size": point_size,
+        "legend": False,
+        "ax": ax,
+    }
+
+    if palette is not None:
+        boxplot_kwargs["hue"] = x_col
+        boxplot_kwargs["hue_order"] = order
+        boxplot_kwargs["palette"] = palette
+        stripplot_kwargs["hue"] = x_col
+        stripplot_kwargs["hue_order"] = order
+        stripplot_kwargs["palette"] = palette
+    elif colour is not None:
+        boxplot_kwargs["color"] = colour
+        stripplot_kwargs["color"] = colour
+
+    sns.boxplot(**boxplot_kwargs)
+    sns.stripplot(**stripplot_kwargs)
+
+
+def _visualise_student_metric_by_variant(
+    per_student_df: pd.DataFrame,
+    metric_col: str,
+    title: str,
+    ylabel: str,
+    save_path: Path | None = None,
+) -> Axes | None:
+    """Box and strip plot of a single student-quality metric by task variant."""
+    df = _validate_data(
+        per_student_df,
+        ["task_variant", metric_col],
+        f"_visualise_student_metric_by_variant[{metric_col}]",
+    )
+    if df is None:
+        return None
+
+    variant_order = _ordered_variants(df["task_variant"])
+    fig, ax = plt.subplots(figsize=(7, 4.5), layout="constrained")
+    _overlay_box_and_strip(
+        ax,
+        df,
+        "task_variant",
+        metric_col,
+        order=variant_order,
+        palette=TASK_VARIANT_PALETTE,
+    )
+    ax.set_title(title)
+    ax.set_xlabel("Task variant")
+    ax.set_ylabel(ylabel)
+    ax.set_ylim(0, 1.05)
+    ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
+    _save_or_show(fig, save_path)
+    return ax
+
+
+def visualise_student_precision_by_variant(
+    per_student_df: pd.DataFrame, save_path: Path | None = None
+) -> Axes | None:
+    """Box and strip plot of student precision by task variant."""
+    return _visualise_student_metric_by_variant(
+        per_student_df,
+        metric_col="student_precision",
+        title="Student Precision by Variant",
+        ylabel="Precision",
+        save_path=save_path,
+    )
+
+
+def visualise_student_recall_by_variant(
+    per_student_df: pd.DataFrame, save_path: Path | None = None
+) -> Axes | None:
+    """Box and strip plot of student recall by task variant."""
+    return _visualise_student_metric_by_variant(
+        per_student_df,
+        metric_col="student_recall",
+        title="Student Recall by Variant",
+        ylabel="Recall",
+        save_path=save_path,
+    )
+
+
+def visualise_absolute_score_error_by_variant(
+    per_student_df: pd.DataFrame, save_path: Path | None = None
+) -> Axes | None:
+    """Box and strip plot of absolute score error by task variant."""
+    df = _validate_data(
+        per_student_df,
+        ["task_variant", "abs_points_delta_pct"],
+        "visualise_absolute_score_error_by_variant",
+    )
+    if df is None:
+        return None
+
+    variant_order = _ordered_variants(df["task_variant"])
+    fig, ax = plt.subplots(figsize=(7, 4.5), layout="constrained")
+    _overlay_box_and_strip(
+        ax,
+        df,
+        "task_variant",
+        "abs_points_delta_pct",
+        order=variant_order,
+        palette=TASK_VARIANT_PALETTE,
+    )
+    ax.set_title("Absolute Score Error by Variant")
+    ax.set_xlabel("Task variant")
+    ax.set_ylabel("Absolute score error (% points)")
+    _save_or_show(fig, save_path)
+    return ax
+
+
+def visualise_per_code_precision_recall(
+    summary: dict,
+    save_path: Path | None = None,
+    max_codes: int = 15,
+) -> Axes | None:
+    """Grouped per-code precision and recall bars for the most frequent gold codes."""
+    df = _per_code_df(summary)
+    if df.empty:
+        logger.warning(
+            "per_code block is empty, skipping visualise_per_code_precision_recall"
+        )
+        return None
+
+    plot_df = df.sort_values("total_in_gold", ascending=False).head(max_codes).copy()
+    plot_df["precision"] = plot_df["precision"].fillna(0.0)
+    melted = plot_df.melt(
+        id_vars=["code"],
+        value_vars=["precision", "recall"],
+        var_name="metric",
+        value_name="value",
+    ).assign(
+        metric=lambda d: d["metric"].map({"precision": "Precision", "recall": "Recall"})
+    )
+
+    def _plot_per_code_precision_recall(data: pd.DataFrame, ax: Axes, **kwargs) -> None:
+        sns.barplot(data=data, ax=ax, **kwargs)
+        ax.set_ylim(0, 1.05)
+        ax.tick_params(axis="x", rotation=45)
+        move_legend_if_present(ax, title="Metric")
+
+    return render_plot(
+        _plot_per_code_precision_recall,
+        data=melted,
+        title="Per-code Precision and Recall (Top 15 by Gold Frequency)",
+        xlabel="Code",
+        ylabel="Metric value (%)",
+        save_path=save_path,
+        figsize=(12, 5),
+        x="code",
+        y="value",
+        hue="metric",
+        hue_order=["Precision", "Recall"],
+        palette=METRIC_PALETTE,
+        errorbar=None,
+        y_pct=True,
+    )
+
+
+def summarise_group_quality(
+    df: pd.DataFrame, group_col: str, min_n: int = 5
+) -> pd.DataFrame:
+    """Aggregate precision, recall, and absolute score error by grouping column."""
+    grouped = df.groupby(group_col, observed=True)
+    rows = []
+    for name, group in grouped:
+        if not isinstance(name, str):
+            continue
+        clean_name = " ".join(name.split())
+        if clean_name in {"", "|"}:
+            continue
+        if len(group) < min_n:
+            continue
+        tool_total = group["tool_code_count"].sum()
+        gold_total = group["gold_code_count"].sum()
+        precision = (
+            group["overlap_count"].sum() / tool_total if tool_total > 0 else pd.NA
+        )
+        recall = group["overlap_count"].sum() / gold_total if gold_total > 0 else pd.NA
+        rows.append(
+            {
+                "group": clean_name,
+                "n": len(group),
+                "precision": precision,
+                "recall": recall,
+                "mae_pct": group["abs_points_delta_pct"].mean(),
+            }
+        )
+
+    if not rows:
+        return pd.DataFrame(columns=["group", "n", "precision", "recall", "mae_pct"])
+
+    return pd.DataFrame(rows).sort_values(["n", "precision"], ascending=[False, False])
+
+
+def visualise_group_quality_bars(
+    df: pd.DataFrame,
+    title: str,
+    label_formatter,
+    save_path: Path | None = None,
+) -> Axes | None:
+    """Horizontal grouped bars for precision, recall, and normalised MAE."""
+    if df.empty:
+        logger.warning("No rows available for %s", title)
+        return None
+
+    plot_df = df.copy()
+    plot_df["label"] = plot_df.apply(label_formatter, axis=1)
+    plot_df["normalised_mae"] = plot_df["mae_pct"] / 100.0
+    metric_order = ["precision", "recall", "normalised_mae"]
+    metric_labels = {
+        "precision": "Precision",
+        "recall": "Recall",
+        "normalised_mae": "Normalised MAE",
+    }
+    melted = plot_df.melt(
+        id_vars=["label"],
+        value_vars=metric_order,
+        var_name="metric",
+        value_name="value",
+    )
+    melted["metric"] = pd.Categorical(
+        melted["metric"], categories=metric_order, ordered=True
+    )
+    melted["metric_label"] = melted["metric"].map(metric_labels)
+
+    fig_height = max(4.5, 0.6 * len(plot_df))
+
+    def _plot_group_quality_bars(data: pd.DataFrame, ax: Axes, **kwargs) -> None:
+        sns.barplot(data=data, ax=ax, **kwargs)
+        ax.set_xlim(0.0, 1.0)
+        move_legend_if_present(ax, title="Metric", loc="lower right")
+
+    return render_plot(
+        _plot_group_quality_bars,
+        data=melted,
+        title=title,
+        xlabel="Metric value (%)",
+        ylabel="Group",
+        save_path=save_path,
+        figsize=(12, fig_height),
+        y="label",
+        x="value",
+        hue="metric_label",
+        order=plot_df["label"].tolist(),
+        hue_order=[metric_labels[key] for key in metric_order],
+        palette=METRIC_PALETTE,
+        errorbar=None,
+        orient="h",
+        x_pct=True,
+    )
+
+
+def summarise_stage_time_composition(per_student_df: pd.DataFrame) -> pd.DataFrame:
+    """Return mean parse, analyser, and judge times grouped by grader model."""
+    df = _validate_data(
+        per_student_df,
+        ["parse_time", "analyser_time", "judge_time", "generator_models"],
+        "summarise_stage_time_composition",
+    )
+    if df is None:
+        return pd.DataFrame()
+
+    return (
+        df.groupby("generator_models", observed=True)[
+            ["parse_time", "analyser_time", "judge_time"]
+        ]
+        .mean()
+        .sort_values("judge_time", ascending=False)
+    )
+
+
+def visualise_operational_metric_by_model(
+    per_student_df: pd.DataFrame,
+    metric_key: str,
+    save_path: Path | None = None,
+) -> Axes | None:
+    """Single operational box and strip plot by model for one metric."""
+    metric_specs = {
+        "generator_cost": {
+            "x_col": "generator_models",
+            "y_col": "generator_cost_eur",
+            "colour": OPERATIONAL_METRIC_PALETTE["generator_cost"],
+            "title": "Generator Cost by Grader Model",
+            "xlabel": "Generator cost (EUR)",
+            "ylabel": "Grader model",
+        },
+        "judge_cost": {
+            "x_col": "judge_models",
+            "y_col": "judge_cost_eur",
+            "colour": OPERATIONAL_METRIC_PALETTE["judge_cost"],
+            "title": "Judge Cost by Judge Model",
+            "xlabel": "Judge cost (EUR)",
+            "ylabel": "Judge model",
+        },
+        "latency": {
+            "x_col": "generator_models",
+            "y_col": "elapsed_seconds",
+            "colour": OPERATIONAL_METRIC_PALETTE["latency"],
+            "title": "Latency by Grader Model",
+            "xlabel": "Elapsed seconds",
+            "ylabel": "Grader model",
+        },
+    }
+    if metric_key not in metric_specs:
+        raise ValueError(
+            "metric_key must be one of 'generator_cost', 'judge_cost', or 'latency'"
+        )
+
+    spec = metric_specs[metric_key]
+    df = _validate_data(
+        per_student_df,
+        [spec["x_col"], spec["y_col"]],
+        f"visualise_operational_metric_by_model[{metric_key}]",
+    )
+    if df is None:
+        return None
+
+    order_counts = (
+        df.groupby(spec["x_col"], observed=True)
+        .size()
+        .to_frame(name="n_rows")
+        .sort_values("n_rows", ascending=False)
+    )
+    order = order_counts.index.tolist()
+    fig_h = max(4.5, 1.5 + 0.7 * len(order))
+    fig, ax = plt.subplots(figsize=(8.5, fig_h), layout="constrained")
+    _overlay_box_and_strip(
+        ax,
+        df.dropna(subset=[spec["x_col"], spec["y_col"]]),
+        spec["x_col"],
+        spec["y_col"],
+        order=order,
+        colour=spec["colour"],
+        horizontal=True,
+    )
+    ax.set_title(spec["title"])
+    ax.set_xlabel(spec["xlabel"])
+    ax.set_ylabel(spec["ylabel"])
+    wrap_category_tick_labels(ax, axis="y", width=20)
+    ax.tick_params(axis="y", labelsize=10, pad=8)
+    _save_or_show(fig, save_path)
+    return ax
+
+
+def visualise_stage_time_composition(
+    per_student_df: pd.DataFrame, save_path: Path | None = None
+) -> Axes | None:
+    """Stacked mean stage-time bars by grader model."""
+    stage_summary = summarise_stage_time_composition(per_student_df)
+    if stage_summary.empty:
+        logger.warning(
+            "No stage-time rows available, skipping visualise_stage_time_composition"
+        )
+        return None
+
+    plot_df = stage_summary.rename(
+        columns={
+            "parse_time": "parse",
+            "analyser_time": "analysers",
+            "judge_time": "judge",
+        }
+    )
+    fig, ax = plt.subplots(figsize=(11, 5), layout="constrained")
+    plot_df[["parse", "analysers", "judge"]].plot(
+        kind="bar",
+        stacked=True,
+        color=[
+            EXECUTION_STAGE_PALETTE["parse"],
+            EXECUTION_STAGE_PALETTE["analysers"],
+            EXECUTION_STAGE_PALETTE["judge"],
+        ],
         ax=ax,
     )
-    add_identity_reference_line(ax, lo, hi)
-    ax.set_xlim(lo, hi)
-    ax.set_ylim(lo, hi)
-    ax.set_xlabel("Human Score (% of max points)")
-    ax.set_ylabel("Tool Score (% of max points)")
-    ax.set_title("Human Vs Tool Score Comparison (Normalised)")
-    handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles=handles, labels=labels, title="Task variant")
+    ax.set_title("Mean Stage-Time Composition by Grader Model")
+    ax.set_xlabel("Grader model")
+    ax.set_ylabel("Mean latency (s)")
+    wrap_category_tick_labels(ax, axis="x", width=14)
+    ax.tick_params(axis="x", labelsize=10, pad=4)
+    ax.legend(loc="best")
+    _save_or_show(fig, save_path)
+    return ax
+
+
+def visualise_docling_parser_timing_by_mode(
+    benchmark_df: pd.DataFrame,
+    save_path: Path | list[Path] | tuple[Path, ...] | None = None,
+    doc_type: str = "pdf",
+) -> Axes | None:
+    """Show parser timing spread by Docling configuration for one document type."""
+    df = _validate_data(
+        benchmark_df,
+        ["doc_type", "mode", "elapsed_seconds"],
+        "visualise_docling_parser_timing_by_mode",
+    )
+    if df is None:
+        return None
+
+    plot_df = df[df["doc_type"] == doc_type].copy()
+    if plot_df.empty:
+        logger.warning(
+            "No Docling benchmark rows for doc_type=%s, skipping parser timing chart",
+            doc_type,
+        )
+        return None
+
+    plot_df["mode"] = pd.Categorical(
+        plot_df["mode"], categories=_PARSER_MODE_ORDER, ordered=True
+    )
+    plot_df = plot_df.sort_values("mode")
+    plot_df["mode_label"] = plot_df["mode"].map(_PARSER_MODE_LABELS)
+    mode_order = [
+        _PARSER_MODE_LABELS[mode]
+        for mode in _PARSER_MODE_ORDER
+        if (plot_df["mode"] == mode).any()
+    ]
+
+    fig, ax = plt.subplots(figsize=(8.5, 4.8), layout="constrained")
+    _overlay_box_and_strip(
+        ax,
+        plot_df.dropna(subset=["mode_label", "elapsed_seconds"]),
+        "mode_label",
+        "elapsed_seconds",
+        order=mode_order,
+        palette=_PARSER_MODE_PALETTE,
+        point_alpha=0.35,
+        point_size=3.5,
+    )
+    format_facet_grid(
+        ax,
+        xlabel="Parser configuration",
+        ylabel="Parse time (s)",
+        titles="Docling PDF Parse Time by Parser Configuration",
+    )
+    wrap_category_tick_labels(ax, axis="x", width=12)
     _save_or_show(fig, save_path)
     return ax
 
@@ -197,29 +748,29 @@ def visualise_impact_delta_scatter(
     all_vals = pd.concat([df["gold_impact_sum"], df["tool_impact_sum"]])
     lo, hi = all_vals.min() - 0.02, all_vals.max() + 0.02
 
-    fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
-    sns.scatterplot(
+    def _plot_impact_delta_scatter(data: pd.DataFrame, ax: Axes, **kwargs) -> None:
+        sns.scatterplot(data=data, ax=ax, **kwargs)
+        add_identity_reference_line(ax, label="_nolegend_")
+        ax.set_xlim(lo, hi)
+        ax.set_ylim(lo, hi)
+        move_legend_if_present(ax, title="Task variant")
+
+    return render_plot(
+        _plot_impact_delta_scatter,
         data=df,
+        title="Human Vs Tool Impact Score Comparison",
+        xlabel="Human Impact Score (%)",
+        ylabel="Tool Impact Score (%)",
+        save_path=save_path,
         x="gold_impact_sum",
         y="tool_impact_sum",
         hue="task_variant",
         palette=TASK_VARIANT_PALETTE,
         s=80,
         zorder=3,
-        ax=ax,
+        x_pct=True,
+        y_pct=True,
     )
-    add_identity_reference_line(ax, lo, hi)
-    ax.set_xlim(lo, hi)
-    ax.set_ylim(lo, hi)
-    ax.xaxis.set_major_formatter(PercentFormatter(xmax=1.0))
-    ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
-    ax.set_xlabel("Human Impact Score (%)")
-    ax.set_ylabel("Tool Impact Score (%)")
-    ax.set_title("Human Vs Tool Impact Score Comparison")
-    handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles=handles, labels=labels, title="Task variant")
-    _save_or_show(fig, save_path)
-    return ax
 
 
 def visualise_per_code_agreement(
@@ -280,69 +831,6 @@ def visualise_per_code_agreement(
                 [0],
                 [0],
                 label="Reference: Zero Balance",
-                color=REFERENCE_LINE_COLOR,
-                linestyle=REFERENCE_LINE_STYLE,
-                linewidth=REFERENCE_LINE_WIDTH,
-                alpha=REFERENCE_LINE_ALPHA,
-            ),
-        ],
-        title="Category",
-    )
-    _save_or_show(fig, save_path)
-    return ax
-
-
-def visualise_per_code_agreement_bias(
-    summary: dict, save_path: Path | None = None
-) -> Axes | None:
-    """
-    Diverging stacked horizontal bar chart sorted by net bias:
-    added_by_tool - missed_by_tool.
-    """
-    df = _per_code_df(summary)
-    if df.empty:
-        logger.warning(
-            "per_code block is empty, skipping visualise_per_code_agreement_bias"
-        )
-        return None
-
-    df = df.assign(
-        total_gold=df["total_in_gold"],
-        total_tool=df["total_in_tool"],
-        missed_neg=-df["missed_by_tool"],
-        total_disagreement=df["missed_by_tool"] + df["added_by_tool"],
-        net_bias=df["added_by_tool"] - df["missed_by_tool"],
-    ).sort_values(["net_bias", "total_disagreement"], ascending=True)
-
-    order = df["code"].tolist()
-    plot_df = df.set_index("code")[["missed_neg", "agreement", "added_by_tool"]]
-    plot_df = plot_df.loc[order]
-
-    colors = [
-        AGREEMENT_PALETTE["missed"],
-        AGREEMENT_PALETTE["overlap"],
-        AGREEMENT_PALETTE["added"],
-    ]
-
-    fig, ax = plt.subplots(
-        figsize=(_FIG_W, max(_FIG_H, len(order) * _FIG_H_PER_ITEM)),
-        layout="constrained",
-    )
-    plot_df.plot(kind="barh", stacked=True, color=colors, ax=ax, width=0.8)
-    add_vertical_reference_line(ax, x=0, label="Reference: Zero Bias")
-    ax.set_xlabel("Number of Students (count; Negative = Missed by Tool)")
-    ax.set_ylabel("Code")
-    set_integer_count_ticks(ax, axis="x")
-    ax.set_title("Per-Code Agreement Sorted by Net Bias (Added - Missed)")
-    ax.legend(
-        handles=[
-            Patch(facecolor=AGREEMENT_PALETTE["missed"], label="Missed"),
-            Patch(facecolor=AGREEMENT_PALETTE["overlap"], label="Overlap"),
-            Patch(facecolor=AGREEMENT_PALETTE["added"], label="Added"),
-            Line2D(
-                [0],
-                [0],
-                label="Reference: Zero Bias",
                 color=REFERENCE_LINE_COLOR,
                 linestyle=REFERENCE_LINE_STYLE,
                 linewidth=REFERENCE_LINE_WIDTH,
@@ -487,28 +975,28 @@ def visualise_code_frequency_comparison(
         palette=_CODE_SOURCE_PALETTE,
         order=detail_order,
         orient="h",
+        legend=False,
         ax=ax_detail,
     )
-
-    ax_full.set_xlabel("Occurrence Count (Students)")
-    ax_full.set_ylabel("Code")
-    set_integer_count_ticks(ax_full, axis="x")
-    ax_full.set_title("Code Frequency: Full Scale (Human Vs Tool)")
-
     ax_detail.set_xlabel("Occurrence Count (Students)")
     ax_detail.set_ylabel("")
     detail_max = detail_melted["count"].max() if not detail_melted.empty else 0
     ax_detail.set_xlim(0, max(1, detail_max * 1.1))
-    set_integer_count_ticks(ax_detail, axis="x")
-    if outlier_code:
-        ax_detail.set_title(f"Detail View (Excluding Outlier: {outlier_code})")
-    else:
-        ax_detail.set_title("Detail View")
+
+    detail_title = (
+        f"Detail View (Excluding Outlier: {outlier_code})"
+        if outlier_code
+        else "Detail View"
+    )
+    format_facet_grid(
+        axes,
+        xlabel="Occurrence Count (Students)",
+        ylabel=["Code", ""],
+        titles=["Code Frequency: Full Scale (Human Vs Tool)", detail_title],
+        x_int=True,
+    )
 
     ax_full.legend(title="Source")
-    legend_detail = ax_detail.get_legend()
-    if legend_detail is not None:
-        legend_detail.remove()
 
     _save_or_show(fig, save_path)
     return ax_full
@@ -562,28 +1050,27 @@ def visualise_pipeline_waterfall(
 
     plot_df.plot(kind="barh", stacked=True, color=colors, ax=ax_full, width=0.8)
     detail_plot_df.plot(
-        kind="barh", stacked=True, color=colors, ax=ax_detail, width=0.8
+        kind="barh", stacked=True, color=colors, ax=ax_detail, width=0.8, legend=False
     )
-
-    ax_full.set_xlabel("Number of Findings (count; Total = Raw Count)")
-    ax_full.set_ylabel("Code")
-    set_integer_count_ticks(ax_full, axis="x")
-    ax_full.set_title("Pipeline Attrition: Full Scale")
-
     ax_detail.set_xlabel("Number of Findings (count; Total = Raw Count)")
     ax_detail.set_ylabel("")
     detail_max = detail_plot_df.sum(axis=1).max() if not detail_plot_df.empty else 0
     ax_detail.set_xlim(0, max(1, detail_max * 1.1))
-    set_integer_count_ticks(ax_detail, axis="x")
-    if outlier_code:
-        ax_detail.set_title(f"Detail View (Excluding Outlier: {outlier_code})")
-    else:
-        ax_detail.set_title("Detail View")
+
+    detail_title = (
+        f"Detail View (Excluding Outlier: {outlier_code})"
+        if outlier_code
+        else "Detail View"
+    )
+    format_facet_grid(
+        axes,
+        xlabel="Number of Findings (count; Total = Raw Count)",
+        ylabel=["Code", ""],
+        titles=["Pipeline Attrition: Full Scale", detail_title],
+        x_int=True,
+    )
 
     ax_full.legend(["Final", "Adjusted", "Dismissed"], title="Stage")
-    legend_detail = ax_detail.get_legend()
-    if legend_detail is not None:
-        legend_detail.remove()
 
     _save_or_show(fig, save_path)
     return ax_full
@@ -600,26 +1087,26 @@ def visualise_judge_survival_rate(
 
     df = df.sort_values("survival_rate", ascending=True)
 
-    fig, ax = plt.subplots(
-        figsize=(_FIG_W, max(_FIG_H, len(df) * _FIG_H_PER_ITEM)), layout="constrained"
-    )
-    sns.barplot(
+    def _plot_judge_survival_rate(data: pd.DataFrame, ax: Axes, **kwargs) -> None:
+        sns.barplot(data=data, ax=ax, **kwargs)
+        add_vertical_reference_line(ax, x=0.5, label="Threshold: 50% Survival")
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles=handles, labels=labels, title="Reference")
+
+    return render_plot(
+        _plot_judge_survival_rate,
         data=df,
+        title="Judge Survival Rate per Code",
+        xlabel="Survival Rate (Final / Raw)",
+        ylabel="Code",
+        save_path=save_path,
+        figsize=(_FIG_W, max(_FIG_H, len(df) * _FIG_H_PER_ITEM)),
         y="code",
         x="survival_rate",
         orient="h",
         color=STAGE_PALETTE["final"],
-        ax=ax,
+        x_pct=True,
     )
-    add_vertical_reference_line(ax, x=0.5, label="Threshold: 50% Survival")
-    ax.xaxis.set_major_formatter(PercentFormatter(xmax=1.0))
-    ax.set_xlabel("Survival Rate (Final / Raw)")
-    ax.set_ylabel("Code")
-    ax.set_title("Judge Survival Rate per Code")
-    handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles=handles, labels=labels, title="Reference")
-    _save_or_show(fig, save_path)
-    return ax
 
 
 def visualise_cost_by_variant(
@@ -646,60 +1133,6 @@ def visualise_cost_by_variant(
         return None
     ax.set_xlabel("Task variant")
     ax.set_ylabel("Cost (EUR)")
-    return ax
-
-
-def visualise_cost_by_generator_model(
-    per_student_df: pd.DataFrame, save_path: Path | None = None
-) -> Axes | None:
-    """Strip and box plot of cost per document by generator model."""
-    df = _validate_data(
-        per_student_df,
-        ["generator_cost_eur", "generator_models"],
-        "visualise_cost_by_generator_model",
-    )
-    if df is None:
-        return None
-    ax = _plot_distribution(
-        df,
-        "generator_models",
-        "generator_cost_eur",
-        "task_variant",
-        "Cost per Document by Vision Model + Content Model",
-        TASK_VARIANT_PALETTE,
-        save_path,
-    )
-    if ax is None:
-        return None
-    ax.set_xlabel("Vision Model + Content Model")
-    ax.set_ylabel("Cost (EUR)")
-    return ax
-
-
-def visualise_latency_by_generator_model(
-    per_student_df: pd.DataFrame, save_path: Path | None = None
-) -> Axes | None:
-    """Strip and box plot of execution time by generator model."""
-    df = _validate_data(
-        per_student_df,
-        ["analyser_time", "generator_models"],
-        "visualise_latency_by_generator_model",
-    )
-    if df is None:
-        return None
-    ax = _plot_distribution(
-        df,
-        "generator_models",
-        "analyser_time",
-        "task_variant",
-        "Pipeline Latency by Vision Model + Content Model",
-        TASK_VARIANT_PALETTE,
-        save_path,
-    )
-    if ax is None:
-        return None
-    ax.set_xlabel("Vision Model + Content Model")
-    ax.set_ylabel("Latency (s)")
     return ax
 
 
@@ -846,7 +1279,7 @@ def visualise_mae_by_score_quartile(
     ax.set_xlabel("Human Score Quartile (% of max points)")
     ax.set_ylabel("Absolute Score Delta (% points)")
     ax.set_title("Tool Error (|Score Delta|) by Human Score Quartile (Normalised)")
-    ax.legend(title="Task variant")
+    move_legend_if_present(ax, title="Task variant")
     _save_or_show(fig, save_path)
     return ax
 
@@ -910,11 +1343,15 @@ def visualise_format_comparison(
             size=6,
             jitter=True,
         )
-        ax.set_xlabel("Format")
-        ax.set_ylabel(label)
-        ax.set_title(label)
 
-    fig.suptitle("PDF Vs Markdown: Cost and Latency")
+    format_facet_grid(
+        axes,
+        xlabel="Format",
+        ylabel=[label for _, label in metrics],
+        titles=[label for _, label in metrics],
+        suptitle="PDF Vs Markdown: Cost and Latency",
+    )
+
     _save_or_show(fig, save_path)
     return axes[0]
 
@@ -944,13 +1381,13 @@ def summarise_format_comparison_scope(per_student_df: pd.DataFrame) -> pd.DataFr
     for col in required_cols:
         scope_input[col] = scope_input[col].astype("string")
 
-    scope_df = (
+    scope_counts = (
         scope_input.fillna("")
         .groupby(required_cols, dropna=False, observed=True)
         .size()
-        .reset_index(name="n_students")
-        .sort_values("n_students", ascending=False)
+        .rename("n_students")
     )
+    scope_df = scope_counts.reset_index().sort_values("n_students", ascending=False)
     return scope_df
 
 
@@ -958,7 +1395,7 @@ def visualise_stage_times(
     per_student_df: pd.DataFrame, save_path: Path | None = None
 ) -> Axes | None:
     """
-    Density plot showing the distribution of
+    Box-and-strip plot showing the distribution of
     parse / analyser / judge times per student.
     """
     df = _validate_data(
@@ -979,24 +1416,45 @@ def visualise_stage_times(
             {"parse_time": "parse", "analyser_time": "analysers", "judge_time": "judge"}
         )
     )
+    stage_order = ["parse", "analysers", "judge"]
 
     fig, ax = plt.subplots(figsize=(_FIG_W, _FIG_H), layout="constrained")
-    sns.kdeplot(
+    sns.boxplot(
         data=melted,
         x="seconds",
+        y="stage",
+        order=stage_order,
         hue="stage",
-        hue_order=["parse", "analysers", "judge"],
-        palette=_STAGE_TIME_PALETTE,
-        multiple="layer",
-        fill=True,
-        alpha=0.5,
-        # cut=0,
-        clip=(0.001, None),
+        hue_order=stage_order,
+        palette=EXECUTION_STAGE_PALETTE,
+        dodge=False,
+        showfliers=False,
+        fill=False,
+        linewidth=1.5,
+        zorder=2,
+        legend=False,
         ax=ax,
     )
-    ax.set_xlabel("Latency (s)")
-    ax.set_ylabel("Density")
-    ax.set_title("Distribution of Pipeline Stage Latencies")
+    sns.stripplot(
+        data=melted,
+        x="seconds",
+        y="stage",
+        order=stage_order,
+        hue="stage",
+        hue_order=stage_order,
+        palette=EXECUTION_STAGE_PALETTE,
+        dodge=False,
+        alpha=0.25,
+        size=3,
+        legend=False,
+        ax=ax,
+    )
+    format_facet_grid(
+        ax,
+        xlabel="Latency (s)",
+        ylabel="Stage",
+        titles="Pipeline Stage Latency by Stage",
+    )
     _save_or_show(fig, save_path)
     return ax
 
@@ -1093,15 +1551,24 @@ def _plot_performance_metrics(
             palette=prf_palette,
             ax=ax2,
         )
-        ax2.set_xlabel("")
-        ax2.set_ylabel("Score (%)")
         ax2.set_ylim(0, 1.05)
-        ax2.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
-        ax2.set_title("Performance Metrics")
         if palette is None:
             ax2.tick_params(axis="x", rotation=0)
-    else:
-        ax2.set_title("No Precision/Recall/F1 Data")
+
+    format_facet_grid(
+        axes,
+        xlabel=["", ""],
+        ylabel=[mae_y_label, "Score (%)"],
+        titles=[
+            "Mean Absolute Error (MAE)" if not df_mae.empty else "No MAE Data",
+            (
+                "Performance Metrics"
+                if not df_prf.empty
+                else "No Precision/Recall/F1 Data"
+            ),
+        ],
+        y_pct=[False, not df_prf.empty],
+    )
 
     if palette is None:
         sns.despine()
@@ -1181,7 +1648,7 @@ def _plot_scatter_with_trendlines(
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
     ax.set_title(title)
-    ax.legend(title="Vision Model + Content Model")
+    move_legend_if_present(ax, title="Vision Model + Content Model")
     _save_or_show(fig, save_path)
     return ax
 
@@ -1204,39 +1671,3 @@ def visualise_per_judge_model_metrics(
         summary, "per_judge_model", "Judge Model", None, save_path
     )
     return axes
-
-
-def plot_all(
-    per_student_df: pd.DataFrame,
-    summary: dict,
-    save_dir: Path | None = None,
-) -> None:
-    """Generate all available diagrams, optionally saving to save_dir."""
-
-    def _path(name: str) -> Path | None:
-        return (save_dir / name) if save_dir is not None else None
-
-    visualise_score_scatter(per_student_df, _path("score_scatter.png"))
-    visualise_impact_delta_scatter(per_student_df, _path("impact_delta_scatter.png"))
-    visualise_per_code_agreement(summary, _path("per_code_agreement.png"))
-    visualise_per_code_agreement_bias(summary, _path("per_code_agreement_bias.png"))
-    visualise_precision_recall_bubble(summary, _path("precision_recall_bubble.png"))
-    visualise_code_frequency_comparison(summary, _path("code_frequency_comparison.png"))
-    visualise_pipeline_waterfall(summary, _path("pipeline_waterfall.png"))
-    visualise_judge_survival_rate(summary, _path("judge_survival_rate.png"))
-    visualise_per_variant_metrics(summary, _path("per_variant_metrics.png"))
-    visualise_per_format_metrics(summary, _path("per_format_metrics.png"))
-    visualise_per_language_metrics(summary, _path("per_language_metrics.png"))
-    visualise_mae_by_score_quartile(per_student_df, _path("mae_by_score_quartile.png"))
-    visualise_format_comparison(per_student_df, _path("format_comparison.png"))
-    visualise_cost_by_variant(per_student_df, _path("cost_by_variant.png"))
-    visualise_cost_vs_doc_points(per_student_df, _path("cost_vs_doc_points.png"))
-    visualise_cost_by_generator_model(
-        per_student_df, _path("cost_by_generator_model.png")
-    )
-    visualise_latency_by_variant(per_student_df, _path("latency_by_variant.png"))
-    visualise_latency_by_generator_model(
-        per_student_df, _path("latency_by_generator_model.png")
-    )
-    summarise_token_usage_by_variant(per_student_df)
-    visualise_stage_times(per_student_df, _path("stage_times.png"))

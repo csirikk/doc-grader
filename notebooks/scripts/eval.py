@@ -18,9 +18,14 @@ from scipy.stats import pearsonr
 
 from doc_grader.utils import write_csv, write_json
 
-from .constants import BONUS_CODES, DOC_CODES, LEGACY_TO_CANONICAL, MAX_DOC_POINTS
+from .assessment_data.constants import (
+    BONUS_CODES,
+    DOC_CODES,
+    LEGACY_TO_CANONICAL,
+    MAX_DOC_POINTS,
+)
+from .assessment_data.dataset_parser import normalise_code_alias
 from .dataset_analysis import load_clean_data
-from .dataset_parser import normalise_code_alias
 
 logger = logging.getLogger(__name__)
 
