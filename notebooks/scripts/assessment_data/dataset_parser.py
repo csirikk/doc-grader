@@ -22,15 +22,9 @@ DELIMITERS_LEFT = " \t\n\r,:;.(["
 DELIMITERS_RIGHT = " \t\n\r,:;.)]"
 
 
-# --- UTILITIES ---
-
-
 def filter_doc_codes(df: pd.DataFrame) -> pd.DataFrame:
     """Filter event rows to keep only documentation-related codes."""
     return df[df["code"].isin(DOC_CODES)]
-
-
-# --- REGEX ---
 
 
 def make_code_token_regex() -> re.Pattern:
@@ -107,9 +101,6 @@ def get_match_val(match: re.Match) -> int:
     """Helper to extract int value from signed number regex match."""
     val = int(match.group("num"))
     return -val if match.group("sign") == "-" else val
-
-
-# --- PARSING ---
 
 
 def extract_impact_from_parens(content: str) -> tuple[int | None, bool, str | None]:
@@ -488,9 +479,6 @@ def parse_document_tokens(
     return pd.DataFrame(token_records)
 
 
-# --- MAIN ---
-
-
 def main() -> None:
     """Command-line helper to run extraction over the IPP assessments CSVs.
 
@@ -499,7 +487,7 @@ def main() -> None:
     """
 
     logging.basicConfig(level=logging.INFO)
-    root_dir = Path(__file__).parent.parent
+    root_dir = Path(__file__).parent.parent.parent
     data_dir = root_dir / "data" / "ipp" / "assessments"
     all_files = list(data_dir.glob("ipp*.csv"))
 

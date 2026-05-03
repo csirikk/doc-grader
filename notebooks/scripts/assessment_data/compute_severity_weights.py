@@ -9,12 +9,12 @@ from pathlib import Path
 
 from doc_grader.utils import log_json, write_json
 
-from .constants import DOC_CODES, LEGACY_TO_CANONICAL
-from .dataset_analysis import (
+from ..dataset_analysis import (
     filter_for_impact_stats,
     filter_to_normalised_years,
     load_clean_data,
 )
+from .constants import DOC_CODES, LEGACY_TO_CANONICAL
 from .dataset_parser import normalise_code_alias
 
 
