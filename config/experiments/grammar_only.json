@@ -1,0 +1,21 @@
+{
+    "course": "ipp",
+    "expected_filename": "documentation",
+    "allowed_extensions": [
+        ".pdf",
+        ".md"
+    ],
+    "judge": false,
+    "judge_model": null,
+    "judge_temperature": 0.0,
+    "max_doc_points": null,
+    "analysers": [
+        {
+            "analyser_id": "grammar_analyser",
+            "enabled": true,
+            "params": {
+                "grammar_engine": "local"
+            }
+        }
+    ]
+}

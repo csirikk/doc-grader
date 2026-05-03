@@ -59,10 +59,13 @@ Use `--csv-out` to produce a combined CSV of all final findings.
 
 ## Configuration
 
-Configuration is ran by multiple main ``.json`` files.
+Configuration is split across profile, experiment, and rulebook JSON files.
 
-1. App configuration [config/default.json](config/default.json). Specifying the course, configuring the analysers and judge.
-2. Assessment rules and prompt templates in [config/rulebook.json](config/rulebook.json). Edit this file to add or adjust codes and rules.
+1. Compatibility anchor profile [config/default.json](config/default.json).
+2. Canonical course presets in [config/presets/](config/presets).
+3. Experiment presets in [config/experiments/](config/experiments).
+4. Rulebooks in [config/rulebooks/](config/rulebooks).
+5. Compatibility anchor rulebook [config/rulebook.json](config/rulebook.json).
 
 ## Review UI
 

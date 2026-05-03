@@ -1,0 +1,24 @@
+{
+    "course": "ipp",
+    "expected_filename": "documentation",
+    "allowed_extensions": [
+        ".pdf",
+        ".md"
+    ],
+    "judge": false,
+    "judge_model": null,
+    "judge_temperature": 0.0,
+    "max_doc_points": null,
+    "rulebook_path": "config/rulebook.json",
+    "analysers": [
+        {
+            "analyser_id": "structure_analyser",
+            "enabled": true,
+            "params": {
+                "min_words": 486,
+                "min_chars": 3422,
+                "min_struct": 7
+            }
+        }
+    ]
+}

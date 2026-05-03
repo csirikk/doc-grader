@@ -1,13 +1,13 @@
 {
     "course": "ipp",
-    "rulebook_path": "config/rulebook2425_int.json",
-    "expected_filename": null,
+    "rulebook_path": "config/rulebooks/ipp_2024_25_int.json",
+    "expected_filename": "readme",
     "allowed_extensions": [
-        ".pdf",
-        ".md"
+        ".md",
+        ".pdf"
     ],
-    "judge": true,
-    "judge_model": "gpt-5.4-mini",
+    "judge": false,
+    "judge_model": null,
     "judge_temperature": 0.0,
     "max_doc_points": 400,
     "analysers": [

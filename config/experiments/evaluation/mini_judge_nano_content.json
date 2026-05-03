@@ -1,0 +1,56 @@
+{
+    "course": "ipp",
+    "rulebook_path": "config/rulebooks/ipp_2024_25_int.json",
+    "expected_filename": null,
+    "allowed_extensions": [
+        ".pdf",
+        ".md"
+    ],
+    "judge": true,
+    "judge_model": "gpt-5.4-mini",
+    "judge_temperature": 0.0,
+    "max_doc_points": 400,
+    "analysers": [
+        {
+            "analyser_id": "structure_analyser",
+            "enabled": true,
+            "params": {
+                "min_words": 486,
+                "min_chars": 3422,
+                "min_struct": 7
+            }
+        },
+        {
+            "analyser_id": "content_analyser",
+            "enabled": true,
+            "model": "gpt-5.4-nano",
+            "temperature": 0.0,
+            "params": {}
+        },
+        {
+            "analyser_id": "asset_analyser",
+            "enabled": true,
+            "model": "gpt-5.4-nano",
+            "temperature": 0.0,
+            "params": {
+                "classifier_model": "ft:gpt-4.1-2025-04-14:personal:baduml-classifier-gold:DU8txcxh"
+            }
+        },
+        {
+            "analyser_id": "integrity_analyser",
+            "enabled": true,
+            "params": {
+                "spec_path": "data/ipp/spec/ipp2425spec.pdf",
+                "min_chunk_len": 40,
+                "copy_engine": "local"
+            }
+        },
+        {
+            "analyser_id": "grammar_analyser",
+            "enabled": true,
+            "params": {
+                "grammar_engine": "local"
+            }
+        }
+    ]
+}

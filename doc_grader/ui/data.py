@@ -25,11 +25,19 @@ PIPELINE_STAGES: dict[str, str] = {
 VISIBLE_PIPELINE_STAGES: list[str] = ["Final", "Judged"]
 
 _COURSE_RULEBOOK_FILES: dict[str, list[str]] = {
-    "ipp": ["rulebook_ipp2526.json", "rulebook.json"],
-    "ifj": ["rulebook_ifj.json", "rulebook.json"],
+    "ipp": [
+        "rulebooks/ipp_2025_26.json",
+        "rulebooks/ipp_2024_25_int.json",
+        "rulebooks/ipp_2024_25_par.json",
+        "rulebook.json",
+    ],
+    "ifj": ["rulebooks/ifj_2024_25.json", "rulebook_ifj.json", "rulebook.json"],
 }
 
 _DEFAULT_RULEBOOK_FILES: list[str] = [
+    "rulebooks/ipp_2025_26.json",
+    "rulebooks/ipp_2024_25_int.json",
+    "rulebooks/ifj_2024_25.json",
     "rulebook.json",
     "rulebook_ipp2526.json",
     "rulebook_ifj.json",

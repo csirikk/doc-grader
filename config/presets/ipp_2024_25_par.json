@@ -1,6 +1,6 @@
 {
     "course": "ipp",
-    "rulebook_path": "config/rulebook2425_int.json",
+    "rulebook_path": "config/rulebooks/ipp_2024_25_par.json",
     "expected_filename": "readme",
     "allowed_extensions": [
         ".md",
@@ -9,15 +9,15 @@
     "judge": true,
     "judge_model": "gpt-5.4",
     "judge_temperature": 0.0,
-    "max_doc_points": 400,
+    "max_doc_points": 100,
     "analysers": [
         {
             "analyser_id": "structure_analyser",
             "enabled": true,
             "params": {
-                "min_words": 486,
-                "min_chars": 3422,
-                "min_struct": 7
+                "min_words": 200,
+                "min_chars": 1200,
+                "min_struct": 4
             }
         },
         {
