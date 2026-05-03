@@ -152,6 +152,12 @@ class BaseAnalyser(ABC):
 class BaseLLMAnalyser(BaseAnalyser):
     """Base class for analysers that delegate logic to an LLM."""
 
+    _VISION_CODE_ALIASES: ClassVar[dict[str, tuple[str, ...]]] = {
+        "BADUML": ("BADUML", "UML_BAD"),
+        "UML_BAD": ("BADUML", "UML_BAD"),
+        "OWN DIF": ("OWNDIF", "UML_OWNDIF"),
+    }
+
     @staticmethod
     def _title_for_ac_code(rules: list[LLMRule], ac_code: str) -> str:
         titles = {r.ac_code: r.title for r in rules}
@@ -183,6 +189,18 @@ class BaseLLMAnalyser(BaseAnalyser):
     def _output_vision_ac_code(self, ac_code: str) -> str:
         """Map internal vision-model labels to public rulebook AC codes."""
         return ac_code
+
+    def _resolve_vision_ac_code(self, ac_code: str, known_codes: set[str]) -> str:
+        """Resolve hardcoded legacy/current aliases against the active rule set."""
+        output_code = self._output_vision_ac_code(ac_code)
+        if output_code in known_codes:
+            return output_code
+
+        alias_key = " ".join(output_code.strip().upper().split())
+        for candidate in self._VISION_CODE_ALIASES.get(alias_key, ()):
+            if candidate in known_codes:
+                return candidate
+        return output_code
 
     def _finalise_vision_finding(
         self,
@@ -276,7 +294,7 @@ class BaseLLMAnalyser(BaseAnalyser):
         findings: list[Finding] = []
 
         for f in vision_findings:
-            output_code = self._output_vision_ac_code(f.ac_code)
+            output_code = self._resolve_vision_ac_code(f.ac_code, known_codes)
             if output_code not in known_codes:
                 if output_code == f.ac_code:
                     logger.warning(

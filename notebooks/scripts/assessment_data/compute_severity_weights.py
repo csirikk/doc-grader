@@ -45,6 +45,10 @@ def compute_weights(
     df = df[df["code"].isin(legacy_codes)]
 
     if rulebook_path is None:
+        project_root = Path(__file__).resolve().parent.parent.parent
+        preferred_rulebook = (
+            project_root / "config" / "rulebooks" / "ipp_2024_25_int.json"
+        )
         rulebook_path = (
             Path(__file__).resolve().parent.parent.parent / "config" / "rulebook.json"
         )

@@ -157,7 +157,11 @@ class VisionFinding(StrictModel):
     """A single finding from the vision model."""
 
     ac_code: str = Field(
-        ..., description="The AC code exactly as listed in the rules (e.g. 'BADUML')."
+        ...,
+        description=(
+            "The AC code exactly as listed in the active rules. Copy the rule "
+            "code verbatim."
+        ),
     )
     item_cref: str = Field(
         ...,
