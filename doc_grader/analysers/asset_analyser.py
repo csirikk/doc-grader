@@ -130,7 +130,6 @@ class AssetAnalyser(BaseLLMAnalyser):
             )
             usage = merge_usage(usage, classifier_usage)
             images_sent += classifier_images
-        baduml_count = 0
         for cref, item in raw_labels.items():
             label = (item.get("label") or "").strip().upper()
             raw = (item.get("raw") or "").strip()
@@ -149,7 +148,6 @@ class AssetAnalyser(BaseLLMAnalyser):
                         model_name=ft_model,
                     )
                 )
-                baduml_count += 1
 
         diagram_rules = [
             r
@@ -210,8 +208,6 @@ class AssetAnalyser(BaseLLMAnalyser):
         should invoke the vision/classifier path instead of emitting a
         deterministic "UML_MISSING" finding.
         """
-        from pathlib import Path
-
         md_uris = getattr(doc, "md_image_uris", None) or []
         if not md_uris:
             return False
@@ -303,7 +299,7 @@ class AssetAnalyser(BaseLLMAnalyser):
                 line_no = (token.map[0] + 1) if token.map else None
                 for child in token.children:
                     if child.type == "code_inline":
-                        continue  # already formatted with monospace
+                        continue
                     if child.type != "text":
                         continue
                     text = child.content
@@ -424,7 +420,7 @@ class AssetAnalyser(BaseLLMAnalyser):
             # No extracted diagrams: execute_llm will skip analyse_assets (no images)
             # and use analyse_pages_only for page-level rules.
             if llm_client:
-                raw, usage, images_sent = self.execute_llm(
+                raw, usage, _images_sent = self.execute_llm(
                     llm_client, doc, rules, rulebook, params
                 )
                 self._accumulated_usage = merge_usage(self._accumulated_usage, usage)

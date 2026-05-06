@@ -199,10 +199,7 @@ class GrammarAnalyser(BaseLLMAnalyser):
         params: dict[str, Any] | None = None,
         llm_client: Any | None = None,
     ) -> list[Finding]:
-        try:
-            self._diagnostics = []
-        except Exception:
-            logger.debug("Could not initialise analyser diagnostics", exc_info=True)
+        self._diagnostics = []
 
         if (params or {}).get("grammar_engine", "local") == "local":
             rules: list[LLMRule] | None = None
@@ -240,7 +237,7 @@ class GrammarAnalyser(BaseLLMAnalyser):
 
         findings: list[Finding] = []
 
-        for section, entries in groups.items():
+        for _section, entries in groups.items():
             combined = " ".join(t for _, _, t in entries)
             if len(combined.split()) < _MIN_SECTION_WORDS:
                 continue
@@ -299,14 +296,11 @@ class GrammarAnalyser(BaseLLMAnalyser):
         except Exception as exc:
             msg = f"LanguageTool.check() failed for lt_lang={lt_lang}: {exc}"
             logger.warning("%s", msg)
-            try:
-                existing = getattr(self, "_diagnostics", None)
-                if existing is None:
-                    self._diagnostics = [msg]
-                else:
-                    existing.append(msg)
-            except Exception:
-                logger.debug("Failed to record LanguageTool diagnostic", exc_info=True)
+            existing = getattr(self, "_diagnostics", None)
+            if isinstance(existing, list):
+                existing.append(msg)
+            else:
+                self._diagnostics = [msg]
             return []
 
         issues: list[dict[str, Any]] = []

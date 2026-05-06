@@ -373,7 +373,6 @@ def main(argv: list[str] | None = None) -> int:
     exit_code = 0
     run_usage: dict = {}
     run_stage_timings: dict[str, dict[str, float | int]] = {}
-    docs_discovered = 0
     docs_processed = 0
     docs_skipped = 0
     docs_parsed = 0
@@ -391,8 +390,8 @@ def main(argv: list[str] | None = None) -> int:
             allowed_extensions=config.allowed_extensions,
         )
     )
-    total_cases = len(cases)
-    docs_discovered = total_cases
+    docs_discovered = len(cases)
+    total_cases = docs_discovered
     logger.info("Discovered %d documents to process", total_cases)
 
     logger.info("Initialising parser...")
@@ -433,18 +432,14 @@ def main(argv: list[str] | None = None) -> int:
 
             if (args.clean_csv_out or args.csv_out) and existing_findings is None:
                 logger.warning(
-                    (
-                        "Skipped %s but existing findings could not be loaded; "
-                        "this document will be missing from current CSV outputs"
-                    ),
+                    "Skipped %s but existing findings could not be loaded; "
+                    "this document will be missing from current CSV outputs",
                     path,
                 )
             continue
 
         docs_processed += 1
         reset_id_counters()
-        if llm_client:
-            pass
         run_start = time.monotonic()
         rule_engine = RuleEngine()
 
@@ -574,7 +569,7 @@ def main(argv: list[str] | None = None) -> int:
                 1 for f in analyser_findings if f.judge_status == "not_to_be_judged"
             )
             logger.info(
-                ("Judge: approved=%d adjusted=%d dismissed=%d not_judged=%d"),
+                "Judge: approved=%d adjusted=%d dismissed=%d not_judged=%d",
                 judged_approved,
                 judged_adjusted,
                 judged_dismissed,
@@ -679,11 +674,9 @@ def main(argv: list[str] | None = None) -> int:
     run_usage_summary = run_summary["usage"]
     total_cost = run_usage_summary["total_cost_eur"]
     logger.info(
-        (
-            "Run LLM cost summary: docs=%d processed=%d skipped=%d parsed=%d "
-            "parse_failures=%d "
-            "prompt_tokens=%d completion_tokens=%d cached_tokens=%d cost_eur=%s"
-        ),
+        "Run LLM cost summary: docs=%d processed=%d skipped=%d parsed=%d "
+        "parse_failures=%d "
+        "prompt_tokens=%d completion_tokens=%d cached_tokens=%d cost_eur=%s",
         docs_discovered,
         docs_processed,
         docs_skipped,

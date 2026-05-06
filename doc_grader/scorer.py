@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 class Scorer:
     """Post-processes final findings to compute calibrated impact scores."""
 
+    @staticmethod
     def score(
-        self,
         findings: list[Finding],
         rulebook: Rulebook,
         max_doc_points: int | None = None,

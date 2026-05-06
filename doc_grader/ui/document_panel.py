@@ -13,14 +13,12 @@ from renderers.pdf_renderer import render_pdf
 def render_document(
     source_path: str | None,
     selected_finding: dict | None,
-    height: int = 820,
 ) -> None:
     """Render the student document in the left column.
 
     Args:
         source_path: Path to the source document, or ``None`` when not set.
         selected_finding: Optional finding dict used to highlight context.
-        height: Viewer height in pixels.
 
     Returns:
         None

@@ -32,10 +32,8 @@ logger = logging.getLogger(__name__)
 class BaseAnalyser(ABC):
     """Abstract base class for all analysers."""
 
-    # Analyser implementation identifier
     analyser_id: ClassVar[str] = "base_analyser"
 
-    # Human-readable analyser name
     name: ClassVar[str] = "Base Analyser"
 
     def _make_finding(
@@ -244,10 +242,7 @@ class BaseLLMAnalyser(BaseAnalyser):
             return
         if not finding.model_evals:
             return
-        try:
-            model_snip = finding.meta.pop("model_snippet")
-        except Exception:
-            return
+        model_snip = finding.meta.pop("model_snippet")
         last_ev = finding.model_evals[-1]
         existing = last_ev.raw or {}
         existing = {**existing, "model_snippet": model_snip}

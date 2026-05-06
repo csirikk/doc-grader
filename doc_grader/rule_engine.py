@@ -24,7 +24,8 @@ class RuleEngine:
     objects produced by analysers.
     """
 
-    def prepare_judge_batch(self, findings: list[Finding]) -> list[Finding]:
+    @staticmethod
+    def prepare_judge_batch(findings: list[Finding]) -> list[Finding]:
         """Select findings that should be sent to the judge model.
 
         The method filters out findings that are not marked for judgement or
@@ -45,7 +46,7 @@ class RuleEngine:
 
             if not (finding.anchors or finding.stats or finding.model_evals):
                 logger.info(
-                    ("Skipping finding '%s' (%s): no anchors, stats, or model_evals"),
+                    "Skipping finding '%s' (%s): no anchors, stats, or model_evals",
                     finding.finding_id,
                     finding.ac_code,
                 )
@@ -59,8 +60,9 @@ class RuleEngine:
 
         return to_judge
 
+    @staticmethod
     def apply_judge_response(
-        self, findings: list[Finding], response: JudgeModelResponse
+        findings: list[Finding], response: JudgeModelResponse
     ) -> None:
         """Apply judge verdicts to findings in-place.
 
@@ -82,7 +84,7 @@ class RuleEngine:
             verdict = verdict_map.get(finding.finding_id)
             if verdict is None:
                 logger.warning(
-                    ("Judge returned no verdict for '%s', leaving as 'to_be_judged'"),
+                    "Judge returned no verdict for '%s', leaving as 'to_be_judged'",
                     finding.finding_id,
                 )
                 continue
@@ -134,7 +136,8 @@ class RuleEngine:
                 }
             finding.meta = {**(finding.meta or {}), "judge": judge_meta}
 
-    def process(self, findings: list[Finding]) -> tuple[list[Finding], dict]:
+    @staticmethod
+    def process(findings: list[Finding]) -> tuple[list[Finding], dict]:
         """Filter and normalise findings.
 
         The method drops findings vetoed by the judge, removes duplicate

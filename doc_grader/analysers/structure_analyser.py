@@ -3,7 +3,6 @@
 Author: Matúš Csirik
 """
 
-import logging
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from docling_core.types.doc.document import SectionHeaderItem, TextItem
@@ -16,8 +15,6 @@ if TYPE_CHECKING:
     from ..schemas.document import Document
     from ..schemas.finding import Finding
     from ..schemas.llm import Rulebook
-
-logger = logging.getLogger(__name__)
 
 SHORT_MIN_WORDS: int = 486  # Accounts for ~90% of recorded SHORT docs
 SHORT_MIN_CHARS: int = 3422  # Accounts for ~90% of recorded SHORT docs
@@ -76,7 +73,7 @@ class StructureAnalyser(BaseAnalyser):
         last_heading_item: SectionHeaderItem | None = None
         last_heading_level = 0
 
-        for item, _iter_level in doc.docling_doc.iterate_items():
+        for item, _ in doc.docling_doc.iterate_items():
             if not isinstance(item, TextItem):
                 continue
 

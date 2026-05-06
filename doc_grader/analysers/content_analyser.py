@@ -50,8 +50,9 @@ class ContentAnalyser(BaseLLMAnalyser):
     def get_rules(
         self, rulebook: Rulebook, params: dict[str, Any] | None = None
     ) -> list[LLMRule]:
+        params = params or {}
         rules = super().get_rules(rulebook, params=params)
-        language = params.get("language") if params else None
+        language = params.get("language")
         grammar_codes = {"CH", "SPELLING", "GRAMMAR"}
         if language not in {"cs", "sk"}:
             # English grammar and spelling are handled by grammar_analyser.

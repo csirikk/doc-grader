@@ -42,14 +42,12 @@ def configure_logging(level: int = logging.INFO) -> None:
         None
     """
 
-    is_notebook = False
     try:
         from IPython.core.getipython import get_ipython
-
-        if get_ipython() is not None:
-            is_notebook = True
     except ImportError:
-        pass
+        is_notebook = False
+    else:
+        is_notebook = get_ipython() is not None
 
     if is_notebook:
         handler = logging.StreamHandler(sys.stdout)
@@ -340,10 +338,7 @@ def compute_doc_hash(path: str | Path) -> str:
     """
     hasher = hashlib.sha256()
     with Path(path).open("rb") as f:
-        while True:
-            chunk = f.read(1024 * 1024)
-            if not chunk:
-                break
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
             hasher.update(chunk)
     return "sha256:" + hasher.hexdigest()
 
@@ -503,7 +498,9 @@ def findings_to_grader_row(
     )
     parts: list[str] = []
     for f in findings:
-        section = f.anchors[0].section_path or "" if f.anchors else ""
+        section = ""
+        if f.anchors:
+            section = f.anchors[0].section_path or ""
         parts.append(f"{f.ac_code} ({section}, {f.summary})")
 
     comment = ", ".join(parts) if parts else ""

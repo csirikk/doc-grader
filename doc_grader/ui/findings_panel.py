@@ -15,11 +15,10 @@ def _build_local_storage() -> Any:
     try:
         module = import_module("streamlit_local_storage")
     except ModuleNotFoundError as exc:
-        msg = (
+        raise RuntimeError(
             "Missing dependency 'streamlit-local-storage'. Install it to enable "
             "summary state persistence in browser localStorage."
-        )
-        raise RuntimeError(msg) from exc
+        ) from exc
 
     local_storage_cls = getattr(module, "LocalStorage", None)
     if local_storage_cls is None:
@@ -435,8 +434,6 @@ def _render_judge(finding: dict, show_technical_details: bool) -> None:
         if show_technical_details and (reasoning := judge.get("reasoning_chain")):
             st.caption("Judge model reasoning:")
             st.markdown(reasoning)
-
-        _ = show_technical_details
 
 
 def _render_evidence(finding: dict, show_technical_details: bool) -> None:

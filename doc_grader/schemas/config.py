@@ -112,19 +112,17 @@ class AppConfig(StrictModel):
 
     @field_validator("allowed_extensions", mode="before")
     @classmethod
-    def _normalise_allowed_extensions(cls, value: object) -> list[str]:
+    def _normalise_allowed_extensions(_cls, value: object) -> list[str]:
         if value is None:
             return [".pdf", ".md"]
 
         if not isinstance(value, list):
-            msg = "allowed_extensions must be a list of strings"
-            raise TypeError(msg)
+            raise TypeError("allowed_extensions must be a list of strings")
 
         suffixes: list[str] = []
         for suffix in value:
             if not isinstance(suffix, str):
-                msg = "allowed_extensions must contain only strings"
-                raise TypeError(msg)
+                raise TypeError("allowed_extensions must contain only strings")
             suffixes.append(suffix)
 
         return normalise_allowed_extensions(suffixes) or [".pdf", ".md"]
