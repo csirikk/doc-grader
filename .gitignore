@@ -18,3 +18,4 @@ baduml-classifier
 data/
 !data/clean_ipp_data.csv
 pilot/
+docs/eval_figs
