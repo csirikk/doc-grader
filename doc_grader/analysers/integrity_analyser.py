@@ -347,14 +347,22 @@ def _compute_scores(
     from sklearn.metrics.pairwise import cosine_similarity
 
     n_chunks = len(student_chunk_units)
-    if n_chunks == 0 or spec_index.chunk_vecs.shape[0] == 0:
+    if (
+        n_chunks == 0
+        or spec_index.chunk_vecs is None
+        or spec_index.sentence_vecs is None
+        or spec_index.chunk_vecs.shape[0] == 0
+    ):
         return ScoredResult(n_total=n_chunks)
+
+    spec_chunk_vecs = spec_index.chunk_vecs
+    spec_sentence_vecs = spec_index.sentence_vecs
 
     student_chunk_vecs = _encode([u.text for u in student_chunk_units])
     student_sent_vecs = _encode([u.text for u in student_sentence_units])
 
-    # Chunk-level similarity
-    chunk_sim = cosine_similarity(student_chunk_vecs, spec_index.chunk_vecs)
+    # Chunk-level similarities for contamination and coverage triggers.
+    chunk_sim = cosine_similarity(student_chunk_vecs, spec_chunk_vecs)
     max_sim_student = chunk_sim.max(axis=1)
 
     flagged_mask = max_sim_student > CHUNK_SIM_THRESHOLD
@@ -391,8 +399,8 @@ def _compute_scores(
     hard_sentences: list[dict[str, Any]] = []
     n_sents = len(student_sentence_units)
 
-    if n_sents > 0 and spec_index.sentence_vecs.shape[0] > 0:
-        sent_sim = cosine_similarity(student_sent_vecs, spec_index.sentence_vecs)
+    if n_sents > 0 and spec_sentence_vecs.shape[0] > 0:
+        sent_sim = cosine_similarity(student_sent_vecs, spec_sentence_vecs)
         max_sim_sents = sent_sim.max(axis=1)
         max_sentence_sim = float(max_sim_sents.max())
         n_soft = int((max_sim_sents > SOFT_SENTENCE_THRESHOLD).sum())
