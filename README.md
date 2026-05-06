@@ -1,81 +1,86 @@
 # doc-grader
 
-Matúš Csirik, 2026
+`doc-grader` is a tool to aid both graders and students. It facilitates support by providing suggestions for scoring student documentations, specifically within IFJ and IPP at FIT BUT.
 
-Intelligent tool for effective assessment of student project documentations within IFJ and IPP courses at FIT BUT. Developed as part of the author's bachelor thesis. The goal is to verify the suitability of various modern machine learning models and Python libraries within a grading process.
+It parses PDF or Markdown submissions, runs configured analysers, and writes findings for human review.
 
-The tool parses Markdown or PDF student documentations into a normalised intermediate representaiton, which is then processed by various analyser models. The resulting findings are then validated by additional models and processed by a rule engine, producing concrete suggestions for the human grader using this tool.
+The project was built to reduce repetitive grading work while keeping the final decision with the grader. The framework also ensures that these suggestions or findings carry evidence.
 
-## Pipeline
+## Flow
 
-1. Parse: document(s) (``.md`` or ``.pdf``) are parsed into an intermediate representation.
-2. Analyse: run analysers on the parsed document(s) and emit findings.
-3. Judge (optional): an LLM-based judge verifies and adjusts findings.
-4. Aggregate: the rule engine finalises findings and writes outputs for review.
+- Parses each document into a shared intermediate representation
+- Runs deterministic and machine learning based analysers
+- Optionally runs a judge LLM pass on selected findings
+- Aggregates and filters findings into final review artefacts
+- Exports machine-readable outputs and optional assessment CSVs
+
+## Repository layout
+
+- `doc_grader/`: runtime package and CLI
+- `config/`: presets, experiments, and rulebooks
+- `docs/`: project and architecture documentation
+- `notebooks/`: analysis and evaluation notebooks
+- `data/`: input datasets and reference material
+- `outputs/`: generated evaluation outputs
 
 ## Installation
 
-For exact installation steps, see [INSTALL.md](INSTALL.md).
+See [INSTALL.md](INSTALL.md).
 
 ## Usage
 
-Run the pipeline:
-
 ```bash
-doc-grader <input_dir>
+doc-grader <path_or_folder>
 ```
 
-CLI options:
+Examples:
 
-- `-h, --help` show help message and exit
-- `-d, --debug` enable debug logging
-- `-o, --out PATH` path to output directory (default: `out/default/`)
-- `-c, --config PATH` path to a JSON config file (default: `config/default.json`)
-- `--csv-out PATH` path where to write a combined CSV of all findings, mirroring the original csv grading workflow
-- `--skip-existing` skip documents that already have `findings.json` and `info.json` in the target output directory
+```bash
+# single file
+doc-grader data/ipp_docs/student1/student1.pdf
 
-### Inputs
+# student folder
+doc-grader data/ipp_docs/student1
 
-Three input modes handled for convenience.
+# cohort folder
+doc-grader data/ipp_docs
+```
 
-1. Single file: `doc-grader path/to/doc.pdf ...` student id is derived from the filename.
-2. Student folder: `doc-grader path/to/student_folder ...` if the folder contains a document it is used and the folder name becomes the student id. Recommended for ``.md`` documents, which often carry references to other resources within the ``student_folder``.
-3. Project variant folder: `doc-grader path/to/project_variant_folder/* ...` if the provided folder contains student subfolders, each subfolder is scanned for a primary document and treated as a separate student.
+### CLI options
 
-### Outputs
+| Option              | Description                         |
+|---------------------|-------------------------------------|
+| `-h, --help`        | Show help message                   |
+| `-d, --debug`       | Enable debug logging                |
+| `-o, --out PATH`    | Output directory                    |
+| `-c, --config PATH` | Config file                         |
+| `--csv-out PATH`    | Write merged CSV findings           |
+| `--skip-existing`   | Skip students with existing outputs |
 
-Each analyzed student produces a per-student output folder (e.g. `out/<id>/`) with
-files:
+## Outputs
 
-- `info.json` run metadata and counts
-- `ir.json` intermediate representation used by analysers
-  - `docling.json` docling extraction output
-- `findings.json` finalised findings for review
-  - `parser_findings.json` parser-level issues
-  - `raw_findings.json` analyser-emitted findings before judge
-  - `judged_findings.json` findings after optional model judge (if enabled)
+Each processed student gets an output folder such as `out/<id>/`:
 
-Use `--csv-out` to produce a combined CSV of all final findings.
-
-## Configuration
-
-Configuration is split across profile, experiment, and rulebook JSON files.
-
-1. Compatibility anchor profile [config/default.json](config/default.json).
-2. Canonical course presets in [config/presets/](config/presets).
-3. Experiment presets in [config/experiments/](config/experiments).
-4. Rulebooks in [config/rulebooks/](config/rulebooks).
-5. Compatibility anchor rulebook [config/rulebook.json](config/rulebook.json).
+- `info.json`: run metadata, stage timings, and counts
+- `ir.json`: parsed intermediate representation
+- `docling.json`: raw Docling extraction
+- `parser_findings.json`: parser-level issues
+- `raw_findings.json`: analyser output before judge
+- `judged_findings.json`: judge output when enabled
+- `findings.json`: final filtered findings
 
 ## Review UI
 
-The user inteface provided focuses on showcasing the outputs of the tool after running, it is not meant for adjusting or real time grading. Loads runs under `out/`.
-
-Run the UI:
+A read-only Streamlit interface is available for inspecting saved runs:
 
 ```bash
 streamlit run doc_grader/ui/app.py
 ```
+
+## Documentation
+
+- High-level tool overview: [docs/overview.md](docs/overview.md)
+- Installation instructions: [INSTALL.md](INSTALL.md)
 
 ## License
 
