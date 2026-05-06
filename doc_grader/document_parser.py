@@ -459,7 +459,8 @@ class DocumentParser:
             section_paths: dict[str, str] = {}
             paragraph_labels = {DocItemLabel.TEXT, DocItemLabel.PARAGRAPH}
 
-            # heading_stack[i] has the heading text at depth i+1
+            # Track heading ancestry (index i is depth i+1) so each
+            # text cref can be linked to a section path.
             heading_stack: list[str] = []
 
             is_pdf = suffix == ".pdf"
@@ -490,7 +491,9 @@ class DocumentParser:
                             if isinstance(cell, TableCell) and cell.text:
                                 cell.text = clean_pdf_text(cell.text)
 
-                if not isinstance(item, TextItem):  # does not add tables to text
+                if not isinstance(
+                    item, TextItem
+                ):  # Keep combined text stats text-only.
                     if isinstance(item, PictureItem):
                         pictures += 1
                     continue

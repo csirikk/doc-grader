@@ -31,10 +31,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# -- Embedding model --------------------------------------------------------
 EMBEDDING_MODEL: str = "BAAI/bge-m3"
 
-# -- Similarity thresholds --------------------------------------------------
 CHUNK_SIM_THRESHOLD: float = 0.80
 DOC_COPY_THRESHOLD: float = 0.25
 SPEC_COVERAGE_THRESHOLD: float = 0.65
@@ -46,22 +44,17 @@ HARD_SENTENCE_THRESHOLD: float = 0.90
 LETHAL_CHUNK_THRESHOLD: float = 0.95
 LETHAL_SENTENCE_THRESHOLD: float = 0.95
 
-# -- Structural constants ---------------------------------------------------
 MIN_USABLE_CHUNKS: int = 3
 MIN_OUTPUT_CONFIDENCE: float = 0.20
 TOP_K_ANCHORS: int = 5
 MIN_SENTENCE_LEN: int = 20
 
-# -- Filtering patterns -----------------------------------------------------
 TITLE_RE = re.compile(
     r"^(implementa[cv]n[iy]|dokumentace|student|login|jmeno|xlogin|zadani)",
     re.IGNORECASE,
 )
 TOC_RE = re.compile(r"^\s*(\d+\.)+\s*$")
 YEAR_RE = re.compile(r"(20\d{2}\s*/\s*20\d{2}|IPP\s*20\d{2})", re.IGNORECASE)
-
-
-# -- Data containers --------------------------------------------------------
 
 
 @dataclass
@@ -78,14 +71,13 @@ class SpecIndex:
 
     chunk_units: list[TextUnit] = field(default_factory=list)
     sentence_units: list[TextUnit] = field(default_factory=list)
-    chunk_vecs: Any = None  # NDArray[np.float32]
-    sentence_vecs: Any = None  # NDArray[np.float32]
+    chunk_vecs: NDArray[np.float32] | None = None
+    sentence_vecs: NDArray[np.float32] | None = None
 
 
 class ScoredResult(StrictModel):
     """All intermediate scores for one student-vs-spec comparison."""
 
-    # Chunk-level
     contamination_score: float = 0.0
     cont_triggered: bool = False
     spec_coverage_score: float = 0.0
@@ -94,23 +86,18 @@ class ScoredResult(StrictModel):
     n_total: int = 0
     max_student_sim: float = 0.0
 
-    # Sentence-level
     n_soft_candidates: int = 0
     max_sentence_sim: float = 0.0
     n_sentences_above_soft: int = 0
 
-    # Corroboration
     n_corroborated: int = 0
 
-    # Aggregate
     has_similarity_evidence: bool = False
 
-    # Per-unit detail for anchor building
     flagged_chunks: list[dict[str, Any]] = Field(default_factory=list)
     hard_sentences: list[dict[str, Any]] = Field(default_factory=list)
 
 
-# -- Module-level singletons ----------------------------------------
 _model: Any = None
 _spec_cache: dict[str, SpecIndex] = {}
 _tok_cache: dict[str, Any] = {}
@@ -185,9 +172,6 @@ def _encode(texts: list[str]) -> NDArray[np.float32]:
     return np.asarray(vecs, dtype=np.float32)
 
 
-# -- Text filtering ---------------------------------------------------------
-
-
 def _is_boilerplate(text: str) -> bool:
     """Return True if text looks like a title, ToC line or identity block."""
     stripped = text.strip()
@@ -209,17 +193,11 @@ def _clean_and_filter(text: str, min_len: int) -> str | None:
     return cleaned
 
 
-# -- Sentence splitting -----------------------------------------------------
-
-
 def _split_sentences(text: str, preferred_lang: str | None = None) -> list[str]:
     """Split text into sentences using a tokenizer for the document language."""
     lang = _sentence_lang(text, preferred_lang)
     doc = _get_sentence_tokenizer(lang)(text)
     return [sent.text for sent in doc.sentences]
-
-
-# -- Spec caching -----------------------------------------------------------
 
 
 def _spec_cache_path(spec_path: Path) -> Path:
@@ -305,6 +283,10 @@ def _save_spec_cache(npz_path: Path, index: SpecIndex) -> None:
     """Save spec embeddings to an .npz file."""
     import numpy as np
 
+    if index.chunk_vecs is None or index.sentence_vecs is None:
+        logger.debug("Spec cache save skipped: missing embedding vectors")
+        return
+
     try:
         np.savez_compressed(
             npz_path,
@@ -318,9 +300,6 @@ def _save_spec_cache(npz_path: Path, index: SpecIndex) -> None:
         logger.info("Saved spec cache to %s", npz_path)
     except Exception:
         logger.debug("Failed to save spec cache to %s", npz_path, exc_info=True)
-
-
-# -- Text extraction ---------------------------------------------------
 
 
 def _extract_chunks(doc: Document, min_chunk_len: int) -> list[TextUnit]:
@@ -359,9 +338,6 @@ def _extract_sentences(doc: Document, min_len: int) -> list[TextUnit]:
     return units
 
 
-# -- Similarity computation -------------------------------------------------
-
-
 def _compute_scores(
     student_chunk_units: list[TextUnit],
     student_sentence_units: list[TextUnit],
@@ -387,7 +363,7 @@ def _compute_scores(
     cont_triggered = contamination_score >= DOC_COPY_THRESHOLD
     max_student_sim = float(max_sim_student.max())
 
-    # Spec coverage
+    # Coverage tracks how much of the spec is represented in student chunks.
     max_sim_spec = chunk_sim.max(axis=0)
     cov_mask = max_sim_spec > SPEC_COVERAGE_THRESHOLD
     spec_coverage_score = float(cov_mask.mean())
@@ -409,7 +385,7 @@ def _compute_scores(
         reverse=True,
     )
 
-    # Sentence-level similarity
+    # Sentence-level signals corroborate chunk-level matches.
     n_soft = 0
     max_sentence_sim = 0.0
     hard_sentences: list[dict[str, Any]] = []
@@ -440,7 +416,7 @@ def _compute_scores(
             reverse=True,
         )
 
-    # Sentence within chunk
+    # Count chunk hits that are backed by hard sentence matches.
     hard_sent_crefs = {s["student_cref"] for s in hard_sentences if s["student_cref"]}
     n_corroborated = sum(
         1 for fc in flagged_chunks if fc.get("student_cref") in hard_sent_crefs
@@ -462,9 +438,6 @@ def _compute_scores(
         flagged_chunks=flagged_chunks,
         hard_sentences=hard_sentences,
     )
-
-
-# -- IntegrityAnalyser ------------------------------------------------------
 
 
 class IntegrityAnalyser(BaseLLMAnalyser):
@@ -585,8 +558,6 @@ class IntegrityAnalyser(BaseLLMAnalyser):
 
         return _compute_scores(student_chunks, student_sentences, spec_index)
 
-    # -- Confidence calculation ---------------------------------------------
-
     def _calculate_confidence(self, scored: ScoredResult) -> float:
         """Derive a single confidence score from the multi-signal scored result."""
         confidence = 0.0
@@ -655,8 +626,6 @@ class IntegrityAnalyser(BaseLLMAnalyser):
             confidence *= 1.10
 
         return min(confidence, 1.0)
-
-    # -- Finding construction -----------------------------------------------
 
     def _build_findings(
         self,

@@ -613,7 +613,7 @@ def visualise_shared_vs_individual_impact(
     )
     combined = pd.concat([mean_excl, mean_incl], axis=1).dropna()
     combined["diff"] = (combined["incl_shared"] - combined["excl_shared"]).abs()
-    # keep only codes where shared penalties actually shift the mean the most
+    # Keep only codes where shared penalties shift the mean the most.
     combined = combined.nlargest(n_codes, "diff")
 
     melted = (
@@ -1043,7 +1043,6 @@ def analyse_comment_keywords(df: pd.DataFrame, n_keywords: int = 30) -> pd.DataF
     if comments.empty:
         return pd.DataFrame(columns=["keyword", "count", "top_codes"])
 
-    # Explode to one (code, keyword) row per token
     pairs = (
         comments.assign(
             keyword=comments["comment"].str.lower().str.findall(r"[^\W\d_]{3,}")

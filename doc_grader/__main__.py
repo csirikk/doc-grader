@@ -18,7 +18,6 @@ from typing import TYPE_CHECKING, Any
 
 from dotenv import load_dotenv
 
-# Analysers
 from .analysers.asset_analyser import AssetAnalyser
 from .analysers.content_analyser import ContentAnalyser
 from .analysers.grammar_analyser import GrammarAnalyser
@@ -193,7 +192,7 @@ def _run_analysers(
             analyser_usage = getattr(instance, "_accumulated_usage", None)
             if analyser_usage is not None:
                 accumulated_usage = merge_usage(accumulated_usage, analyser_usage)
-            # collect analyser diagnostics
+            # Persist analyser diagnostics so they are written to info.json.
             instance_diagnostics = getattr(instance, "_diagnostics", None)
             if instance_diagnostics:
                 analyser_errors.setdefault(analyser_cfg.analyser_id, []).extend(
@@ -377,8 +376,8 @@ def main(argv: list[str] | None = None) -> int:
     docs_skipped = 0
     docs_parsed = 0
     docs_failed_parse = 0
-    clean_csv_rows: list = []  # accumulated per-finding rows for --clean-csv-out
-    grader_rows: list = []  # one row per document for --csv-out
+    clean_csv_rows: list[dict[str, Any]] = []
+    grader_rows: list[dict[str, Any]] = []
 
     from .document_parser import DocumentParser
 
@@ -575,8 +574,8 @@ def main(argv: list[str] | None = None) -> int:
                 judged_dismissed,
                 not_judged,
             )
-            # Note: judged_findings.json contains raw violation-intensity
-            # severity values -- calibrated severity only appears in findings.json.
+            # Keep raw judge severity in a separate file for auditability,
+            # calibrated severity only appears in findings.json.
             write_json(file_outdir / "judged_findings.json", analyser_findings)
             logger.debug("Wrote judged_findings.json")
 
@@ -635,7 +634,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.clean_csv_out:
         csv_path = Path(args.clean_csv_out)
-        # write per-finding clean dataset CSV (preserve canonical column order)
+        # Preserve canonical clean dataset column ordering across exports.
         from .utils import CSV_COLUMNS
 
         write_csv(csv_path, clean_csv_rows, fieldnames=CSV_COLUMNS)

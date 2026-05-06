@@ -363,7 +363,7 @@ class AssetAnalyser(BaseLLMAnalyser):
 
         sazba_rules = [r for r in rules if r.ac_code == "TYPESET"]
 
-        # Markdown branch: deterministic SAZBA linting + vision LLM for diagrams
+        # Markdown uses deterministic TYPESET checks plus optional image vision checks.
         if not doc.docling_doc.pages:
             findings: list[Finding] = []
             if sazba_rules:
@@ -376,7 +376,7 @@ class AssetAnalyser(BaseLLMAnalyser):
                 )
                 self._accumulated_usage = merge_usage(self._accumulated_usage, usage)
                 findings.extend(self.process_vision_findings(doc, raw, rules, params))
-                # If no images were actually encoded/sent, emit deterministic UML_MISSING
+                # If no images were encoded, emit deterministic UML_MISSING.
                 if images_sent == 0:
                     nouml_active = any(r.ac_code == "UML_MISSING" for r in rules)
                     if nouml_active:
@@ -385,7 +385,9 @@ class AssetAnalyser(BaseLLMAnalyser):
                                 doc=doc,
                                 ac_code="UML_MISSING",
                                 title=self._title_for_ac_code(rules, "UML_MISSING"),
-                                summary="No UML Class Diagram was found in the document.",
+                                summary=(
+                                    "No UML Class Diagram was found in the document."
+                                ),
                                 judge_status="to_be_judged",
                                 human_status="proposed",
                                 evidence_item=None,
@@ -413,7 +415,7 @@ class AssetAnalyser(BaseLLMAnalyser):
                 )
             return findings
 
-        # PDF branch: execute_llm dispatches diagram/page/classifier rules internally.
+        # PDF routes all active asset rules through execute_llm for one dispatch path.
         findings = []
 
         if not doc.total_pictures:

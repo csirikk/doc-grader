@@ -73,7 +73,6 @@ class Finding(StrictModel):
     Possibly becomes a concrete suggestion.
     """
 
-    # Context
     analyser: AnalyserInfo
     document: DocumentRef
     finding_id: str = Field(
@@ -117,7 +116,6 @@ class Finding(StrictModel):
         default=None, description="Name of the model that judged this finding."
     )
 
-    # Evidence
     anchors: list[Anchor] = Field(default_factory=list)
     stats: list[Stat] = Field(default_factory=list)
     model_evals: list[ModelEval] = Field(default_factory=list)

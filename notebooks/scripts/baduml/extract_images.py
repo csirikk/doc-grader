@@ -85,9 +85,6 @@ def _save_image(img: Image.Image, path: Path, seen_hashes: set[str]) -> bool:
     return True
 
 
-# --- Per-document extraction ---
-
-
 _RASTER_EXTS = {".png", ".jpg", ".jpeg"}
 
 
@@ -212,7 +209,6 @@ def _extract_standalone_images(
             image_name = f"{student_id}_{assessment_variant}_{doc_token}.png"
             image_path = output_dir / image_name
 
-            # Using the updated _save_image logic which returns a boolean
             if not _save_image(img, image_path, seen_hashes):
                 continue
 
@@ -296,7 +292,7 @@ def extract_records(
                 found_any = True
 
         if not found_any:
-            # Pick up standalone raster files not linked from any document.
+            # Fallback keeps image-only submissions in the training pool.
             new = _extract_standalone_images(
                 submission_dir=student_dir,
                 output_dir=output_dir,

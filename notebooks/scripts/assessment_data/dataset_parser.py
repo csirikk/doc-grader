@@ -34,7 +34,7 @@ def make_code_token_regex() -> re.Pattern:
     """
     all_codes = set(IPP_CODES) | set(CODE_ALIASES.keys())
 
-    # Sort by length desc to match longest code first
+    # Match longer codes first to avoid partial matches.
     sorted_codes = sorted(all_codes, key=len, reverse=True)
 
     long_patterns = []
@@ -47,7 +47,7 @@ def make_code_token_regex() -> re.Pattern:
         else:
             short_patterns.append(re.escape(code))
 
-    # Long patterns use case-insensitive flag
+    # Keep short all-caps abbreviations strict to reduce accidental matches.
     parts = []
     if long_patterns:
         parts.append(f"(?i:{'|'.join(long_patterns)})")
@@ -56,7 +56,7 @@ def make_code_token_regex() -> re.Pattern:
 
     combined_pattern = "|".join(parts)
 
-    # Look behind and ahead to match whole words
+    # Enforce token boundaries so substrings in words are ignored.
     return re.compile(rf"(?<![\w])({combined_pattern})(?![\w])")
 
 
@@ -128,7 +128,7 @@ def extract_impact_from_parens(content: str) -> tuple[int | None, bool, str | No
         return None, False, clean_comment(content)
 
     else:
-        # More than one number, treat entire content as comment
+        # More than one number makes the impact ambiguous, keep as comment text.
         return None, False, clean_comment(content)
 
 
@@ -159,7 +159,6 @@ def check_suffix(text: str, limit: int = 40) -> tuple[int | None, bool, str | No
     """Scan suffix for a signed number and return (value, has_sign, comment)."""
     valid_match = None
 
-    # Search and validate boundaries
     for match in SUFFIX_NUMBER_RE.finditer(text):
         is_start_valid = (
             match.start() == 0 or text[match.start() - 1] in DELIMITERS_LEFT
@@ -170,13 +169,11 @@ def check_suffix(text: str, limit: int = 40) -> tuple[int | None, bool, str | No
             valid_match = match
             break
 
-    # Match validation and limit check
     if not valid_match:
         return None, False, None
     if valid_match.start() > limit:
         return None, False, clean_comment(text)
 
-    # Extraction and cleanup
     val = get_match_val(valid_match)
     start, end = valid_match.span()
 
@@ -196,14 +193,12 @@ def check_prefix(
     prefix_start = max(0, target_idx - limit)
     text = original_text[prefix_start:target_idx]
 
-    # Search
     match = PREFIX_NUMBER_RE.search(text)
 
-    # Match validation
     if not match:
         return None, False
 
-    # Validate boundaries
+    # Accept prefix impacts only at hard boundaries to avoid false captures.
     preceding = text[: match.start()]
     is_at_start = match.start() == 0 and prefix_start == 0
     is_after_space = not preceding.strip() and prefix_start == 0
@@ -352,7 +347,7 @@ def parse_comment(text: str) -> list[Event]:
         next_start = tokens[j]["start"] if j < len(tokens) else len(text)
         span_end = next_start
 
-        # Prevent the next prefix impact from being absorbed into the current suffix
+        # Prevent the next prefix impact from being absorbed into the current suffix.
         if j < len(tokens):
             _, has_prefix = check_prefix(next_start, text)
             if has_prefix:
@@ -391,7 +386,6 @@ def extract_rows_from_dataframe(
     Returns:
         An iterator producing dictionaries representing normalised event rows.
     """
-    # Normalise
     required_cols = ["id", "points", "doc_type", "bonus_points"]
     missing_cols = {col: None for col in required_cols if col not in df.columns}
     if missing_cols:
@@ -444,7 +438,7 @@ def parse_document_tokens(
         .reset_index(drop=True)
     )
 
-    # Sample
+    # Keep balanced per-format sampling for a stable token-size comparison.
     sampled_docs_df = (
         recent_docs_df.groupby("doc_type")
         .head(n_samples_per_type)

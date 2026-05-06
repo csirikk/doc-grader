@@ -197,7 +197,6 @@ def run(
         ],
     )
 
-    # Build audit_manifest.jsonl by filtering the raw manifest to audited images.
     manifest_records = load_manifest(manifest_path) if manifest_path.is_file() else []
     if not manifest_records:
         logger.warning(

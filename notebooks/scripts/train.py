@@ -8,7 +8,6 @@ The ``unsloth`` library requires a separate Python environment that is
 incompatible with the version used by the rest of the project. Do NOT run
 this script inside the virtual environment used by ``doc-grader``.
 Create a dedicated ``unsloth`` environment before running it:
-    # example
     conda activate unsloth-env
     python notebooks/scripts/train.py
 

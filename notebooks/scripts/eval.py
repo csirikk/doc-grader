@@ -662,7 +662,6 @@ def evaluate_pipeline(
     out_dir: Path = Path("outputs/gold_eval"),
 ) -> tuple[pd.DataFrame, dict]:
     """Evaluate pipeline output against the IPP gold dataset."""
-    # Resolve gold path
     if gold_path is None:
         gold_path = (
             Path(__file__).resolve().parent.parent.parent
@@ -688,8 +687,7 @@ def evaluate_pipeline(
             logger.error("Output directory for '%s' not found: %s", vname, vdir)
             raise SystemExit(1)
 
-    # Load and filter gold data
-    # df_all is kept unfiltered for bonus-code detection
+    # Keep an unfiltered frame for bonus-code detection after DOC filtering.
     df_all = load_clean_data(gold_path)
     df = df_all[
         df_all["code"].apply(lambda c: normalise_code_alias(str(c)) in DOC_CODES)
@@ -702,7 +700,6 @@ def evaluate_pipeline(
         logger.error("No gold data found after filtering (variant=%s).", variant)
         raise SystemExit(1)
 
-    # Iterate by (id, task_variant) pairs
     student_variants: list[tuple[str, str]] = list(
         df[["id", "task_variant"]].drop_duplicates().itertuples(index=False, name=None)
     )
@@ -712,10 +709,9 @@ def evaluate_pipeline(
         variant,
     )
 
-    # Per-student comparison
     per_student_rows: list[dict] = []
     skipped: list[str] = []
-    # Accumulate raw/dismissed/adjusted/final counts per code for pipeline stats
+    # Track pipeline transitions per code so survival stats can be reported.
     pipeline_acc: dict[str, dict] = defaultdict(
         lambda: {"raw": 0, "dismissed": 0, "adjusted": 0, "final": 0}
     )
@@ -783,7 +779,7 @@ def evaluate_pipeline(
         )
         raise SystemExit(1)
 
-    # Annotate each row with whether the student received a bonus
+    # Preserve this flag for bonus-split analysis in summary outputs.
     bonus_students: set[str] = set(
         df_all.loc[
             df_all["code"].isin(BONUS_CODES)

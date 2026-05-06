@@ -40,7 +40,6 @@ class Document(StrictModel):
         exclude=True, description="The underlying Docling document"
     )
 
-    # Custom stats
     total_words: int = Field(default=0, description="Total detected words")
     total_chars: int = Field(default=0, description="Total detected characters")
     total_paragraphs: int = Field(default=0, description="Total detected paragraphs")

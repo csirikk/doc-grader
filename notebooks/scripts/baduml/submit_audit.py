@@ -238,19 +238,18 @@ def write_requests_jsonl(
             image_ref = _encode_image(image_path)
         except Exception:
             logger.exception("Failed to encode image, skipping: %s", image_path)
-            continue  # Skip mapping this file entirely
+            # Skip mapping so each custom_id always points to a valid request.
+            continue
 
         mapping[uid] = {"source_path": str(image_path), "label": label}
         valid_requests.append(
             _build_request(custom_id=uid, model=model, image_ref=image_ref)
         )
 
-    # Write the clean mapping file
     mapping_path.parent.mkdir(parents=True, exist_ok=True)
     with mapping_path.open("w", encoding="utf-8") as fh:
         json.dump(mapping, fh, ensure_ascii=True, indent=2)
 
-    # Write the batch requests
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with out_path.open("w", encoding="utf-8") as fh:
         for request in valid_requests:
@@ -276,7 +275,7 @@ def submit_batch(
     Returns:
         Tuple of (batch_id, status) on success, or ``None`` on failure.
     """
-    from openai import OpenAI  # not needed for dry-run
+    from openai import OpenAI
 
     api_key = os.environ.get(api_key_env)
     if not api_key:

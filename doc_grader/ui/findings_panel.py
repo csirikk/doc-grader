@@ -684,7 +684,7 @@ def render_findings(
             f"[{ac_code}] {expander_criterion_title} {_impact_title(impact)}",
             expanded=is_active,
         ):
-            # colour the expander
+            # Inject a hidden marker so global CSS can tint this expander by confidence.
             marker_html = (
                 f'<span data-confidence-band="{confidence_tint_band}" '
                 "data-dismissed-candidate="

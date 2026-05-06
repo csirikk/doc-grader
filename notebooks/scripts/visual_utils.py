@@ -20,9 +20,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_FIG_W: int = 10  # standard width
-_FIG_H: int = 6  # standard height
-_FIG_H_PER_ITEM: float = 0.4  # height per row for list charts
+_FIG_W: int = 10  # Default width for notebook charts.
+_FIG_H: int = 6  # Default height for notebook charts.
+_FIG_H_PER_ITEM: float = 0.4  # Scale list-chart height with category count.
 
 _DEEP_PALETTE = sns.color_palette("deep")
 

@@ -25,15 +25,18 @@ if TYPE_CHECKING:
 from .schemas.document import get_picture_pil
 from .utils import model_eval_spec_text
 
-# Pricing table: (input_usd_per_1m, cached_usd_per_1m, output_usd_per_1m)
-# Sources: https://developers.openai.com/api/docs/pricing and microsoft (as of 4/7/2026)
+# Pricing table: (input_usd_per_1m, cached_usd_per_1m, output_usd_per_1m).
+# Source snapshot OpenAI pricing pages (as of 2026-07-04)
 MODEL_PRICING: list[tuple[str, tuple[float, float, float]]] = [
     ("gpt-5.4-nano", (0.20, 0.02, 1.25)),
     ("gpt-5.4-mini", (0.75, 0.075, 4.50)),
     ("gpt-5.4", (2.50, 0.25, 15.00)),
     ("gpt-5", (15.25, 0.125, 10.00)),
     ("gpt-5-mini", (0.25, 0.0025, 2.00)),
-    ("gpt-4.1", (2.00, 0.50, 8.00)),  # fine-tuned baduml binary classifier base
+    (
+        "gpt-4.1",
+        (2.00, 0.50, 8.00),
+    ),  # Base family for the fine-tuned BADUML classifier.
 ]
 
 USD_TO_EUR: float = 0.92
@@ -342,7 +345,7 @@ class LLMClient:
         user_content: list[dict] = []
         n_images = 0
 
-        # Send all document pages as context
+        # Add full-page context so diagram judgements can use surrounding layout/text.
         page_context = self._build_page_context_content(
             doc, rulebook.vision_page_context_header
         )
@@ -396,7 +399,7 @@ class LLMClient:
                 except Exception:
                     continue
 
-                # Prevent escaping the document folder
+                # Keep path resolution sandboxed to the source document directory.
                 try:
                     if not img_path.is_relative_to(base_resolved):
                         continue
@@ -601,8 +604,8 @@ class LLMClient:
                     model=model,
                     temperature=self.temperature,
                     max_completion_tokens=self.max_completion_tokens,
-                    # System prompt is hardcoded to the one
-                    # that was used for fine-tuning
+                    # The fine-tuned classifier must receive the
+                    # training-time system prompt.
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {
@@ -647,7 +650,8 @@ class LLMClient:
             results[cref] = {"label": label, "raw": raw_content}
             logger.debug("Classified %s as %r", cref, label)
 
-        # Classify md_image_uris when no PictureItem
+        # Fallback for Markdown: classify resolved image URIs when
+        # Docling pictures are absent.
         if not results and getattr(doc, "md_image_uris", None):
             import io
             from pathlib import Path
@@ -831,7 +835,6 @@ class LLMClient:
         """
         parts: list[str] = []
         for f in findings:
-            # Primary passage
             cref = f.anchors[0].target.cref if f.anchors else ""
             is_picture = cref.startswith("#/pictures/")
             from docling_core.types.doc.document import RefItem
@@ -888,7 +891,6 @@ class LLMClient:
                     )
             evals_str = "\n".join(eval_lines) if eval_lines else "(no model evidence)"
 
-            # Stats as a compact one-liner
             stats_str = ", ".join(f"{s.name}={s.value}" for s in f.stats) or "(none)"
 
             parts.append(

@@ -62,7 +62,7 @@ def configure_logging(level: int = logging.INFO) -> None:
         )
 
     logging.basicConfig(
-        level=logging.WARNING,  # default to WARNING to avoid noisy logs from deps
+        level=logging.WARNING,  # Default to WARNING to suppress dependency log noise.
         handlers=[handler],
         force=True,
     )
@@ -82,7 +82,7 @@ def _to_jsonable(x: Any) -> Any:
     Returns:
         A JSON-serialisable representation of ``x``.
     """
-    if isinstance(x, DoclingDocument):  # uses by_alias=True, exclude_none=True
+    if isinstance(x, DoclingDocument):  # Docling export keeps schema aliases stable.
         return _to_jsonable(x.export_to_dict())
     if isinstance(x, BaseModel):
         return _to_jsonable(x.model_dump(by_alias=True, exclude_none=True))
@@ -417,8 +417,8 @@ def compute_config_hash(config: dict) -> str:
     return "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-# Column order mirrors clean_ipp_data.csv produced by dataset_parser.py
-# Columns (grade points, year, variant) are left as None.
+# Preserve dataset_parser column order for downstream notebook compatibility.
+# Fields unavailable during grading remain None.
 CSV_COLUMNS: list[str] = [
     "id",
     "year",
