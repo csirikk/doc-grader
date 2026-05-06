@@ -50,7 +50,9 @@ def compute_weights(
             project_root / "config" / "rulebooks" / "ipp_2024_25_int.json"
         )
         rulebook_path = (
-            Path(__file__).resolve().parent.parent.parent / "config" / "rulebook.json"
+            preferred_rulebook
+            if preferred_rulebook.exists()
+            else project_root / "config" / "rulebook.json"
         )
     try:
         with rulebook_path.open(encoding="utf-8") as fh:
