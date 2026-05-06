@@ -81,6 +81,7 @@ streamlit run doc_grader/ui/app.py
 
 - High-level tool overview: [docs/overview.md](docs/overview.md)
 - Installation instructions: [INSTALL.md](INSTALL.md)
+- Configuration descriptions: [config/configs.md](config/configs.md)
 
 ## License
 
