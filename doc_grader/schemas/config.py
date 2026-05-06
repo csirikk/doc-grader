@@ -24,6 +24,7 @@ def normalise_allowed_extensions(
         cleaned = suffix.lower()
         if not cleaned.startswith("."):
             cleaned = f".{cleaned}"
+        # Keep the first-seen order so output stays predictable.
         if cleaned not in normalised:
             normalised.append(cleaned)
 

@@ -177,6 +177,7 @@ with st.sidebar:
         query_student_prefix = _get_query_student_prefix()
         query_target_run = _run_for_student_prefix(discovered, query_student_prefix)
         last_query_student_prefix = st.session_state.get("last_query_student_prefix")
+        # If the URL changed, treat it as external navigation.
         query_changed_externally = query_student_prefix != last_query_student_prefix
 
         if "selected_run_picker" not in st.session_state:
@@ -195,6 +196,7 @@ with st.sidebar:
             and query_target_run is not None
             and st.session_state["selected_run_picker"] != query_target_run
         ):
+            # When URL points to a run, use it instead of stale picker state.
             st.session_state["selected_run_picker"] = query_target_run
 
         selected_run = st.selectbox(

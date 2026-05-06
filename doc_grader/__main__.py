@@ -123,6 +123,7 @@ def discover_cases(
             if doc is not None:
                 yield doc, candidate_dir.name
                 if candidate_dir == path:
+                    # If a single folder is passed in, process only that folder.
                     break
                 continue
 
@@ -136,10 +137,12 @@ def discover_cases(
                 else:
                     logger.warning("No document found in: %s", path)
                     missing_name = expected_filename or "missing_document"
+                    # Emit a placeholder path so this student still appears in outputs.
                     yield path / missing_name, path.name
             else:
                 logger.warning("No document found in: %s", candidate_dir)
                 missing_name = expected_filename or "missing_document"
+                # Keep empty student folders visible in the final outputs.
                 yield (
                     candidate_dir / missing_name,
                     candidate_dir.name,

@@ -137,6 +137,7 @@ def _add_percentage_score_columns(df: pd.DataFrame) -> pd.DataFrame:
         return df
 
     max_points = pd.to_numeric(df["max_doc_points"], errors="coerce")
+    # Drop zero or invalid maxima to avoid bad percentage values.
     max_points = max_points.where(max_points > 0)
 
     if "doc_points" in df.columns:

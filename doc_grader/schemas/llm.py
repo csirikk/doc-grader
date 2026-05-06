@@ -119,6 +119,7 @@ class Rulebook(StrictModel):
 
     @model_validator(mode="after")
     def _build_index(self) -> Self:
+        # Build the lookup once to avoid repeated scans of the rules list.
         self.rules_by_code = {r.ac_code: r for r in self.rules}
         return self
 

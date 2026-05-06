@@ -215,6 +215,7 @@ def _operational_fields(info: dict, generator_models: str, judge_models: str) ->
     gen_models_set = set(generator_models.split(", ")) if generator_models else set()
     judge_models_set = set(judge_models.split(", ")) if judge_models else set()
 
+    # Split costs by role so generator and judge runs can be compared.
     gen_cost = (
         sum(m.get("cost_eur", 0) for k, m in by_model.items() if k in gen_models_set)
         if gen_models_set
@@ -235,6 +236,7 @@ def _operational_fields(info: dict, generator_models: str, judge_models: str) ->
         doc_type = None
 
     stage_times = info.get("stage_times", {})
+    # Sum analyser stage times only (skip parse and judge).
     analyser_time = (
         round(sum(v for k, v in stage_times.items() if k not in ("parse", "judge")), 2)
         or None

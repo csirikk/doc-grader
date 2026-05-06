@@ -89,6 +89,7 @@ class RuleEngine:
                 )
                 continue
 
+            # Keep the original values so judge edits are easy to review.
             before_state = {
                 "summary": finding.summary,
                 "severity": finding.severity,

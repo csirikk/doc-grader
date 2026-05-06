@@ -96,6 +96,7 @@ def compute_weights(
             "Could not derive non-legacy codes from rulebook: %s", rulebook_path
         )
     missing_non_legacy = sorted([c for c in non_legacy_codes if c not in weights])
+    # For new codes, start from weights of similar legacy criteria.
     SIMILARITY_MAP = {  # manually curated based on code descriptions
         "AI": ["CITE", "JAK", "CONTENT"],
         "CITE": ["COPY", "CONTENT"],

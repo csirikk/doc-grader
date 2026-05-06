@@ -502,6 +502,7 @@ class DocumentParser:
                     level = item.level
                     heading_text = (item.text or "").strip()
                     if heading_text:
+                        # Drop deeper headings when we move back to a higher level.
                         heading_stack = heading_stack[: level - 1]
                         heading_stack.append(heading_text)
                         headings += 1

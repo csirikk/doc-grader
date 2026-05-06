@@ -212,10 +212,12 @@ def _build_spec_index(spec_path: Path, min_chunk_len: int) -> SpecIndex:
     from ..document_parser import DocumentParser
 
     cache_key = str(spec_path.resolve())
+    # Reuse the parsed spec within the same run.
     if cache_key in _spec_cache:
         return _spec_cache[cache_key]
 
     npz_path = _spec_cache_path(spec_path)
+    # Reuse cache across runs, file name hash changes when content changes.
     spec_index = _try_load_spec_cache(npz_path)
     if spec_index is not None:
         _spec_cache[cache_key] = spec_index
@@ -353,6 +355,7 @@ def _compute_scores(
         or spec_index.sentence_vecs is None
         or spec_index.chunk_vecs.shape[0] == 0
     ):
+        # Return an empty score when cache data is incomplete.
         return ScoredResult(n_total=n_chunks)
 
     spec_chunk_vecs = spec_index.chunk_vecs
@@ -361,7 +364,7 @@ def _compute_scores(
     student_chunk_vecs = _encode([u.text for u in student_chunk_units])
     student_sent_vecs = _encode([u.text for u in student_sentence_units])
 
-    # Chunk-level similarities for contamination and coverage triggers.
+    # Chunk similarity drives contamination and coverage signals.
     chunk_sim = cosine_similarity(student_chunk_vecs, spec_chunk_vecs)
     max_sim_student = chunk_sim.max(axis=1)
 
@@ -371,7 +374,7 @@ def _compute_scores(
     cont_triggered = contamination_score >= DOC_COPY_THRESHOLD
     max_student_sim = float(max_sim_student.max())
 
-    # Coverage tracks how much of the spec is represented in student chunks.
+    # Coverage shows how much of the spec appears in student chunks.
     max_sim_spec = chunk_sim.max(axis=0)
     cov_mask = max_sim_spec > SPEC_COVERAGE_THRESHOLD
     spec_coverage_score = float(cov_mask.mean())
@@ -393,7 +396,7 @@ def _compute_scores(
         reverse=True,
     )
 
-    # Sentence-level signals corroborate chunk-level matches.
+    # Sentence-level matches confirm chunk-level matches.
     n_soft = 0
     max_sentence_sim = 0.0
     hard_sentences: list[dict[str, Any]] = []
@@ -426,6 +429,7 @@ def _compute_scores(
 
     # Count chunk hits that are backed by hard sentence matches.
     hard_sent_crefs = {s["student_cref"] for s in hard_sentences if s["student_cref"]}
+    # Match by cref so sentence evidence points to the same location.
     n_corroborated = sum(
         1 for fc in flagged_chunks if fc.get("student_cref") in hard_sent_crefs
     )

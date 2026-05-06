@@ -72,6 +72,7 @@ def _inject_html_highlights(
                 start = search_cursor + match.start()
                 end = search_cursor + match.end()
                 modifications.append((start, end))
+                # Move forward so duplicate snippets are matched in order.
                 search_cursor = end
 
     # Apply modifications in reverse to maintain index order

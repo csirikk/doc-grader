@@ -63,6 +63,7 @@ def _normalise_year_token(value: str) -> str:
 
     start_yy = int(token[:2])
     end_yy = int(token[2:])
+    # Historical exports encode academic year as YY(YY+1), for example 2021 -> 20/21.
     if end_yy == (start_yy + 1) % 100:
         return f"20{start_yy:02d}"
 

@@ -51,6 +51,7 @@ def split(
     """
     groups: dict[str, list[StudentImageRecord]] = defaultdict(list)
     for record in records:
+        # Keep each student in exactly one split.
         groups[record.student_id].append(record)
 
     student_ids = list(groups.keys())
@@ -58,6 +59,7 @@ def split(
     random.shuffle(student_ids)
 
     n = len(student_ids)
+    # Use integer cut points so split sizes are repeatable.
     train_end = int(n * ratios[0])
     val_end = int(n * (ratios[0] + ratios[1]))
 

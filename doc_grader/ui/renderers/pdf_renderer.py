@@ -26,6 +26,7 @@ def _get_annotations(finding: dict | None) -> list[dict]:
     if not finding:
         return []
 
+    # Strip ':' because the viewer uses these IDs in HTML/CSS selectors.
     safe_id = finding.get("finding_id", "").replace(":", "-")
 
     annotations = []

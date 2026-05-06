@@ -81,6 +81,7 @@ def merge_usage(
             existing = result[model]
             cost_a = existing["cost_eur"]
             cost_b = entry["cost_eur"]
+            # If either side has unknown cost, keep the merged cost unknown.
             merged_cost: float | None = (
                 None
                 if (cost_a is None or cost_b is None)
@@ -172,6 +173,7 @@ class LLMClient:
         cached = (getattr(details, "cached_tokens", 0) or 0) if details else 0
 
         rates = _lookup_pricing(model)
+        # Cached prompt tokens use a lower billing rate.
         billable_input = max(prompt - cached, 0)
         if rates is not None:
             in_rate, cached_rate, out_rate = rates
@@ -399,7 +401,7 @@ class LLMClient:
                 except Exception:
                     continue
 
-                # Keep path resolution sandboxed to the source document directory.
+                # Keep path resolution inside the source document folder.
                 try:
                     if not img_path.is_relative_to(base_resolved):
                         continue
@@ -680,6 +682,7 @@ class LLMClient:
                     continue
 
                 try:
+                    # Keep markdown image paths inside the source folder.
                     if not img_path.is_relative_to(base_resolved):
                         continue
                 except Exception:

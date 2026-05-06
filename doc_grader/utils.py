@@ -417,7 +417,7 @@ def compute_config_hash(config: dict) -> str:
     return "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-# Preserve dataset_parser column order for downstream notebook compatibility.
+# Keep dataset_parser column order so notebook scripts can read exports directly.
 # Fields unavailable during grading remain None.
 CSV_COLUMNS: list[str] = [
     "id",

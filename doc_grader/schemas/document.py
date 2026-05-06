@@ -108,6 +108,7 @@ def get_picture_pil(doc: Document, idx: int, item: Any) -> Any:
     base_resolved = source_dir.resolve()
     img_path = (base_resolved / img_path_str).resolve()
 
+    # Block paths that try to leave the submission folder.
     if not img_path.is_relative_to(base_resolved) or not img_path.is_file():
         return None
     try:
@@ -116,6 +117,7 @@ def get_picture_pil(doc: Document, idx: int, item: Any) -> Any:
 
             import cairosvg
 
+            # PIL cannot open SVG directly, so convert it to PNG bytes first.
             png_bytes = cairosvg.svg2png(url=str(img_path))
             if not png_bytes:
                 return None

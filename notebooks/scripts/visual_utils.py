@@ -201,6 +201,7 @@ def format_facet_grid(
     if axes.size == 0:
         return
 
+    # Check available methods so this works for FacetGrid and plain axes arrays.
     is_grid = hasattr(grid_or_axes, "set_axis_labels") and hasattr(
         grid_or_axes, "set_titles"
     )

@@ -191,6 +191,7 @@ def rubric_lookup(
         rules = raw_data.get("rules", [])
         for rule in rules:
             ac_code = rule.get("ac_code")
+            # Keep the first hit so course-specific rulebooks win.
             if not ac_code or ac_code in lookup:
                 continue
 

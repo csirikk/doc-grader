@@ -231,6 +231,7 @@ class GrammarAnalyser(BaseLLMAnalyser):
             text = (item.text or "").strip()
             if not text:
                 continue
+            # Group by section to keep checks within one topic block.
             groups.setdefault(doc.section_paths.get(cref, ""), []).append(
                 (cref, item, text)
             )
@@ -249,6 +250,7 @@ class GrammarAnalyser(BaseLLMAnalyser):
             pos = 0
             for _, item, t in entries:
                 offset_map.append((pos, pos + len(t), item))
+                # Account for the space added by join() so offsets stay correct.
                 pos += len(t) + 1
 
             for issue in issues:

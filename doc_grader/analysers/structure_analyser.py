@@ -51,6 +51,7 @@ class StructureAnalyser(BaseAnalyser):
             curr_level: The semantic level of the following heading, or
                         prev_level when called for an end-of-document heading.
         """
+        # A fully empty closed block is worse than no intro text.
 
         # H(N) -> H(N): sibling follows immediately with no content between
         if curr_level == prev_level:
