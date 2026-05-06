@@ -167,7 +167,6 @@ with st.sidebar:
     base_out = _DEFAULT_OUT
     discovered: list[Path] = []
     if base_out.exists():
-        # Recursively find all directories containing findings.json
         discovered = sorted(
             {p.parent for p in base_out.rglob("findings.json")},
             key=lambda p: p.name,
@@ -239,7 +238,6 @@ with st.sidebar:
     info_local = st.session_state.get("info", {})
     source_path_local = source_path_from_info(info_local)
 
-    # Determine a short student prefix to use for downloaded filenames.
     student_prefix_local: str | None = None
     if isinstance(info_local, dict):
         student_id_val = info_local.get("input", {}).get("student_id")
@@ -250,7 +248,7 @@ with st.sidebar:
 
     if not student_prefix_local:
         out_dir_local = st.session_state.get("out_dir")
-        if isinstance(out_dir_local, Path) and out_dir_local is not None:
+        if isinstance(out_dir_local, Path):
             student_prefix_local = run_student_prefix(out_dir_local)
 
     if source_path_local:
@@ -294,7 +292,7 @@ with st.sidebar:
     st.warning(
         "## Disclaimer\n"
         "This user interface showcases suggestions from a prototype "
-        "**machine learning-based** based tool. It is designed to aid graders "
+        "**machine learning-based** tool. It is designed to aid graders "
         "and is not meant to be a full grading interface. "
         "Please expect both false positives and false negatives. This tool is designed"
         " to be used only as a complementary aid to the current manual grading process."
@@ -332,7 +330,7 @@ with st.sidebar:
             "- Due to some students not following file-naming instructions, "
             "it is possible that the scored document is not a documentation.\n"
             "- Evidence anchors do not always point to the exact intended evidence."
-            "- Use the download buttom above to view the document in its original "
+            "- Use the download button above to view the document in its original "
             "format, if you find the rendering here unsatisfactory."
         )
 
