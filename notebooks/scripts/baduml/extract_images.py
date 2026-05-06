@@ -50,10 +50,6 @@ def _path_token(path: Path) -> str:
     return f"{stem}_{digest}"
 
 
-def _sha1(data: bytes) -> str:
-    return hashlib.sha1(data).hexdigest()
-
-
 def _resize(img: Image.Image) -> Image.Image:
     w, h = img.size
     if max(w, h) > MAX_IMAGE_DIM:

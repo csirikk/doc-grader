@@ -85,9 +85,8 @@ def _encode_image(path: Path) -> str:
     return "data:image/png;base64," + base64.b64encode(data).decode("ascii")
 
 
-def _make_entry(image_ref: str, label: str, analysis: str) -> dict[str, object]:
+def _make_entry(image_ref: str, label: str) -> dict[str, object]:
     """Build a single OpenAI fine-tuning conversation entry."""
-    assistant_text = label
     return {
         "messages": [
             {"role": "system", "content": _SYSTEM_PROMPT},
@@ -101,7 +100,7 @@ def _make_entry(image_ref: str, label: str, analysis: str) -> dict[str, object]:
                     },
                 ],
             },
-            {"role": "assistant", "content": assistant_text},
+            {"role": "assistant", "content": label},
         ]
     }
 
@@ -136,7 +135,7 @@ def write_jsonl(records: list[StudentImageRecord], out_path: Path) -> int:
                 skipped += 1
                 continue
             image_ref = _encode_image(image_path)
-            entry = _make_entry(image_ref, record.label, record.analysis)
+            entry = _make_entry(image_ref, record.label)
             fh.write(json.dumps(entry, ensure_ascii=True) + "\n")
             count += 1
     if skipped:

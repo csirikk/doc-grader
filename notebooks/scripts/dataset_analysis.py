@@ -688,12 +688,11 @@ def visualise_code_usage_trends(
         code_counts = exploded["codes_list"].value_counts()
         codes = code_counts.nlargest(n_codes).index.tolist()
 
-    binary = pd.crosstab(
-        [exploded["id"], exploded["year"]], exploded["codes_list"]
-    ).reset_index()
-    for code in codes:
-        if code not in binary:
-            binary[code] = 0
+    binary = (
+        pd.crosstab([exploded["id"], exploded["year"]], exploded["codes_list"])
+        .reindex(columns=codes, fill_value=0)
+        .reset_index()
+    )
     binary[codes] = binary[codes].astype(bool)
 
     melted = binary.melt(

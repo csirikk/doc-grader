@@ -376,18 +376,32 @@ def _aggregate_operational_stats(df: pd.DataFrame) -> dict:
     total_findings = int(df["overlap_count"].sum() + df["added_count"].sum())
     total_cost = df["cost_eur"].sum()
 
-    per_variant_cost: dict[str, dict] = {}
-    for variant in ("par", "int"):
-        var_costs = df[df["task_variant"] == variant]["cost_eur"].dropna()
-        per_variant_cost[variant] = {
-            "n": len(var_costs),
-            "mean_cost_eur": round(float(var_costs.mean()), 4)
-            if not var_costs.empty
-            else None,
-            "total_cost_eur": round(float(var_costs.sum()), 4)
-            if not var_costs.empty
-            else None,
+    per_variant_frame = (
+        df[df["task_variant"].isin(["par", "int"])]
+        .groupby("task_variant")["cost_eur"]
+        .agg(
+            n="count",
+            mean_cost_eur="mean",
+            total_cost_eur=lambda s: s.sum(min_count=1),
+        )
+        .reindex(["par", "int"])
+    )
+    per_variant_cost: dict[str, dict] = {
+        variant: {
+            "n": int(row["n"]) if pd.notna(row["n"]) else 0,
+            "mean_cost_eur": (
+                round(float(row["mean_cost_eur"]), 4)
+                if pd.notna(row["mean_cost_eur"])
+                else None
+            ),
+            "total_cost_eur": (
+                round(float(row["total_cost_eur"]), 4)
+                if pd.notna(row["total_cost_eur"])
+                else None
+            ),
         }
+        for variant, row in per_variant_frame.iterrows()
+    }
 
     mean_cost = df["cost_eur"].mean()
     mean_elapsed = df["elapsed_seconds"].mean()
