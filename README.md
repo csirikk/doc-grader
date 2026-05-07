@@ -28,7 +28,8 @@ Depending on the configured profile and rulebook, the tool analyses:
 - `config/`: presets, experiments, and rulebooks
 - `docs/`: project and architecture documentation
 - `notebooks/`: analysis and evaluation notebooks
-- `data/`: input datasets and reference material
+- `data/`: input datasets and reference material, not provided here
+- `sample_data/`: small bundled IFJ and IPP submissions for quick local runs
 - `outputs/`: generated evaluation outputs
 
 ## Installation
@@ -43,17 +44,41 @@ For routine runs, ensure your environment is activated (for example, `conda acti
 doc-grader <path_or_folder>
 ```
 
-Examples:
+General patterns:
 
 ```bash
 # single file
-doc-grader data/ipp_docs/student1/student1.pdf
+doc-grader path/to/submission.pdf
 
 # student folder
-doc-grader data/ipp_docs/student1
+doc-grader path/to/student-folder
 
 # cohort folder
-doc-grader data/ipp_docs
+doc-grader path/to/cohort-folder
+```
+
+### Example Runs
+
+Quick checks on `sample_data/`:
+
+```bash
+# IPP 2024/2025 individual preset
+doc-grader sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT -c config/presets/ipp_2024_25_int.json -o outputs/sample_ipp_int
+
+# IPP 2024/2025 parser preset
+doc-grader sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT -c config/presets/ipp_2024_25_par.json -o outputs/sample_ipp_par
+
+# IFJ 2024/2025 preset
+doc-grader sample_data/ifj/ifj2425/REDACTED_STUDENT -c config/presets/ifj_2024_25.json -o outputs/sample_ifj
+
+# External-friendly fallback (no private classifier dependency)
+doc-grader sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT -c config/experiments/generic_classifier_fallback.json -o outputs/sample_fallback
+
+# Parse-only smoke check
+doc-grader sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT -c config/experiments/parse_only.json -o outputs/sample_parse_only
+
+# Local-only run (no LLM calls)
+doc-grader sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT -c config/experiments/local_only.json -o outputs/sample_local_only
 ```
 
 ### CLI options
@@ -74,6 +99,10 @@ A read-only Streamlit interface is available for inspecting saved runs:
 ```bash
 streamlit run doc_grader/ui/app.py
 ```
+
+In the sidebar, load any run directory under `out/` that contains `findings.json`.
+
+For immediate viewing, a pre-generated demo run output is available at `out/sample_par/` and `out/sample_int`
 
 ## Quick Links
 

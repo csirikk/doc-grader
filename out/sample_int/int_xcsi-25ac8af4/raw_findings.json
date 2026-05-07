@@ -1,0 +1,2749 @@
+[
+  {
+    "analyser": {
+      "analyser_id": "PARSER",
+      "name": "Parser",
+      "run_id": "run-20260507T130626Z",
+      "config_hash": "sha256:39e00322d6eac271f55fc06f703d1c668748da07ac2e01a3605ba9e581f7e285"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "PARSER:DOCTYPE-1",
+    "ac_code": "DOCTYPE",
+    "title": "Incorrect Document Name",
+    "summary": "Document was expected to be named 'readme', but found 'readme2.md'.",
+    "judge_status": "not_to_be_judged",
+    "human_status": "proposed",
+    "anchors": [],
+    "stats": [],
+    "model_evals": [],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "structure_analyser",
+      "name": "Structure Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "STRUCTURE_ANALYSER:KAPTXT-1",
+    "ac_code": "KAPTXT",
+    "title": "Empty section detected",
+    "summary": "Section has no introductory text before its subsections: '5. Key algorithms & implementation details'.",
+    "severity": 0.6,
+    "confidence": 1.0,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/446"
+        },
+        "snippet": "5. Key algorithms & implementation details",
+        "section_path": "5. Key algorithms & implementation details",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "CONTENT_ANALYSER:BADDP-1",
+    "ac_code": "BADDP",
+    "title": "Design Patterns Missing or Insufficient",
+    "summary": "The documentation discusses architecture and components but does not explicitly name OOP design patterns, explain where they are used, why they were chosen, or how they improve extensibility. Mentioning 'factory' in a class name alone is insufficient for the required design-pattern description.",
+    "severity": 0.8,
+    "confidence": 0.98,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/27"
+        },
+        "snippet": "The architecture is object-oriented, centered around message passing between runtime objects:",
+        "section_path": "2. Architecture overview",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "BADDP"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "CONTENT_ANALYSER:EXT-1",
+    "ac_code": "EXT",
+    "title": "Extensibility",
+    "summary": "The document does not provide at least two concrete examples of future extensions or explain specifically how the architecture accommodates future changes. Architectural description is present, but explicit extensibility scenarios are missing.",
+    "severity": 0.7,
+    "confidence": 0.95,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/27"
+        },
+        "snippet": "The architecture is object-oriented, centered around message passing between runtime objects:",
+        "section_path": "2. Architecture overview",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "EXT"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "CONTENT_ANALYSER:IR-1",
+    "ac_code": "IR",
+    "title": "Internal Representation",
+    "summary": "This internal representation description is too shallow: it reduces representation to an associative array without deeper architectural explanation of invariants, ownership, lifecycle, lookup semantics, or interaction with execution flow.",
+    "severity": 0.7,
+    "confidence": 0.97,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/575"
+        },
+        "snippet": "PHP associative array mapping variable names to",
+        "section_path": "5. Key algorithms & implementation details > 5.3 Variable and attribute storage",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "IR"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "CONTENT_ANALYSER:IR-2",
+    "ac_code": "IR",
+    "title": "Internal Representation",
+    "summary": "Again, the internal representation is described only at the container level. This is explicitly the kind of trivial storage description the rule marks as insufficient without deeper explanation.",
+    "severity": 0.7,
+    "confidence": 0.97,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/586"
+        },
+        "snippet": "Lazily initialized associative array mapping attribute names to",
+        "section_path": "5. Key algorithms & implementation details > 5.3 Variable and attribute storage",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "IR"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "CONTENT_ANALYSER:JAK-1",
+    "ac_code": "JAK",
+    "title": "Implementation Details",
+    "summary": "Implementation description remains at a high level and does not adequately state what concrete techniques are used for parsing/processing XML expressions beyond method names and recursion. It omits discussion of implementation mechanisms such as traversal strategy, validation approach, or other concrete techniques expected by the criterion.",
+    "severity": 0.55,
+    "confidence": 0.74,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/520"
+        },
+        "snippet": "SOL25ExpressionFactory::evaluate",
+        "section_path": "5. Key algorithms & implementation details",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "JAK"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "CONTENT_ANALYSER:HOV-1",
+    "ac_code": "HOV",
+    "title": "Informal Language",
+    "summary": "This is informal, conversational phrasing rather than neutral technical documentation style.",
+    "severity": 0.3,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/738"
+        },
+        "snippet": "Manual tests were the bread and butter during development:",
+        "section_path": "7. Testing and validation > 7.2 Manual testing",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "HOV"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "CONTENT_ANALYSER:CONTENT-1",
+    "ac_code": "CONTENT",
+    "title": "Content Quality",
+    "summary": "This passage describes the author's development process chronologically/informally rather than the program itself, which falls under inappropriate content for technical documentation.",
+    "severity": 0.35,
+    "confidence": 0.86,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/738"
+        },
+        "snippet": "Manual tests were the bread and butter during development:",
+        "section_path": "7. Testing and validation > 7.2 Manual testing",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CONTENT"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "CONTENT_ANALYSER:CONTENT-2",
+    "ac_code": "CONTENT",
+    "title": "Content Quality",
+    "summary": "This explicitly discusses the process of solving/developing the project rather than documenting the software architecture or implementation.",
+    "severity": 0.45,
+    "confidence": 0.96,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/757"
+        },
+        "snippet": "Exploring different development startegies during prototyping.",
+        "section_path": "8. AI assistance acknowledgment",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CONTENT"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "CONTENT_ANALYSER:CONTENT-3",
+    "ac_code": "CONTENT",
+    "title": "Content Quality",
+    "summary": "This is meta-commentary about authorship and development effort rather than technical documentation of the system itself.",
+    "severity": 0.3,
+    "confidence": 0.88,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/763"
+        },
+        "snippet": "Nevertheless, the essential logic, key architectural decisions, OOP design and specifically the code handling message sending logic, expression evaluation, environment and frame management, were all manually implemented, reviewed, and validated.",
+        "section_path": "8. AI assistance acknowledgment",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CONTENT"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "CONTENT_ANALYSER:NOSRP-1",
+    "ac_code": "NOSRP",
+    "title": "Single Responsibility Principle",
+    "summary": "The Environment class is described as managing dynamic state, call stack, and message sending. This suggests aggregation of multiple substantial responsibilities in one class, which is at least a plausible SRP violation under a high-recall reading.",
+    "severity": 0.45,
+    "confidence": 0.63,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/74"
+        },
+        "snippet": "Manages the dynamic state, including the call stack (",
+        "section_path": "2. Architecture overview",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "NOSRP"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "asset_analyser",
+      "name": "Asset Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "ASSET_ANALYSER:BADUML-1",
+    "ac_code": "BADUML",
+    "title": "UML Diagram Visual Quality",
+    "summary": "The UML Class Diagram is visually flawed and its structure cannot easily be understood.",
+    "severity": 1.0,
+    "confidence": 1.0,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/pictures/1"
+        },
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "BADUML",
+        "raw": {
+          "model_snippet": "The UML Class Diagram is visually flawed and its structure cannot easily be understood.",
+          "classifier_raw_response": "BADUML\n\nReasons:\n- Several relationships are unclear or non-standard in notation, especially the mixed use of arrows/diamonds without visible multiplicities or labels.\n- Some classes omit full type information for attributes like `dom`, `blockNode`, and `expressionNode`, reducing UML completeness.\n- Visibility notation is inconsistent in meaning/style for what appear to be helper/internal methods.\n- The diagram is readable overall, but it lacks important UML details such as multiplicities, role names, and clearer distinction between association, aggregation, and dependency.\n- Dashed dependencies at the bottom are not very clearly presented relative to the rest of the model.\n\nSo while it is fairly legible and class boxes are structured, it does not fully meet strong UML compliance expectations."
+        }
+      }
+    ],
+    "notes": [],
+    "meta": {}
+  },
+  {
+    "analyser": {
+      "analyser_id": "asset_analyser",
+      "name": "Asset Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "ASSET_ANALYSER:OWNDIF-1",
+    "ac_code": "OWNDIF",
+    "title": "UML Diagram Own Classes",
+    "summary": "The class diagram does not visually distinguish student-created classes from provided/template/framework classes. All classes use the same visual styling (same fill, borders, and icon treatment), with no color coding, shading, legend, or other notation to separate own classes from supplied ones.",
+    "severity": 0.8,
+    "confidence": 0.98,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/pictures/0"
+        },
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4-2026-03-05",
+        "label": "OWNDIF",
+        "raw": {
+          "model_snippet": "The class diagram does not visually distinguish student-created classes from provided/template/framework classes. All classes use the same visual styling (same fill, borders, and icon treatment), with no color coding, shading, legend, or other notation to separate own classes from supplied ones.",
+          "classifier_raw_response": null
+        }
+      }
+    ],
+    "notes": [],
+    "meta": {}
+  },
+  {
+    "analyser": {
+      "analyser_id": "asset_analyser",
+      "name": "Asset Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "ASSET_ANALYSER:OWNDIF-2",
+    "ac_code": "OWNDIF",
+    "title": "UML Diagram Own Classes",
+    "summary": "The diagram shows all classes in a uniform style and provides no visible mechanism to differentiate the student's own classes from template/framework classes. There is no gray-out, alternate color, legend, or other visual distinction.",
+    "severity": 0.8,
+    "confidence": 0.98,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/pictures/1"
+        },
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4-2026-03-05",
+        "label": "OWNDIF",
+        "raw": {
+          "model_snippet": "The diagram shows all classes in a uniform style and provides no visible mechanism to differentiate the student's own classes from template/framework classes. There is no gray-out, alternate color, legend, or other visual distinction.",
+          "classifier_raw_response": null
+        }
+      }
+    ],
+    "notes": [],
+    "meta": {}
+  },
+  {
+    "analyser": {
+      "analyser_id": "asset_analyser",
+      "name": "Asset Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "ASSET_ANALYSER:OWNDIF-3",
+    "ac_code": "OWNDIF",
+    "title": "UML Diagram Own Classes",
+    "summary": "No visual distinction is made between student-authored classes and provided/template/framework classes. Every class box is rendered with the same appearance, and there is no legend or styling convention indicating ownership/source.",
+    "severity": 0.8,
+    "confidence": 0.98,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/pictures/2"
+        },
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4-2026-03-05",
+        "label": "OWNDIF",
+        "raw": {
+          "model_snippet": "No visual distinction is made between student-authored classes and provided/template/framework classes. Every class box is rendered with the same appearance, and there is no legend or styling convention indicating ownership/source.",
+          "classifier_raw_response": null
+        }
+      }
+    ],
+    "notes": [],
+    "meta": {}
+  },
+  {
+    "analyser": {
+      "analyser_id": "integrity_analyser",
+      "name": "Integrity Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "INTEGRITY_ANALYSER:COPY-1",
+    "ac_code": "COPY",
+    "title": "Specification Copying",
+    "summary": "This closely paraphrases the assignment specification's mandated documentation header/title format (\"Implementační dokumentace k %cislo%. úloze do IPP 2024/2025\"). It appears derived directly from the specification wording rather than being independently phrased.",
+    "severity": 0.28,
+    "confidence": 0.72,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/0"
+        },
+        "snippet": "Implementation documentation for the 2nd task for IPP 2024/2025",
+        "section_path": "",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "COPY"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-1",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Sentence is incomplete in this passage fragment, resulting in a grammatical error as presented.",
+    "severity": 0.3,
+    "confidence": 0.72,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/4"
+        },
+        "snippet": "It utilizes the provided",
+        "section_path": "1. Introduction",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-2",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Sentence fragment: 'Defines the hierarchy' lacks an explicit subject and is not properly integrated with the preceding sentence.",
+    "severity": 0.2,
+    "confidence": 0.66,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/57"
+        },
+        "snippet": "The heart of the OOP design. Defines the hierarchy",
+        "section_path": "2. Architecture overview",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-3",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Missing article before 'base' makes the phrase grammatically awkward; it should likely be 'base class' or 'a base'.",
+    "severity": 0.2,
+    "confidence": 0.58,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/59"
+        },
+        "snippet": "base) enabling",
+        "section_path": "2. Architecture overview",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-4",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Surrounding punctuation/spacing is malformed in context ('enabling polymorphism .'), indicating a punctuation error.",
+    "severity": 0.2,
+    "confidence": 0.91,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/60"
+        },
+        "snippet": "polymorphism",
+        "section_path": "2. Architecture overview",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-5",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Incorrect or awkward preposition usage; standard phrasing would be 'splitting it into three'.",
+    "severity": 0.2,
+    "confidence": 0.78,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/99"
+        },
+        "snippet": "resulted in splitting it to three",
+        "section_path": "3. Object model (class reference)",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-6",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Standalone heading-like phrase appears without terminal punctuation or syntactic integration, contributing to grammatical inconsistency in the section.",
+    "severity": 0.1,
+    "confidence": 0.41,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/102"
+        },
+        "snippet": "Execution Environment Components",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-7",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Extraneous table delimiter punctuation appears in running text, creating a punctuation/formatting error.",
+    "severity": 0.4,
+    "confidence": 0.98,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/113"
+        },
+        "snippet": "). |",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-8",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Extraneous vertical bar and spacing indicate a punctuation/formatting error in the text.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/120"
+        },
+        "snippet": ".                   |",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-9",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Extraneous vertical bar and irregular spacing create a punctuation/formatting error.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/123"
+        },
+        "snippet": ".                               |",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-10",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Table delimiter characters are exposed in prose, producing punctuation/formatting errors.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/126"
+        },
+        "snippet": "| Key-value store (associative array) associated with each object instance that needs dynamic attributes. Lazy initialization.                |",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-11",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Extraneous table delimiter punctuation appears in the text.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/137"
+        },
+        "snippet": ".                                         |",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-12",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Misplaced table delimiter splits the sentence and creates punctuation/grammar errors.",
+    "severity": 0.5,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/140"
+        },
+        "snippet": "with built-in classes and singletons.          | Creates and registers",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-13",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Extraneous table delimiter punctuation appears in the text.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/154"
+        },
+        "snippet": "classes and the singleton instances.             |",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-14",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Misplaced vertical bar creates a punctuation/formatting error.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/159"
+        },
+        "snippet": ". | Receives",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-15",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Extraneous table delimiter punctuation appears in the text.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/167"
+        },
+        "snippet": ".         |",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-16",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Extraneous table delimiter punctuation appears in the text.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/170"
+        },
+        "snippet": "for reporting interpreter errors according to the specification.             |",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-17",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Section numbering/title appears under the wrong parent section reference and is presented awkwardly as extracted, suggesting structural/formatting grammar issues.",
+    "severity": 0.1,
+    "confidence": 0.39,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/172"
+        },
+        "snippet": "3.2 Model classes (",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-18",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Contains a sentence fragment ('Loads and validates...') and an exposed table delimiter causing punctuation/grammar errors.",
+    "severity": 0.5,
+    "confidence": 0.97,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/179"
+        },
+        "snippet": "element. Loads and validates class definitions. | Entry point for model creation, checks for",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-19",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Extraneous table delimiter punctuation appears in the text.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/181"
+        },
+        "snippet": "class and duplicate definitions (Error 51, 31).            |",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-20",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Misplaced table delimiter creates punctuation/formatting error.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/184"
+        },
+        "snippet": "definition.                                             | Holds class name, parent name, and methods.",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-21",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Misplaced table delimiter creates punctuation/formatting error.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/187"
+        },
+        "snippet": "definition.                                            | Holds selector, arity (derived from block), defining class, and the method body (",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-22",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Extraneous table delimiter punctuation appears in the text.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/189"
+        },
+        "snippet": ").            |",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-23",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Misplaced table delimiter creates punctuation/formatting error.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/192"
+        },
+        "snippet": "element (method body or block literal).                 | Holds arity, parameters (",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-24",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Exposed table delimiter and sentence fragmentation create punctuation/grammar issues.",
+    "severity": 0.4,
+    "confidence": 0.98,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/196"
+        },
+        "snippet": "). Responsible for sequential execution of assignments. |",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-25",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Misplaced table delimiter creates punctuation/formatting error.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/199"
+        },
+        "snippet": "definition within a block.                          | Holds parameter name and 1-based order.",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-26",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Misplaced table delimiter creates punctuation/formatting error.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/202"
+        },
+        "snippet": "statement within a block.                             | Holds 1-based order, target variable name, and the expression (",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-27",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Exposed table delimiter and sentence fragmentation create punctuation/grammar issues.",
+    "severity": 0.4,
+    "confidence": 0.98,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/204"
+        },
+        "snippet": ") to evaluate. Prevents assigning to parameters (Error 52). |",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-28",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Misplaced table delimiter creates punctuation/formatting error.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/207"
+        },
+        "snippet": "nodes from the XML.                        | Recursively evaluates literals, variables, message sends (",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-29",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Extraneous table delimiter punctuation appears in the text.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/211"
+        },
+        "snippet": "instances. |",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-30",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Extraneous table delimiter punctuation appears in the text.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/224"
+        },
+        "snippet": "), dynamic attribute storage (",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH",
+        "raw": {
+          "model_snippet": "). |"
+        }
+      }
+    ],
+    "notes": [],
+    "meta": {}
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-31",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Extraneous table delimiter punctuation appears in the text.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/231"
+        },
+        "snippet": "if inheriting directly from Integer or String. |",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-32",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Extraneous table delimiter punctuation appears in the text.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/244"
+        },
+        "snippet": ". |",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-33",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Extraneous table delimiter punctuation appears in the text.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/265"
+        },
+        "snippet": ". |",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-34",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Misplaced table delimiter creates punctuation/formatting error.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/270"
+        },
+        "snippet": ".                                | Defines common boolean operations (",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-35",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Extraneous table delimiter punctuation appears in the text.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/278"
+        },
+        "snippet": ").                                                               |",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-36",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Misplaced table delimiter creates punctuation/formatting error.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/281"
+        },
+        "snippet": ".                               | Implements logic for",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-37",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Extraneous table delimiter punctuation appears in the text.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/287"
+        },
+        "snippet": ".                                                               |",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-38",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Misplaced table delimiter creates punctuation/formatting error.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/290"
+        },
+        "snippet": ".                              | Implements logic for",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-39",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Extraneous table delimiter punctuation appears in the text.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/296"
+        },
+        "snippet": ".                                                               |",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-40",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Misplaced table delimiter creates punctuation/formatting error.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/299"
+        },
+        "snippet": "value.                                        | Implements specific behaviors like",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-41",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Extraneous table delimiter punctuation appears in the text.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/305"
+        },
+        "snippet": ".                                                      |",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-42",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Exposed table delimiter creates a punctuation/formatting error.",
+    "severity": 0.4,
+    "confidence": 0.99,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/314"
+        },
+        "snippet": ". Manages its own attributes. |",
+        "section_path": "3. Object model (class reference) > 3.1 Execution environment classes",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-43",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Informal and elliptical phrasing; 'no need to comment' is grammatically awkward in formal documentation and may be considered a style/grammar issue.",
+    "severity": 0.1,
+    "confidence": 0.52,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/660"
+        },
+        "snippet": "Handled by Core, no need to comment.",
+        "section_path": "6. Error handling",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-44",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "List item sequence appears to omit terminal punctuation after the tools list, creating a punctuation inconsistency.",
+    "severity": 0.1,
+    "confidence": 0.34,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/730"
+        },
+        "snippet": "php8.4",
+        "section_path": "7. Testing and validation > 7.1 Testing environment",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-45",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Spelling mistake: 'startegies' should be 'strategies'.",
+    "severity": 0.6,
+    "confidence": 1.0,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/757"
+        },
+        "snippet": "Exploring different development startegies during prototyping.",
+        "section_path": "8. AI assistance acknowledgment",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-46",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Missing serial comma before 'and' may be considered a punctuation issue in formal technical writing.",
+    "severity": 0.1,
+    "confidence": 0.36,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/760"
+        },
+        "snippet": "Providing examples for PHP features, syntax and common usage.",
+        "section_path": "8. AI assistance acknowledgment",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-47",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Comma usage is questionable in a complex list; missing comma before 'and specifically' makes the sentence punctuation potentially faulty or ambiguous.",
+    "severity": 0.2,
+    "confidence": 0.55,
+    "judge_status": "to_be_judged",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/763"
+        },
+        "snippet": "the essential logic, key architectural decisions, OOP design and specifically the code handling message sending logic, expression evaluation, environment and frame management, were all manually implemented, reviewed, and validated.",
+        "section_path": "8. AI assistance acknowledgment",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": []
+  }
+]

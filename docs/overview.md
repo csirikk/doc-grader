@@ -107,14 +107,14 @@ Typical responsibilities in `notebooks/scripts/` include:
 
 ## Supporting directories
 
-- `data/`: source datasets, specs, and supporting material, not provided in the repository
+- `data/`: bundled samples, specs, and supporting reference material
 - `docs/`: written documentation for architecture, plans, and findings
 
 Notebook analysis workflow:
 
-1. Load data from `data/` or `outputs/`
+1. Load data from `data/`, `out/`, or notebook-specific `outputs/`
 2. Reuse helpers from `notebooks/scripts/`
-3. Save derived results to `outputs/`
+3. Save derived results to `out/` or `outputs/` (for notebook evaluation exports)
 
 ## Extensibility
 
@@ -129,4 +129,4 @@ Add notebook analysis capability:
 
 - Add reusable logic in `notebooks/scripts/`
 - Keep notebooks focused on interpretation and visualisation
-- Save final artefacts to `outputs/`
+- Save final artefacts to `out/` or notebook-specific `outputs/`

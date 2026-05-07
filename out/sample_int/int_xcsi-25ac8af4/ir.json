@@ -1,0 +1,18 @@
+{
+  "doc_ref": {
+    "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+    "student_id": "int_REDACTED_STUDENT",
+    "origin": {
+      "mimetype": "text/markdown",
+      "binary_hash": 485529480811114839,
+      "filename": "readme2.md"
+    },
+    "binary_hash": 485529480811114839
+  },
+  "total_words": 2130,
+  "total_chars": 15395,
+  "total_paragraphs": 393,
+  "total_headings": 14,
+  "total_pictures": 3,
+  "language": "en"
+}

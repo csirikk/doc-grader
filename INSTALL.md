@@ -99,10 +99,14 @@ doc-grader <path_or_folder> -c config/experiments/local_only.json
 
 For details on model routing and reproducibility boundaries, see [docs/overview.md](docs/overview.md).
 
-## 6. First-Run Operational Prerequisites
-
-Before starting a batch run, ensure that:
+Before starting a run, ensure that:
 
 - The selected profile in `config/` matches the assessed course variant.
 - Java is installed whenever grammar analysis is enabled.
 - `OPENAI_API_KEY` is set whenever the selected profile enables LLM-backed analysers or judge review.
+
+## 6. Run And Review
+
+This guide focuses on environment setup and dependency requirements.
+
+For runnable sample commands and Streamlit review workflow, use [README.md](README.md).

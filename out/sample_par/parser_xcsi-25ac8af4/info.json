@@ -1,0 +1,71 @@
+{
+  "input": {
+    "source_path": "sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT/readme1.pdf",
+    "student_id": "parser_REDACTED_STUDENT",
+    "origin": {
+      "mimetype": "application/pdf",
+      "binary_hash": 2972815187993026368,
+      "filename": "readme1.pdf"
+    },
+    "binary_hash": 2972815187993026368
+  },
+  "run": {
+    "run_id": "run-20260507T130448Z",
+    "config_hash": "sha256:18e7f5e986a589e42dddb06a94636070ec27073d0ed72f2cce356a2c50e10ad3"
+  },
+  "config": {
+    "course": "ipp",
+    "max_doc_points": 100
+  },
+  "parse": {
+    "parsed_ok": true,
+    "used_ocr": false,
+    "table_structure": true
+  },
+  "counts": {
+    "n_parser_findings": 1,
+    "n_findings": 8
+  },
+  "stage_times": {
+    "parse": 3.7744,
+    "structure_analyser": 0.0001,
+    "content_analyser": 26.9395,
+    "asset_analyser": 8.7697,
+    "integrity_analyser": 11.4865,
+    "grammar_analyser": 0.0,
+    "judge": 24.0043,
+    "rule_engine": 0.0008,
+    "score": 0.0006
+  },
+  "usage": {
+    "by_model": {
+      "gpt-5.4-2026-03-05": {
+        "calls": 4,
+        "prompt_tokens": 34256,
+        "completion_tokens": 3992,
+        "cached_tokens": 0,
+        "cost_eur": 0.133878
+      }
+    },
+    "total_prompt_tokens": 34256,
+    "total_completion_tokens": 3992,
+    "total_cached_tokens": 0,
+    "total_cost_eur": 0.133878,
+    "costs_by_model_eur": {
+      "gpt-5.4-2026-03-05": 0.133878
+    }
+  },
+  "elapsed_seconds": 74.9836,
+  "rule_engine": {
+    "dropped": {
+      "dismissed_by_judge": 11,
+      "duplicates": 0
+    },
+    "final_count": 8
+  },
+  "document": {
+    "total_words": 470,
+    "total_paragraphs": 12,
+    "total_pictures": 1
+  }
+}

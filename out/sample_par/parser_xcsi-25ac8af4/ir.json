@@ -1,0 +1,18 @@
+{
+  "doc_ref": {
+    "source_path": "sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT/readme1.pdf",
+    "student_id": "parser_REDACTED_STUDENT",
+    "origin": {
+      "mimetype": "application/pdf",
+      "binary_hash": 2972815187993026368,
+      "filename": "readme1.pdf"
+    },
+    "binary_hash": 2972815187993026368
+  },
+  "total_words": 470,
+  "total_chars": 3716,
+  "total_paragraphs": 12,
+  "total_headings": 8,
+  "total_pictures": 1,
+  "language": "sk"
+}

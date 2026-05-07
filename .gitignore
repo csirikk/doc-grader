@@ -8,7 +8,9 @@ doc_grader.egg-info
 
 # Messing around in here
 test/
-out/
+out/*
+!out/sample_int/
+!out/sample_par/
 deprecated/*
 unsloth*
 outputs

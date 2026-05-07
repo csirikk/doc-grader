@@ -1,0 +1,727 @@
+[
+  {
+    "analyser": {
+      "analyser_id": "PARSER",
+      "name": "Parser",
+      "run_id": "run-20260507T130626Z",
+      "config_hash": "sha256:39e00322d6eac271f55fc06f703d1c668748da07ac2e01a3605ba9e581f7e285"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "PARSER:DOCTYPE-1",
+    "ac_code": "DOCTYPE",
+    "title": "Incorrect Document Name",
+    "summary": "Document was expected to be named 'readme', but found 'readme2.md'.",
+    "judge_status": "not_to_be_judged",
+    "human_status": "proposed",
+    "anchors": [],
+    "stats": [],
+    "model_evals": [],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "structure_analyser",
+      "name": "Structure Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "STRUCTURE_ANALYSER:KAPTXT-1",
+    "ac_code": "KAPTXT",
+    "title": "Empty section detected",
+    "summary": "Section has no introductory text before its subsections: '5. Key algorithms & implementation details'.",
+    "severity": 0.6,
+    "confidence": 1.0,
+    "impact": 0.0,
+    "judge_status": "judged_approved",
+    "human_status": "proposed",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/446"
+        },
+        "snippet": "5. Key algorithms & implementation details",
+        "section_path": "5. Key algorithms & implementation details",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "approved",
+        "rationale": "Section 5 consists of the heading immediately followed by subsection 5.1, with no introductory explanatory text between them.",
+        "reasoning_chain": "Most flagged issues are supported directly by the provided text: the document lacks explicit design-pattern discussion, gives only shallow storage-representation descriptions, includes some informal/meta commentary, and contains one clear spelling error. Several grammar findings are false positives caused by extraction artifacts from Markdown tables or by acceptable heading/list formatting, and the SRP claim is too speculative. The visual findings are confirmable from the attached diagrams: picture 1 is clearly a UML class diagram, and all three diagrams use uniform styling without ownership/source distinction."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "CONTENT_ANALYSER:BADDP-1",
+    "ac_code": "BADDP",
+    "title": "Design Patterns Missing or Insufficient",
+    "summary": "The documentation discusses architecture and components but does not explicitly name OOP design patterns, explain where they are used, why they were chosen, or how they improve extensibility. Mentioning 'factory' in a class name alone is insufficient for the required design-pattern description.",
+    "severity": 0.8,
+    "confidence": 0.98,
+    "impact": -21.3334,
+    "judge_status": "judged_approved",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/27"
+        },
+        "snippet": "The architecture is object-oriented, centered around message passing between runtime objects:",
+        "section_path": "2. Architecture overview",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "BADDP"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "approved",
+        "rationale": "The architecture overview discusses components and OOP concepts like polymorphism/encapsulation but never explicitly names or justifies any design patterns or explains their extensibility benefits.",
+        "reasoning_chain": "Most flagged issues are supported directly by the provided text: the document lacks explicit design-pattern discussion, gives only shallow storage-representation descriptions, includes some informal/meta commentary, and contains one clear spelling error. Several grammar findings are false positives caused by extraction artifacts from Markdown tables or by acceptable heading/list formatting, and the SRP claim is too speculative. The visual findings are confirmable from the attached diagrams: picture 1 is clearly a UML class diagram, and all three diagrams use uniform styling without ownership/source distinction."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "CONTENT_ANALYSER:EXT-1",
+    "ac_code": "EXT",
+    "title": "Extensibility",
+    "summary": "The document does not provide at least two concrete examples of future extensions or explain specifically how the architecture accommodates future changes. Architectural description is present, but explicit extensibility scenarios are missing.",
+    "severity": 0.7,
+    "confidence": 0.95,
+    "impact": -46.6668,
+    "judge_status": "judged_approved",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/27"
+        },
+        "snippet": "The architecture is object-oriented, centered around message passing between runtime objects:",
+        "section_path": "2. Architecture overview",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "EXT"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "approved",
+        "rationale": "The document describes current architecture but does not provide two concrete future extension scenarios or explain specifically how the design accommodates them.",
+        "reasoning_chain": "Most flagged issues are supported directly by the provided text: the document lacks explicit design-pattern discussion, gives only shallow storage-representation descriptions, includes some informal/meta commentary, and contains one clear spelling error. Several grammar findings are false positives caused by extraction artifacts from Markdown tables or by acceptable heading/list formatting, and the SRP claim is too speculative. The visual findings are confirmable from the attached diagrams: picture 1 is clearly a UML class diagram, and all three diagrams use uniform styling without ownership/source distinction."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "CONTENT_ANALYSER:IR-1",
+    "ac_code": "IR",
+    "title": "Internal Representation",
+    "summary": "This internal representation description is too shallow: it reduces representation to an associative array without deeper architectural explanation of invariants, ownership, lifecycle, lookup semantics, or interaction with execution flow.",
+    "severity": 0.7,
+    "confidence": 0.97,
+    "impact": -28.0,
+    "judge_status": "judged_approved",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/575"
+        },
+        "snippet": "PHP associative array mapping variable names to",
+        "section_path": "5. Key algorithms & implementation details > 5.3 Variable and attribute storage",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "IR"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "approved",
+        "rationale": "The variable-storage description is limited to saying it is an associative array, without deeper explanation of semantics, lifecycle, invariants, or interaction with execution.",
+        "reasoning_chain": "Most flagged issues are supported directly by the provided text: the document lacks explicit design-pattern discussion, gives only shallow storage-representation descriptions, includes some informal/meta commentary, and contains one clear spelling error. Several grammar findings are false positives caused by extraction artifacts from Markdown tables or by acceptable heading/list formatting, and the SRP claim is too speculative. The visual findings are confirmable from the attached diagrams: picture 1 is clearly a UML class diagram, and all three diagrams use uniform styling without ownership/source distinction."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "CONTENT_ANALYSER:IR-2",
+    "ac_code": "IR",
+    "title": "Internal Representation",
+    "summary": "Again, the internal representation is described only at the container level. This is explicitly the kind of trivial storage description the rule marks as insufficient without deeper explanation.",
+    "severity": 0.7,
+    "confidence": 0.97,
+    "impact": -28.0,
+    "judge_status": "judged_approved",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/586"
+        },
+        "snippet": "Lazily initialized associative array mapping attribute names to",
+        "section_path": "5. Key algorithms & implementation details > 5.3 Variable and attribute storage",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "IR"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "approved",
+        "rationale": "The attribute-storage description likewise stays at the container level and does not meaningfully explain the internal representation beyond a lazily initialized associative array.",
+        "reasoning_chain": "Most flagged issues are supported directly by the provided text: the document lacks explicit design-pattern discussion, gives only shallow storage-representation descriptions, includes some informal/meta commentary, and contains one clear spelling error. Several grammar findings are false positives caused by extraction artifacts from Markdown tables or by acceptable heading/list formatting, and the SRP claim is too speculative. The visual findings are confirmable from the attached diagrams: picture 1 is clearly a UML class diagram, and all three diagrams use uniform styling without ownership/source distinction."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "CONTENT_ANALYSER:HOV-1",
+    "ac_code": "HOV",
+    "title": "Informal Language",
+    "summary": "This is informal, conversational phrasing rather than neutral technical documentation style.",
+    "severity": 0.3,
+    "confidence": 0.99,
+    "impact": -12.0,
+    "judge_status": "judged_approved",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/738"
+        },
+        "snippet": "Manual tests were the bread and butter during development:",
+        "section_path": "7. Testing and validation > 7.2 Manual testing",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "HOV"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "approved",
+        "rationale": "“Bread and butter” is informal conversational phrasing and does not fit neutral technical documentation style.",
+        "reasoning_chain": "Most flagged issues are supported directly by the provided text: the document lacks explicit design-pattern discussion, gives only shallow storage-representation descriptions, includes some informal/meta commentary, and contains one clear spelling error. Several grammar findings are false positives caused by extraction artifacts from Markdown tables or by acceptable heading/list formatting, and the SRP claim is too speculative. The visual findings are confirmable from the attached diagrams: picture 1 is clearly a UML class diagram, and all three diagrams use uniform styling without ownership/source distinction."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "CONTENT_ANALYSER:CONTENT-1",
+    "ac_code": "CONTENT",
+    "title": "Content Quality",
+    "summary": "This passage describes the author's development process chronologically/informally rather than the program itself, which falls under inappropriate content for technical documentation.",
+    "severity": 0.35,
+    "confidence": 0.86,
+    "impact": -7.0,
+    "judge_status": "judged_approved",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/738"
+        },
+        "snippet": "Manual tests were the bread and butter during development:",
+        "section_path": "7. Testing and validation > 7.2 Manual testing",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CONTENT"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "approved",
+        "rationale": "The sentence explicitly frames testing in terms of the author's development process rather than purely documenting the testing approach.",
+        "reasoning_chain": "Most flagged issues are supported directly by the provided text: the document lacks explicit design-pattern discussion, gives only shallow storage-representation descriptions, includes some informal/meta commentary, and contains one clear spelling error. Several grammar findings are false positives caused by extraction artifacts from Markdown tables or by acceptable heading/list formatting, and the SRP claim is too speculative. The visual findings are confirmable from the attached diagrams: picture 1 is clearly a UML class diagram, and all three diagrams use uniform styling without ownership/source distinction."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "asset_analyser",
+      "name": "Asset Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "ASSET_ANALYSER:BADUML-1",
+    "ac_code": "BADUML",
+    "title": "UML Diagram Visual Quality",
+    "summary": "The UML Class Diagram is visually flawed and its structure cannot easily be understood.",
+    "severity": 1.0,
+    "confidence": 1.0,
+    "impact": -40.0,
+    "judge_status": "judged_approved",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/pictures/1"
+        },
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "BADUML",
+        "raw": {
+          "model_snippet": "The UML Class Diagram is visually flawed and its structure cannot easily be understood.",
+          "classifier_raw_response": "BADUML\n\nReasons:\n- Several relationships are unclear or non-standard in notation, especially the mixed use of arrows/diamonds without visible multiplicities or labels.\n- Some classes omit full type information for attributes like `dom`, `blockNode`, and `expressionNode`, reducing UML completeness.\n- Visibility notation is inconsistent in meaning/style for what appear to be helper/internal methods.\n- The diagram is readable overall, but it lacks important UML details such as multiplicities, role names, and clearer distinction between association, aggregation, and dependency.\n- Dashed dependencies at the bottom are not very clearly presented relative to the rest of the model.\n\nSo while it is fairly legible and class boxes are structured, it does not fully meet strong UML compliance expectations."
+        }
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "approved",
+        "rationale": "Picture #/pictures/1 is clearly a UML class diagram showing classes with attributes/methods and relationships, so per the override the finding must be approved.",
+        "reasoning_chain": "Most flagged issues are supported directly by the provided text: the document lacks explicit design-pattern discussion, gives only shallow storage-representation descriptions, includes some informal/meta commentary, and contains one clear spelling error. Several grammar findings are false positives caused by extraction artifacts from Markdown tables or by acceptable heading/list formatting, and the SRP claim is too speculative. The visual findings are confirmable from the attached diagrams: picture 1 is clearly a UML class diagram, and all three diagrams use uniform styling without ownership/source distinction."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "asset_analyser",
+      "name": "Asset Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "ASSET_ANALYSER:OWNDIF-1",
+    "ac_code": "OWNDIF",
+    "title": "UML Diagram Own Classes",
+    "summary": "The class diagram does not visually distinguish student-created classes from provided/template/framework classes. All classes use the same visual styling (same fill, borders, and icon treatment), with no color coding, shading, legend, or other notation to separate own classes from supplied ones.",
+    "severity": 0.8,
+    "confidence": 0.98,
+    "impact": -4.0,
+    "judge_status": "judged_approved",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/pictures/0"
+        },
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4-2026-03-05",
+        "label": "OWNDIF",
+        "raw": {
+          "model_snippet": "The class diagram does not visually distinguish student-created classes from provided/template/framework classes. All classes use the same visual styling (same fill, borders, and icon treatment), with no color coding, shading, legend, or other notation to separate own classes from supplied ones.",
+          "classifier_raw_response": null
+        }
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "approved",
+        "rationale": "In picture #/pictures/0, all class boxes use the same visual style and there is no legend, color, shading, or notation distinguishing student classes from provided/framework classes.",
+        "reasoning_chain": "Most flagged issues are supported directly by the provided text: the document lacks explicit design-pattern discussion, gives only shallow storage-representation descriptions, includes some informal/meta commentary, and contains one clear spelling error. Several grammar findings are false positives caused by extraction artifacts from Markdown tables or by acceptable heading/list formatting, and the SRP claim is too speculative. The visual findings are confirmable from the attached diagrams: picture 1 is clearly a UML class diagram, and all three diagrams use uniform styling without ownership/source distinction."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "asset_analyser",
+      "name": "Asset Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "ASSET_ANALYSER:OWNDIF-2",
+    "ac_code": "OWNDIF",
+    "title": "UML Diagram Own Classes",
+    "summary": "The diagram shows all classes in a uniform style and provides no visible mechanism to differentiate the student's own classes from template/framework classes. There is no gray-out, alternate color, legend, or other visual distinction.",
+    "severity": 0.8,
+    "confidence": 0.98,
+    "impact": -4.0,
+    "judge_status": "judged_approved",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/pictures/1"
+        },
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4-2026-03-05",
+        "label": "OWNDIF",
+        "raw": {
+          "model_snippet": "The diagram shows all classes in a uniform style and provides no visible mechanism to differentiate the student's own classes from template/framework classes. There is no gray-out, alternate color, legend, or other visual distinction.",
+          "classifier_raw_response": null
+        }
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "approved",
+        "rationale": "In picture #/pictures/1, all classes are rendered uniformly with no visible ownership/source distinction between student and provided/framework classes.",
+        "reasoning_chain": "Most flagged issues are supported directly by the provided text: the document lacks explicit design-pattern discussion, gives only shallow storage-representation descriptions, includes some informal/meta commentary, and contains one clear spelling error. Several grammar findings are false positives caused by extraction artifacts from Markdown tables or by acceptable heading/list formatting, and the SRP claim is too speculative. The visual findings are confirmable from the attached diagrams: picture 1 is clearly a UML class diagram, and all three diagrams use uniform styling without ownership/source distinction."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "asset_analyser",
+      "name": "Asset Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "ASSET_ANALYSER:OWNDIF-3",
+    "ac_code": "OWNDIF",
+    "title": "UML Diagram Own Classes",
+    "summary": "No visual distinction is made between student-authored classes and provided/template/framework classes. Every class box is rendered with the same appearance, and there is no legend or styling convention indicating ownership/source.",
+    "severity": 0.8,
+    "confidence": 0.98,
+    "impact": -4.0,
+    "judge_status": "judged_approved",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/pictures/2"
+        },
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4-2026-03-05",
+        "label": "OWNDIF",
+        "raw": {
+          "model_snippet": "No visual distinction is made between student-authored classes and provided/template/framework classes. Every class box is rendered with the same appearance, and there is no legend or styling convention indicating ownership/source.",
+          "classifier_raw_response": null
+        }
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "approved",
+        "rationale": "In picture #/pictures/2, the diagram again uses uniform styling for all classes and provides no visual convention separating student-authored from template/framework classes.",
+        "reasoning_chain": "Most flagged issues are supported directly by the provided text: the document lacks explicit design-pattern discussion, gives only shallow storage-representation descriptions, includes some informal/meta commentary, and contains one clear spelling error. Several grammar findings are false positives caused by extraction artifacts from Markdown tables or by acceptable heading/list formatting, and the SRP claim is too speculative. The visual findings are confirmable from the attached diagrams: picture 1 is clearly a UML class diagram, and all three diagrams use uniform styling without ownership/source distinction."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-5",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "The phrase uses the wrong preposition: the diagram was split into three parts, not “splitting it to three.”",
+    "severity": 0.15,
+    "confidence": 0.95,
+    "impact": -3.0,
+    "judge_status": "judged_adjusted",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/99"
+        },
+        "snippet": "resulted in splitting it to three",
+        "section_path": "3. Object model (class reference)",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "adjusted",
+        "rationale": "This is a genuine minor wording/grammar issue, but it is less severe than originally scored.",
+        "reasoning_chain": "Most flagged issues are supported directly by the provided text: the document lacks explicit design-pattern discussion, gives only shallow storage-representation descriptions, includes some informal/meta commentary, and contains one clear spelling error. Several grammar findings are false positives caused by extraction artifacts from Markdown tables or by acceptable heading/list formatting, and the SRP claim is too speculative. The visual findings are confirmable from the attached diagrams: picture 1 is clearly a UML class diagram, and all three diagrams use uniform styling without ownership/source distinction.",
+        "change": {
+          "fields": [
+            "summary",
+            "severity",
+            "confidence"
+          ],
+          "before": {
+            "summary": "Incorrect or awkward preposition usage; standard phrasing would be 'splitting it into three'.",
+            "severity": 0.2,
+            "confidence": 0.78,
+            "snippet": "resulted in splitting it to three"
+          },
+          "after": {
+            "summary": "The phrase uses the wrong preposition: the diagram was split into three parts, not “splitting it to three.”",
+            "severity": 0.15,
+            "confidence": 0.95,
+            "snippet": "resulted in splitting it to three"
+          }
+        }
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "grammar_analyser",
+      "name": "Grammar Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "GRAMMAR_ANALYSER:CH-45",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "Spelling mistake: 'startegies' should be 'strategies'.",
+    "severity": 0.6,
+    "confidence": 1.0,
+    "impact": -12.0,
+    "judge_status": "judged_approved",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/757"
+        },
+        "snippet": "Exploring different development startegies during prototyping.",
+        "section_path": "8. AI assistance acknowledgment",
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "approved",
+        "rationale": "“startegies” is a clear spelling error in the document.",
+        "reasoning_chain": "Most flagged issues are supported directly by the provided text: the document lacks explicit design-pattern discussion, gives only shallow storage-representation descriptions, includes some informal/meta commentary, and contains one clear spelling error. Several grammar findings are false positives caused by extraction artifacts from Markdown tables or by acceptable heading/list formatting, and the SRP claim is too speculative. The visual findings are confirmable from the attached diagrams: picture 1 is clearly a UML class diagram, and all three diagrams use uniform styling without ownership/source distinction."
+      }
+    }
+  }
+]

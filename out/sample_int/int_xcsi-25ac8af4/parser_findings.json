@@ -1,0 +1,30 @@
+[
+  {
+    "analyser": {
+      "analyser_id": "PARSER",
+      "name": "Parser",
+      "run_id": "run-20260507T130626Z",
+      "config_hash": "sha256:39e00322d6eac271f55fc06f703d1c668748da07ac2e01a3605ba9e581f7e285"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+      "student_id": "int_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "text/markdown",
+        "binary_hash": 485529480811114839,
+        "filename": "readme2.md"
+      },
+      "binary_hash": 485529480811114839
+    },
+    "finding_id": "PARSER:DOCTYPE-1",
+    "ac_code": "DOCTYPE",
+    "title": "Incorrect Document Name",
+    "summary": "Document was expected to be named 'readme', but found 'readme2.md'.",
+    "judge_status": "not_to_be_judged",
+    "human_status": "proposed",
+    "anchors": [],
+    "stats": [],
+    "model_evals": [],
+    "notes": []
+  }
+]

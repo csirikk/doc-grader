@@ -1,0 +1,79 @@
+{
+  "input": {
+    "source_path": "sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT/readme2.md",
+    "student_id": "int_REDACTED_STUDENT",
+    "origin": {
+      "mimetype": "text/markdown",
+      "binary_hash": 485529480811114839,
+      "filename": "readme2.md"
+    },
+    "binary_hash": 485529480811114839
+  },
+  "run": {
+    "run_id": "run-20260507T130626Z",
+    "config_hash": "sha256:39e00322d6eac271f55fc06f703d1c668748da07ac2e01a3605ba9e581f7e285"
+  },
+  "config": {
+    "course": "ipp",
+    "max_doc_points": 400
+  },
+  "parse": {
+    "parsed_ok": true,
+    "used_ocr": false,
+    "table_structure": true
+  },
+  "counts": {
+    "n_parser_findings": 1,
+    "n_findings": 14
+  },
+  "stage_times": {
+    "parse": 0.8706,
+    "structure_analyser": 0.0012,
+    "content_analyser": 19.6391,
+    "asset_analyser": 26.7216,
+    "integrity_analyser": 11.628,
+    "grammar_analyser": 42.8463,
+    "judge": 55.5055,
+    "rule_engine": 0.0007,
+    "score": 0.0006
+  },
+  "usage": {
+    "by_model": {
+      "gpt-5.4-2026-03-05": {
+        "calls": 5,
+        "prompt_tokens": 117362,
+        "completion_tokens": 8908,
+        "cached_tokens": 19200,
+        "cost_eur": 0.353119
+      },
+      "gpt-5.4": {
+        "calls": 3,
+        "prompt_tokens": 7399,
+        "completion_tokens": 464,
+        "cached_tokens": 0,
+        "cost_eur": 0.023421
+      }
+    },
+    "total_prompt_tokens": 124761,
+    "total_completion_tokens": 9372,
+    "total_cached_tokens": 19200,
+    "total_cost_eur": 0.37654,
+    "costs_by_model_eur": {
+      "gpt-5.4-2026-03-05": 0.353119,
+      "gpt-5.4": 0.023421
+    }
+  },
+  "elapsed_seconds": 157.233,
+  "rule_engine": {
+    "dropped": {
+      "dismissed_by_judge": 50,
+      "duplicates": 0
+    },
+    "final_count": 14
+  },
+  "document": {
+    "total_words": 2130,
+    "total_paragraphs": 393,
+    "total_pictures": 3
+  }
+}

@@ -1,0 +1,1231 @@
+[
+  {
+    "analyser": {
+      "analyser_id": "PARSER",
+      "name": "Parser",
+      "run_id": "run-20260507T130448Z",
+      "config_hash": "sha256:18e7f5e986a589e42dddb06a94636070ec27073d0ed72f2cce356a2c50e10ad3"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT/readme1.pdf",
+      "student_id": "parser_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "application/pdf",
+        "binary_hash": 2972815187993026368,
+        "filename": "readme1.pdf"
+      },
+      "binary_hash": 2972815187993026368
+    },
+    "finding_id": "PARSER:DOCTYPE-1",
+    "ac_code": "DOCTYPE",
+    "title": "Incorrect Document Name",
+    "summary": "Document was expected to be named 'readme', but found 'readme1.pdf'.",
+    "judge_status": "not_to_be_judged",
+    "human_status": "proposed",
+    "anchors": [],
+    "stats": [],
+    "model_evals": [],
+    "notes": []
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT/readme1.pdf",
+      "student_id": "parser_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "application/pdf",
+        "binary_hash": 2972815187993026368,
+        "filename": "readme1.pdf"
+      },
+      "binary_hash": 2972815187993026368
+    },
+    "finding_id": "CONTENT_ANALYSER:CH-1",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "There is an incorrect space before the comma, indicating a punctuation/typographic error.",
+    "severity": 0.2,
+    "confidence": 1.0,
+    "judge_status": "judged_dismissed",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/6"
+        },
+        "snippet": "SOL25 , zabezpečuje lexikálnu, syntaktickú a sémantickú analýzu",
+        "section_path": "1. Opis riešenia",
+        "prov": [
+          {
+            "page_no": 1,
+            "bbox": {
+              "l": 70.86599999999993,
+              "t": 248.89604380000003,
+              "r": 524.4095348600001,
+              "b": 297.29399460000013,
+              "coord_origin": "TOPLEFT"
+            },
+            "charspan": [
+              0,
+              323
+            ]
+          }
+        ]
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "dismissed",
+        "rationale": "On page 1, the rendered PDF shows normal punctuation spacing in the sentence about SOL25 and does not visibly contain a space before the comma.",
+        "reasoning_chain": "Most punctuation findings are false positives because the PDF page images do not show the extracted-text spacing artefacts before commas, colons, or periods; the rendered document appears typographically normal in those places. Several content findings about missing architectural depth are valid, but some need narrowing because the document does provide at least a basic execution flow, semantic-phase structure, and one explicitly named design pattern."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT/readme1.pdf",
+      "student_id": "parser_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "application/pdf",
+        "binary_hash": 2972815187993026368,
+        "filename": "readme1.pdf"
+      },
+      "binary_hash": 2972815187993026368
+    },
+    "finding_id": "CONTENT_ANALYSER:CH-2",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "The passage contains spacing errors before punctuation marks (colon and comma), which counts as a grammar/punctuation issue.",
+    "severity": 0.2,
+    "confidence": 1.0,
+    "judge_status": "judged_dismissed",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/8"
+        },
+        "snippet": "Dedičnosť : Základným stavebným kameňom je trieda SOL25Visitor , ktorá definuje rozhranie pre prechádzanie AST.",
+        "section_path": "1. Opis riešenia",
+        "prov": [
+          {
+            "page_no": 1,
+            "bbox": {
+              "l": 85.81099999999994,
+              "t": 314.6490438000002,
+              "r": 524.4114001999999,
+              "b": 351.09299460000017,
+              "coord_origin": "TOPLEFT"
+            },
+            "charspan": [
+              0,
+              276
+            ]
+          }
+        ]
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "dismissed",
+        "rationale": "The page image shows the bullet rendered as \"Dedičnosť:\" and the surrounding commas normally, so the extracted spacing errors are not present in the actual document.",
+        "reasoning_chain": "Most punctuation findings are false positives because the PDF page images do not show the extracted-text spacing artefacts before commas, colons, or periods; the rendered document appears typographically normal in those places. Several content findings about missing architectural depth are valid, but some need narrowing because the document does provide at least a basic execution flow, semantic-phase structure, and one explicitly named design pattern."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT/readme1.pdf",
+      "student_id": "parser_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "application/pdf",
+        "binary_hash": 2972815187993026368,
+        "filename": "readme1.pdf"
+      },
+      "binary_hash": 2972815187993026368
+    },
+    "finding_id": "CONTENT_ANALYSER:CH-3",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "There is an incorrect space before the colon, which is a punctuation error.",
+    "severity": 0.1,
+    "confidence": 1.0,
+    "judge_status": "judged_dismissed",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/9"
+        },
+        "snippet": "Centralizovaná správa chýb : Trieda ErrorHandler zabezpečuje jednotné spracovanie všetkých typov chýb",
+        "section_path": "1. Opis riešenia",
+        "prov": [
+          {
+            "page_no": 1,
+            "bbox": {
+              "l": 85.81099999999996,
+              "t": 386.38004380000007,
+              "r": 524.4134036000002,
+              "b": 422.8239946000001,
+              "coord_origin": "TOPLEFT"
+            },
+            "charspan": [
+              0,
+              196
+            ]
+          }
+        ]
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "dismissed",
+        "rationale": "The PDF rendering on page 1 shows \"Centralizovaná správa chýb:\" without an incorrect space before the colon.",
+        "reasoning_chain": "Most punctuation findings are false positives because the PDF page images do not show the extracted-text spacing artefacts before commas, colons, or periods; the rendered document appears typographically normal in those places. Several content findings about missing architectural depth are valid, but some need narrowing because the document does provide at least a basic execution flow, semantic-phase structure, and one explicitly named design pattern."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT/readme1.pdf",
+      "student_id": "parser_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "application/pdf",
+        "binary_hash": 2972815187993026368,
+        "filename": "readme1.pdf"
+      },
+      "binary_hash": 2972815187993026368
+    },
+    "finding_id": "CONTENT_ANALYSER:CH-4",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "There is an incorrect space before the colon, indicating a punctuation issue.",
+    "severity": 0.1,
+    "confidence": 1.0,
+    "judge_status": "judged_dismissed",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/10"
+        },
+        "snippet": "Návštevnícky vzor (Visitor) : Tento vzor umožňuje oddelenie dátovej štruktúry stromu od logiky jej spracovania",
+        "section_path": "1. Opis riešenia",
+        "prov": [
+          {
+            "page_no": 1,
+            "bbox": {
+              "l": 85.81099999999996,
+              "t": 350.5150438000001,
+              "r": 524.4088837,
+              "b": 386.9579946000001,
+              "coord_origin": "TOPLEFT"
+            },
+            "charspan": [
+              0,
+              199
+            ]
+          }
+        ]
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "dismissed",
+        "rationale": "The page image shows \"Návštevnícky vzor (Visitor):\" correctly formatted, so this punctuation issue is a text-extraction false positive.",
+        "reasoning_chain": "Most punctuation findings are false positives because the PDF page images do not show the extracted-text spacing artefacts before commas, colons, or periods; the rendered document appears typographically normal in those places. Several content findings about missing architectural depth are valid, but some need narrowing because the document does provide at least a basic execution flow, semantic-phase structure, and one explicitly named design pattern."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT/readme1.pdf",
+      "student_id": "parser_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "application/pdf",
+        "binary_hash": 2972815187993026368,
+        "filename": "readme1.pdf"
+      },
+      "binary_hash": 2972815187993026368
+    },
+    "finding_id": "CONTENT_ANALYSER:CH-5",
+    "ac_code": "CH",
+    "title": "Grammar and Spelling",
+    "summary": "There is an incorrect space before the period, which is a punctuation error.",
+    "severity": 0.1,
+    "confidence": 1.0,
+    "judge_status": "judged_dismissed",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/14"
+        },
+        "snippet": "knižnice Lark . Pred samotným parsovaním",
+        "section_path": "2. Lexikálna a syntaktická analýza",
+        "prov": [
+          {
+            "page_no": 2,
+            "bbox": {
+              "l": 70.86599999999999,
+              "t": 93.31304379999995,
+              "r": 524.4133828399999,
+              "b": 153.6659946000001,
+              "coord_origin": "TOPLEFT"
+            },
+            "charspan": [
+              0,
+              445
+            ]
+          }
+        ]
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "CH"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "dismissed",
+        "rationale": "On page 2, \"Lark.\" is rendered without a preceding space, so the claimed punctuation error is not visible in the source PDF.",
+        "reasoning_chain": "Most punctuation findings are false positives because the PDF page images do not show the extracted-text spacing artefacts before commas, colons, or periods; the rendered document appears typographically normal in those places. Several content findings about missing architectural depth are valid, but some need narrowing because the document does provide at least a basic execution flow, semantic-phase structure, and one explicitly named design pattern."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT/readme1.pdf",
+      "student_id": "parser_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "application/pdf",
+        "binary_hash": 2972815187993026368,
+        "filename": "readme1.pdf"
+      },
+      "binary_hash": 2972815187993026368
+    },
+    "finding_id": "CONTENT_ANALYSER:STYLE-1",
+    "ac_code": "STYLE",
+    "title": "Readability",
+    "summary": "This passage is overly dense and spans multiple technical concepts in a long sequence, reducing clarity of the implementation logic.",
+    "severity": 0.4,
+    "confidence": 0.7,
+    "judge_status": "judged_dismissed",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/14"
+        },
+        "snippet": "Parser implementuje LALR(1) gramatiku definovanú v EBNF (Rozvinutá Backusova-Naurova forma) notácii prostredníctvom knižnice Lark . Pred samotným parsovaním sa vykonáva funkcia validate_escape_sequences() , ktorá overuje lexikálnu korektnosť reťazcov a deteguje problémy ako neukončené reťazce či neplatné escape sekvencie. Po úspešnej syntaktickej analýze je vygenerovaný AST, ktorý reprezentuje hierarchickú štruktúru programu v jazyku SOL25 .",
+        "section_path": "2. Lexikálna a syntaktická analýza",
+        "prov": [
+          {
+            "page_no": 2,
+            "bbox": {
+              "l": 70.86599999999999,
+              "t": 93.31304379999995,
+              "r": 524.4133828399999,
+              "b": 153.6659946000001,
+              "coord_origin": "TOPLEFT"
+            },
+            "charspan": [
+              0,
+              445
+            ]
+          }
+        ]
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "STYLE"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "dismissed",
+        "rationale": "The passage is split into three short, focused sentences describing parsing, pre-validation, and AST generation, so it does not violate the rule about overlong unclear sentences.",
+        "reasoning_chain": "Most punctuation findings are false positives because the PDF page images do not show the extracted-text spacing artefacts before commas, colons, or periods; the rendered document appears typographically normal in those places. Several content findings about missing architectural depth are valid, but some need narrowing because the document does provide at least a basic execution flow, semantic-phase structure, and one explicitly named design pattern."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT/readme1.pdf",
+      "student_id": "parser_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "application/pdf",
+        "binary_hash": 2972815187993026368,
+        "filename": "readme1.pdf"
+      },
+      "binary_hash": 2972815187993026368
+    },
+    "finding_id": "CONTENT_ANALYSER:TERM-1",
+    "ac_code": "TERM",
+    "title": "Terminology",
+    "summary": "This phrasing is technically questionable: a design pattern is not normally something used 'through inheritance' in this way, making the terminology potentially inaccurate or misleading.",
+    "severity": 0.4,
+    "confidence": 0.7,
+    "judge_status": "judged_dismissed",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/27"
+        },
+        "snippet": "prostredníctvom dedenia návštevníckeho vzoru",
+        "section_path": "2. Validácia :",
+        "prov": [
+          {
+            "page_no": 2,
+            "bbox": {
+              "l": 70.8660000000001,
+              "t": 343.3410438000002,
+              "r": 524.41261012,
+              "b": 391.7399946000002,
+              "coord_origin": "TOPLEFT"
+            },
+            "charspan": [
+              0,
+              355
+            ]
+          }
+        ]
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "TERM"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "dismissed",
+        "rationale": "Although slightly awkwardly phrased, the text is still technically understandable as describing a nested validator class built using the visitor pattern and inheritance, not a clearly incorrect term usage.",
+        "reasoning_chain": "Most punctuation findings are false positives because the PDF page images do not show the extracted-text spacing artefacts before commas, colons, or periods; the rendered document appears typographically normal in those places. Several content findings about missing architectural depth are valid, but some need narrowing because the document does provide at least a basic execution flow, semantic-phase structure, and one explicitly named design pattern."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT/readme1.pdf",
+      "student_id": "parser_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "application/pdf",
+        "binary_hash": 2972815187993026368,
+        "filename": "readme1.pdf"
+      },
+      "binary_hash": 2972815187993026368
+    },
+    "finding_id": "CONTENT_ANALYSER:FILO-1",
+    "ac_code": "FILO",
+    "title": "Overall Structure",
+    "summary": "The document gives only a compressed summary of phases, but lacks a clearer abstract execution-flow description of the whole program architecture and what follows what in sufficient design-philosophy detail.",
+    "severity": 0.5,
+    "confidence": 0.8,
+    "judge_status": "judged_dismissed",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/6"
+        },
+        "snippet": "Implementovaný analyzátor slúži na spracovanie zdrojového kódu v jazyku SOL25 , zabezpečuje lexikálnu, syntaktickú a sémantickú analýzu, ktorej výsledkom je štandardizovaná XML reprezentácia abstraktného syntaktického stromu (AST).",
+        "section_path": "1. Opis riešenia",
+        "prov": [
+          {
+            "page_no": 1,
+            "bbox": {
+              "l": 70.86599999999993,
+              "t": 248.89604380000003,
+              "r": 524.4095348600001,
+              "b": 297.29399460000013,
+              "coord_origin": "TOPLEFT"
+            },
+            "charspan": [
+              0,
+              323
+            ]
+          }
+        ]
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "FILO"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "dismissed",
+        "rationale": "The document does provide an abstract overall flow—lexical, syntactic, semantic analysis leading to XML output—and later sections expand this sequence, so design philosophy is not missing.",
+        "reasoning_chain": "Most punctuation findings are false positives because the PDF page images do not show the extracted-text spacing artefacts before commas, colons, or periods; the rendered document appears typographically normal in those places. Several content findings about missing architectural depth are valid, but some need narrowing because the document does provide at least a basic execution flow, semantic-phase structure, and one explicitly named design pattern."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT/readme1.pdf",
+      "student_id": "parser_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "application/pdf",
+        "binary_hash": 2972815187993026368,
+        "filename": "readme1.pdf"
+      },
+      "binary_hash": 2972815187993026368
+    },
+    "finding_id": "CONTENT_ANALYSER:IR-1",
+    "ac_code": "IR",
+    "title": "Internal Representation",
+    "summary": "The internal representation is mentioned only at a high level: the text says parsing produces an AST, but it does not explain the AST's node organization, what information individual nodes carry, or how later semantic and XML phases consume that structure.",
+    "severity": 0.6,
+    "confidence": 0.95,
+    "judge_status": "judged_adjusted",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/14"
+        },
+        "snippet": "Po úspešnej syntaktickej analýze je vygenerovaný AST, ktorý reprezentuje hierarchickú štruktúru programu v jazyku SOL25.",
+        "section_path": "2. Lexikálna a syntaktická analýza",
+        "prov": [
+          {
+            "page_no": 2,
+            "bbox": {
+              "l": 70.86599999999999,
+              "t": 93.31304379999995,
+              "r": 524.4133828399999,
+              "b": 153.6659946000001,
+              "coord_origin": "TOPLEFT"
+            },
+            "charspan": [
+              0,
+              445
+            ]
+          }
+        ]
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "IR"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "adjusted",
+        "rationale": "This is a real insufficiency, but the issue is specifically the shallow AST description rather than a total absence of internal-representation discussion.",
+        "reasoning_chain": "Most punctuation findings are false positives because the PDF page images do not show the extracted-text spacing artefacts before commas, colons, or periods; the rendered document appears typographically normal in those places. Several content findings about missing architectural depth are valid, but some need narrowing because the document does provide at least a basic execution flow, semantic-phase structure, and one explicitly named design pattern.",
+        "change": {
+          "fields": [
+            "summary",
+            "severity",
+            "confidence",
+            "snippet"
+          ],
+          "before": {
+            "summary": "The internal representation is described only superficially as an AST, without deeper explanation of node structure, stored metadata, ownership, traversal assumptions, or how semantic information is represented.",
+            "severity": 0.7,
+            "confidence": 1.0,
+            "snippet": "Po úspešnej syntaktickej analýze je vygenerovaný AST, ktorý reprezentuje hierarchickú štruktúru programu v jazyku SOL25 ."
+          },
+          "after": {
+            "summary": "The internal representation is mentioned only at a high level: the text says parsing produces an AST, but it does not explain the AST's node organization, what information individual nodes carry, or how later semantic and XML phases consume that structure.",
+            "severity": 0.6,
+            "confidence": 0.95,
+            "snippet": "Po úspešnej syntaktickej analýze je vygenerovaný AST, ktorý reprezentuje hierarchickú štruktúru programu v jazyku SOL25."
+          }
+        }
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT/readme1.pdf",
+      "student_id": "parser_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "application/pdf",
+        "binary_hash": 2972815187993026368,
+        "filename": "readme1.pdf"
+      },
+      "binary_hash": 2972815187993026368
+    },
+    "finding_id": "CONTENT_ANALYSER:IR-2",
+    "ac_code": "IR",
+    "title": "Internal Representation",
+    "summary": "This mentions internal structures only vaguely and does not explain their architecture, contents, relationships, or role in later phases.",
+    "severity": 0.6,
+    "confidence": 0.9,
+    "judge_status": "judged_approved",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/18"
+        },
+        "snippet": "Spracovanie tried, ich dedičnosti a metód do interných štruktúr.",
+        "section_path": "1. Zhromažďovanie symbolov :",
+        "prov": [
+          {
+            "page_no": 2,
+            "bbox": {
+              "l": 107.72900000000008,
+              "t": 226.7780438000001,
+              "r": 397.38202492,
+              "b": 239.31099460000007,
+              "coord_origin": "TOPLEFT"
+            },
+            "charspan": [
+              0,
+              66
+            ]
+          }
+        ]
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "IR"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "approved",
+        "rationale": "The phrase about processing classes, inheritance, and methods into internal structures is too vague to document the architecture of those structures.",
+        "reasoning_chain": "Most punctuation findings are false positives because the PDF page images do not show the extracted-text spacing artefacts before commas, colons, or periods; the rendered document appears typographically normal in those places. Several content findings about missing architectural depth are valid, but some need narrowing because the document does provide at least a basic execution flow, semantic-phase structure, and one explicitly named design pattern."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT/readme1.pdf",
+      "student_id": "parser_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "application/pdf",
+        "binary_hash": 2972815187993026368,
+        "filename": "readme1.pdf"
+      },
+      "binary_hash": 2972815187993026368
+    },
+    "finding_id": "CONTENT_ANALYSER:IR-3",
+    "ac_code": "IR",
+    "title": "Internal Representation",
+    "summary": "The symbol tables are named but not described in any architectural depth, which is insufficient internal representation documentation.",
+    "severity": 0.6,
+    "confidence": 0.9,
+    "judge_status": "judged_approved",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/19"
+        },
+        "snippet": "Vytváranie tabuliek symbolov pre následné overenie.",
+        "section_path": "1. Zhromažďovanie symbolov :",
+        "prov": [
+          {
+            "page_no": 2,
+            "bbox": {
+              "l": 107.72900000000008,
+              "t": 250.68904380000015,
+              "r": 346.1354067800002,
+              "b": 263.22199460000013,
+              "coord_origin": "TOPLEFT"
+            },
+            "charspan": [
+              0,
+              53
+            ]
+          }
+        ]
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "IR"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "approved",
+        "rationale": "Merely stating that symbol tables are created for later verification does not explain their contents, organization, or role in the implementation.",
+        "reasoning_chain": "Most punctuation findings are false positives because the PDF page images do not show the extracted-text spacing artefacts before commas, colons, or periods; the rendered document appears typographically normal in those places. Several content findings about missing architectural depth are valid, but some need narrowing because the document does provide at least a basic execution flow, semantic-phase structure, and one explicitly named design pattern."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT/readme1.pdf",
+      "student_id": "parser_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "application/pdf",
+        "binary_hash": 2972815187993026368,
+        "filename": "readme1.pdf"
+      },
+      "binary_hash": 2972815187993026368
+    },
+    "finding_id": "CONTENT_ANALYSER:JAK-1",
+    "ac_code": "JAK",
+    "title": "Implementation Details",
+    "summary": "The semantic-analysis section lists checks performed, but does not sufficiently explain implementation techniques or mechanisms beyond the visitor class name.",
+    "severity": 0.5,
+    "confidence": 0.8,
+    "judge_status": "judged_dismissed",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/16"
+        },
+        "snippet": "Sémantická analýza v triede SemanticVisitor prebieha v dvoch fázach:",
+        "section_path": "3. Sémantická analýza",
+        "prov": [
+          {
+            "page_no": 2,
+            "bbox": {
+              "l": 70.86600000000004,
+              "t": 195.89404380000008,
+              "r": 385.63287804000004,
+              "b": 208.42699460000006,
+              "coord_origin": "TOPLEFT"
+            },
+            "charspan": [
+              0,
+              68
+            ]
+          }
+        ]
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "JAK"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "dismissed",
+        "rationale": "The semantic-analysis section gives a concrete implementation structure—two phases with symbol gathering and validation checks plus a nested MethodCallValidator—so it is not technically insufficient at the level required by this rule.",
+        "reasoning_chain": "Most punctuation findings are false positives because the PDF page images do not show the extracted-text spacing artefacts before commas, colons, or periods; the rendered document appears typographically normal in those places. Several content findings about missing architectural depth are valid, but some need narrowing because the document does provide at least a basic execution flow, semantic-phase structure, and one explicitly named design pattern."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT/readme1.pdf",
+      "student_id": "parser_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "application/pdf",
+        "binary_hash": 2972815187993026368,
+        "filename": "readme1.pdf"
+      },
+      "binary_hash": 2972815187993026368
+    },
+    "finding_id": "CONTENT_ANALYSER:BADDP-1",
+    "ac_code": "BADDP",
+    "title": "Design Patterns Missing or Insufficient",
+    "summary": "The document names and briefly explains the Visitor pattern, but its design-pattern discussion is incomplete: it does not clearly distinguish which items are actual design patterns versus general OOP principles, and it gives only limited justification of how the chosen pattern(s) support extensibility across the architecture.",
+    "severity": 0.45,
+    "confidence": 0.8,
+    "judge_status": "judged_adjusted",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/7"
+        },
+        "snippet": "Riešenie je postavené na objektovo orientovanej architektúre s dôrazom na nasledujúce princípy:",
+        "section_path": "1. Opis riešenia",
+        "prov": [
+          {
+            "page_no": 1,
+            "bbox": {
+              "l": 85.80999999999993,
+              "t": 296.71704380000017,
+              "r": 506.02051287999996,
+              "b": 309.24999460000015,
+              "coord_origin": "TOPLEFT"
+            },
+            "charspan": [
+              0,
+              95
+            ]
+          }
+        ]
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "BADDP"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "adjusted",
+        "rationale": "There is a real weakness, but not a complete absence of pattern discussion because Visitor is explicitly named and briefly motivated.",
+        "reasoning_chain": "Most punctuation findings are false positives because the PDF page images do not show the extracted-text spacing artefacts before commas, colons, or periods; the rendered document appears typographically normal in those places. Several content findings about missing architectural depth are valid, but some need narrowing because the document does provide at least a basic execution flow, semantic-phase structure, and one explicitly named design pattern.",
+        "change": {
+          "fields": [
+            "summary",
+            "severity",
+            "confidence"
+          ],
+          "before": {
+            "summary": "The documentation does not provide a clear, comprehensive description of OOP design patterns used. It names Visitor, but does not adequately cover patterns used across the architecture with specific justification for extensibility as required.",
+            "severity": 0.7,
+            "confidence": 0.9,
+            "snippet": "Riešenie je postavené na objektovo orientovanej architektúre s dôrazom na nasledujúce princípy:"
+          },
+          "after": {
+            "summary": "The document names and briefly explains the Visitor pattern, but its design-pattern discussion is incomplete: it does not clearly distinguish which items are actual design patterns versus general OOP principles, and it gives only limited justification of how the chosen pattern(s) support extensibility across the architecture.",
+            "severity": 0.45,
+            "confidence": 0.8,
+            "snippet": "Riešenie je postavené na objektovo orientovanej architektúre s dôrazom na nasledujúce princípy:"
+          }
+        }
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "content_analyser",
+      "name": "Content Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT/readme1.pdf",
+      "student_id": "parser_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "application/pdf",
+        "binary_hash": 2972815187993026368,
+        "filename": "readme1.pdf"
+      },
+      "binary_hash": 2972815187993026368
+    },
+    "finding_id": "CONTENT_ANALYSER:EXT-1",
+    "ac_code": "EXT",
+    "title": "Extensibility",
+    "summary": "The text claims extensibility but provides no concrete examples of future changes the architecture supports, and fewer than two specific extensions are described.",
+    "severity": 0.8,
+    "confidence": 1.0,
+    "judge_status": "judged_approved",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/36"
+        },
+        "snippet": "Implementovaný parser predstavuje komplexné riešenie spracovania jazyka SOL25 s dôrazom na modulárny a rozšíriteľný objektovo orientovaný návrh.",
+        "section_path": "5. Záver",
+        "prov": [
+          {
+            "page_no": 2,
+            "bbox": {
+              "l": 70.8660000000001,
+              "t": 582.3770438000001,
+              "r": 524.4123687399998,
+              "b": 642.7309946000001,
+              "coord_origin": "TOPLEFT"
+            },
+            "charspan": [
+              0,
+              422
+            ]
+          }
+        ]
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "EXT"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "approved",
+        "rationale": "The conclusion claims the design is modular and extensible but gives no concrete future extension scenarios, let alone two specific examples.",
+        "reasoning_chain": "Most punctuation findings are false positives because the PDF page images do not show the extracted-text spacing artefacts before commas, colons, or periods; the rendered document appears typographically normal in those places. Several content findings about missing architectural depth are valid, but some need narrowing because the document does provide at least a basic execution flow, semantic-phase structure, and one explicitly named design pattern."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "asset_analyser",
+      "name": "Asset Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT/readme1.pdf",
+      "student_id": "parser_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "application/pdf",
+        "binary_hash": 2972815187993026368,
+        "filename": "readme1.pdf"
+      },
+      "binary_hash": 2972815187993026368
+    },
+    "finding_id": "ASSET_ANALYSER:SAZBA-1",
+    "ac_code": "SAZBA",
+    "title": "Typography and Formatting",
+    "summary": "Code identifiers are visibly typeset in regular proportional font instead of monospace, e.g. 'SOL25', 'AST', 'SOL25Visitor', 'XMLVisitor', 'SemanticVisitor', and class/member names inside the UML diagram.",
+    "severity": 0.45,
+    "confidence": 0.93,
+    "judge_status": "judged_approved",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/pages/1"
+        },
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4-2026-03-05",
+        "label": "SAZBA",
+        "raw": {
+          "model_snippet": "Code identifiers are visibly typeset in regular proportional font instead of monospace, e.g. 'SOL25', 'AST', 'SOL25Visitor', 'XMLVisitor', 'SemanticVisitor', and class/member names inside the UML diagram.",
+          "classifier_raw_response": null
+        }
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "approved",
+        "rationale": "Page 1 visibly typesets identifiers such as SOL25Visitor, XMLVisitor, SemanticVisitor, AST, and UML class members in regular proportional font rather than monospace.",
+        "reasoning_chain": "Most punctuation findings are false positives because the PDF page images do not show the extracted-text spacing artefacts before commas, colons, or periods; the rendered document appears typographically normal in those places. Several content findings about missing architectural depth are valid, but some need narrowing because the document does provide at least a basic execution flow, semantic-phase structure, and one explicitly named design pattern."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "asset_analyser",
+      "name": "Asset Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT/readme1.pdf",
+      "student_id": "parser_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "application/pdf",
+        "binary_hash": 2972815187993026368,
+        "filename": "readme1.pdf"
+      },
+      "binary_hash": 2972815187993026368
+    },
+    "finding_id": "ASSET_ANALYSER:SAZBA-2",
+    "ac_code": "SAZBA",
+    "title": "Typography and Formatting",
+    "summary": "Code identifiers in the prose are shown in regular proportional font rather than monospace, e.g. 'LALR(1)', 'EBNF', 'Lark', 'validate_escape_sequences()', 'AST', 'SOL25', 'SemanticVisitor', 'MethodCallValidator', and 'xml.etree.ElementTree'.",
+    "severity": 0.4,
+    "confidence": 0.94,
+    "judge_status": "judged_approved",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/pages/2"
+        },
+        "prov": []
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4-2026-03-05",
+        "label": "SAZBA",
+        "raw": {
+          "model_snippet": "Code identifiers in the prose are shown in regular proportional font rather than monospace, e.g. 'LALR(1)', 'EBNF', 'Lark', 'validate_escape_sequences()', 'AST', 'SOL25', 'SemanticVisitor', 'MethodCallValidator', and 'xml.etree.ElementTree'.",
+          "classifier_raw_response": null
+        }
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "approved",
+        "rationale": "Page 2 shows inline identifiers like validate_escape_sequences(), SemanticVisitor, MethodCallValidator, and xml.etree.ElementTree in the same proportional body font as prose.",
+        "reasoning_chain": "Most punctuation findings are false positives because the PDF page images do not show the extracted-text spacing artefacts before commas, colons, or periods; the rendered document appears typographically normal in those places. Several content findings about missing architectural depth are valid, but some need narrowing because the document does provide at least a basic execution flow, semantic-phase structure, and one explicitly named design pattern."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "integrity_analyser",
+      "name": "Integrity Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT/readme1.pdf",
+      "student_id": "parser_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "application/pdf",
+        "binary_hash": 2972815187993026368,
+        "filename": "readme1.pdf"
+      },
+      "binary_hash": 2972815187993026368
+    },
+    "finding_id": "INTEGRITY_ANALYSER:COPY-1",
+    "ac_code": "COPY",
+    "title": "Specification Copying",
+    "summary": "This is an exact reproduction of the assignment-specified required document heading template, so it matches copied text from the specification.",
+    "severity": 0.4,
+    "confidence": 1.0,
+    "judge_status": "judged_dismissed",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/0"
+        },
+        "snippet": "Implementačná dokumentácia k 1. úlohe do IPP 2024/2025",
+        "section_path": "Implementačná dokumentácia k 1. úlohe do IPP 2024/2025",
+        "prov": [
+          {
+            "page_no": 1,
+            "bbox": {
+              "l": 87.613,
+              "t": 110.80558940000003,
+              "r": 507.66359538000006,
+              "b": 126.00678760000005,
+              "coord_origin": "TOPLEFT"
+            },
+            "charspan": [
+              0,
+              54
+            ]
+          }
+        ]
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "COPY"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "dismissed",
+        "rationale": "A required assignment-style title line by itself is too generic and formulaic to count as meaningful copied content under the plagiarism/copy rule.",
+        "reasoning_chain": "Most punctuation findings are false positives because the PDF page images do not show the extracted-text spacing artefacts before commas, colons, or periods; the rendered document appears typographically normal in those places. Several content findings about missing architectural depth are valid, but some need narrowing because the document does provide at least a basic execution flow, semantic-phase structure, and one explicitly named design pattern."
+      }
+    }
+  },
+  {
+    "analyser": {
+      "analyser_id": "integrity_analyser",
+      "name": "Integrity Analyser"
+    },
+    "document": {
+      "source_path": "sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT/readme1.pdf",
+      "student_id": "parser_REDACTED_STUDENT",
+      "origin": {
+        "mimetype": "application/pdf",
+        "binary_hash": 2972815187993026368,
+        "filename": "readme1.pdf"
+      },
+      "binary_hash": 2972815187993026368
+    },
+    "finding_id": "INTEGRITY_ANALYSER:COPY-2",
+    "ac_code": "COPY",
+    "title": "Specification Copying",
+    "summary": "This closely paraphrases the assignment specification sentence describing parse.py: loading SOL25 source code, checking lexical/syntactic/static semantic correctness, and outputting an XML representation of the AST.",
+    "severity": 0.7,
+    "confidence": 0.9,
+    "judge_status": "judged_dismissed",
+    "human_status": "proposed",
+    "generator_model": "gpt-5.4-2026-03-05",
+    "judge_model": "gpt-5.4-2026-03-05",
+    "anchors": [
+      {
+        "target": {
+          "$ref": "#/texts/6"
+        },
+        "snippet": "Implementovaný analyzátor slúži na spracovanie zdrojového kódu v jazyku SOL25 , zabezpečuje lexikálnu, syntaktickú a sémantickú analýzu, ktorej výsledkom je štandardizovaná XML reprezentácia abstraktného syntaktického stromu (AST).",
+        "section_path": "1. Opis riešenia",
+        "prov": [
+          {
+            "page_no": 1,
+            "bbox": {
+              "l": 70.86599999999993,
+              "t": 248.89604380000003,
+              "r": 524.4095348600001,
+              "b": 297.29399460000013,
+              "coord_origin": "TOPLEFT"
+            },
+            "charspan": [
+              0,
+              323
+            ]
+          }
+        ]
+      }
+    ],
+    "stats": [],
+    "model_evals": [
+      {
+        "model_name": "gpt-5.4",
+        "label": "COPY"
+      }
+    ],
+    "notes": [],
+    "meta": {
+      "judge": {
+        "decision": "dismissed",
+        "rationale": "This is a generic description of the student's own analyzer and its phases; without stronger overlap evidence, it is not enough to confirm copied or closely paraphrased specification text.",
+        "reasoning_chain": "Most punctuation findings are false positives because the PDF page images do not show the extracted-text spacing artefacts before commas, colons, or periods; the rendered document appears typographically normal in those places. Several content findings about missing architectural depth are valid, but some need narrowing because the document does provide at least a basic execution flow, semantic-phase structure, and one explicitly named design pattern."
+      }
+    }
+  }
+]

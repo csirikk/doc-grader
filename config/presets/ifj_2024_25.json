@@ -40,7 +40,7 @@
             "analyser_id": "integrity_analyser",
             "enabled": true,
             "params": {
-                "spec_path": "data/ifj/spec/ifj2425spec.pdf",
+                "spec_path": "data/specs/ifj2425spec.pdf",
                 "min_chunk_len": 40,
                 "copy_engine": "local"
             }

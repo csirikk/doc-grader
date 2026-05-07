@@ -1,0 +1,105 @@
+{
+  "run": {
+    "run_id": "run-20260507T130448Z",
+    "config_hash": "sha256:18e7f5e986a589e42dddb06a94636070ec27073d0ed72f2cce356a2c50e10ad3",
+    "config_path": "config/experiments/ipp_2024_25_par_gpt54_all.json",
+    "output_dir": "out/sample_par"
+  },
+  "counts": {
+    "n_documents": 1,
+    "n_processed_documents": 1,
+    "n_skipped_documents": 0,
+    "n_parsed_documents": 1,
+    "n_parse_failures": 0,
+    "n_grader_rows": 1,
+    "n_clean_csv_rows": 8
+  },
+  "stage_times": {
+    "by_stage": {
+      "asset_analyser": {
+        "calls": 1,
+        "total_seconds": 8.7697,
+        "avg_seconds": 8.7697,
+        "min_seconds": 8.7697,
+        "max_seconds": 8.7697
+      },
+      "content_analyser": {
+        "calls": 1,
+        "total_seconds": 26.9395,
+        "avg_seconds": 26.9395,
+        "min_seconds": 26.9395,
+        "max_seconds": 26.9395
+      },
+      "grammar_analyser": {
+        "calls": 1,
+        "total_seconds": 0.0,
+        "avg_seconds": 0.0,
+        "min_seconds": 0.0,
+        "max_seconds": 0.0
+      },
+      "integrity_analyser": {
+        "calls": 1,
+        "total_seconds": 11.4865,
+        "avg_seconds": 11.4865,
+        "min_seconds": 11.4865,
+        "max_seconds": 11.4865
+      },
+      "judge": {
+        "calls": 1,
+        "total_seconds": 24.0043,
+        "avg_seconds": 24.0043,
+        "min_seconds": 24.0043,
+        "max_seconds": 24.0043
+      },
+      "parse": {
+        "calls": 1,
+        "total_seconds": 3.7744,
+        "avg_seconds": 3.7744,
+        "min_seconds": 3.7744,
+        "max_seconds": 3.7744
+      },
+      "rule_engine": {
+        "calls": 1,
+        "total_seconds": 0.0008,
+        "avg_seconds": 0.0008,
+        "min_seconds": 0.0008,
+        "max_seconds": 0.0008
+      },
+      "score": {
+        "calls": 1,
+        "total_seconds": 0.0006,
+        "avg_seconds": 0.0006,
+        "min_seconds": 0.0006,
+        "max_seconds": 0.0006
+      },
+      "structure_analyser": {
+        "calls": 1,
+        "total_seconds": 0.0001,
+        "avg_seconds": 0.0001,
+        "min_seconds": 0.0001,
+        "max_seconds": 0.0001
+      }
+    },
+    "total_tracked_seconds": 74.976,
+    "total_stage_invocations": 9
+  },
+  "usage": {
+    "by_model": {
+      "gpt-5.4-2026-03-05": {
+        "calls": 4,
+        "prompt_tokens": 34256,
+        "completion_tokens": 3992,
+        "cached_tokens": 0,
+        "cost_eur": 0.133878
+      }
+    },
+    "total_prompt_tokens": 34256,
+    "total_completion_tokens": 3992,
+    "total_cached_tokens": 0,
+    "total_cost_eur": 0.133878,
+    "costs_by_model_eur": {
+      "gpt-5.4-2026-03-05": 0.133878
+    }
+  },
+  "elapsed_seconds": 81.0662
+}
