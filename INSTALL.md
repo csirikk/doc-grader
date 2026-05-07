@@ -19,9 +19,16 @@ Choose one of the two installation methods below.
 
 Recommended. Conda will install the correct Python version and handle complex non-Python dependencies (like C++ components) inside the environment.
 
+To ensure exact reproducibility, use the strictly locked environment file.
+*(Note: The locked file is generated for Linux. If you are reviewing this on macOS or Windows, use the unpinned fallback command below to allow Conda to resolve the correct system binaries for your platform).*
+
 Create the environment:
 
 ```bash
+# For Linux (strict reproducibility)
+conda env create -f environment-lock.yml
+
+# For macOS / Windows (fallback)
 conda env create -f environment.yml
 ```
 
@@ -31,8 +38,7 @@ Activate the environment:
 conda activate doc-grader
 ```
 
-After activating the environment, install the project in editable mode so
-local changes are picked up by notebooks and scripts:
+After activating the environment, install the project in editable mode so local changes are picked up by notebooks and scripts, and the tool can properly locate the configuration directory in the repository root:
 
 ```bash
 pip install -e .
@@ -49,9 +55,10 @@ python -m venv .venv
 source .venv/bin/activate
 ```
 
-Install the package and its dependencies:
+To ensure exact reproducibility, first install the strictly locked dependencies, then install the tool itself in editable mode (this is required for the tool to locate configuration files in the repository root):
 
 ```bash
+pip install -r requirements-lock.txt
 pip install -e .
 ```
 
@@ -75,3 +82,27 @@ The project uses `python-dotenv` to manage secrets. Create a `.env` file in the 
 ```bash
 touch .env
 ```
+
+## 5. Fallback Configurations
+
+By default, the tool attempts to use a private fine-tuned model. If you are an external user without access, use one of these fallback configurations to run the tool:
+
+```bash
+doc-grader <path_or_folder> -c config/experiments/generic_classifier_fallback.json
+```
+
+For maximum portability without LLM calls, use the local-only preset:
+
+```bash
+doc-grader <path_or_folder> -c config/experiments/local_only.json
+```
+
+For details on model routing and reproducibility boundaries, see [docs/overview.md](docs/overview.md).
+
+## 6. First-Run Operational Prerequisites
+
+Before starting a batch run, ensure that:
+
+- The selected profile in `config/` matches the assessed course variant.
+- Java is installed whenever grammar analysis is enabled.
+- `OPENAI_API_KEY` is set whenever the selected profile enables LLM-backed analysers or judge review.

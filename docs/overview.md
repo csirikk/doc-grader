@@ -1,6 +1,6 @@
 # Project Overview
 
-This document explains how the repository is organised and how the main parts work together.
+This document is an architecture and operations overview of the repository. It explains how the main parts work together, how model routing is resolved, and which output artefacts are expected from routine runs.
 
 The repository has two working areas:
 
@@ -9,7 +9,6 @@ The repository has two working areas:
 
 ## doc_grader
 
-The CLI entry point is `doc-grader <path_or_folder>`.
 The runtime flow is:
 
 1. Parse input into a shared IR
@@ -39,19 +38,59 @@ Configuration lives under `config/`.
 A preset controls which analysers run and how they run.
 A rulebook defines criteria, prompt instructions, and severity weights.
 
+### Model Routing and Access Limits
+
+The asset pipeline supports three execution backends, selected per rule:
+
+- `vision`: Generic vision-model path for diagram and page interpretation.
+- `classifier`: BADUML-style binary UML quality path using a classifier model.
+- `deterministic`: In-code checks that do not require model calls.
+
+Classifier rules are routed through `asset_analyser.params.classifier_model`.
+In shipped defaults and presets, this setting points to a private fine-tuned OpenAI model tied to the owner account/project.
+
+Because of this access boundary, external API keys may not be able to call the same classifier model. When classifier calls fail, the pipeline continues and other analysers still run, but classifier-dependent UML findings can be reduced or missing.
+
+Fallback profiles for external users:
+
+- `config/experiments/generic_classifier_fallback.json`: Keeps OpenAI-backed grading paths but swaps the private classifier for a generic accessible model.
+- `config/experiments/local_only.json`: Uses local/deterministic paths and avoids LLM calls for maximum portability.
+
+Reproducibility boundary:
+
+- Local and deterministic checks are generally reproducible after setup.
+- Generic OpenAI-backed checks are reproducible when equivalent model/version access exists.
+- Classifier-backed BADUML results are conditionally reproducible unless an equivalent accessible fine-tuned classifier is provided.
+
 ### Runtime outputs
 
-Each processed student gets an individual output directory, e.g. `out/<id>/`. Key files:
+Each processed student gets an individual output directory, for example `out/<student_id>/`.
 
-- `info.json`: run metadata, stage timings, and counts
-- `ir.json`: parsed intermediate representation
-- `docling.json`: raw Docling extraction
-- `parser_findings.json`: parser-level issues
-- `raw_findings.json`: analyser output before judge
-- `judged_findings.json`: judge output when enabled
-- `findings.json`: final filtered findings
+Per-student artefacts:
 
-Optional run-level CSV export is available through `--csv-out`.
+- `info.json`: run and config metadata, stage timings, usage summary, and counts.
+- `ir.json`: parsed intermediate representation used by analysers.
+- `docling.json`: raw Docling extraction output.
+- `parser_findings.json`: parser-stage findings.
+- `raw_findings.json`: analyser findings before judge and rule-engine post-processing.
+- `judged_findings.json`: findings after judge stage when judge is enabled.
+- `findings.json`: final filtered findings used for review/export.
+
+Run-level artefact:
+
+- `run_summary.json`: aggregate counts, stage timings, and usage/cost summary across all processed documents in the run.
+
+Optional exports:
+
+- Run-level CSV export through `--csv-out`.
+
+### Operational caveats
+
+During routine operation, the following caveats are the most important:
+
+- If no matching document is discovered, the parser emits a missing-document finding so the case remains visible in outputs.
+- If parsing fails, parser artefacts are still written, but later analyser stages do not execute for that document.
+- The reviewer workspace should consume `findings.json` as the final reviewer-facing result.
 
 ## Notebooks
 
@@ -70,20 +109,6 @@ Typical responsibilities in `notebooks/scripts/` include:
 
 - `data/`: source datasets, specs, and supporting material, not provided in the repository
 - `docs/`: written documentation for architecture, plans, and findings
-
-## Usage
-
-Runtime grading run:
-
-```bash
-doc-grader <path_or_folder>
-```
-
-Open review UI locally only:
-
-```bash
-streamlit run doc_grader/ui/app.py --server.address 127.0.0.1
-```
 
 Notebook analysis workflow:
 
