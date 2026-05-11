@@ -98,6 +98,7 @@
       "analyser_id": "integrity_analyser",
       "course": null,
       "prompt_instruction": "The document includes copied or closely paraphrased passages from the assignment specification.",
+      "judge_instruction": "Approve only for substantial copied or closely paraphrased passages. Dismiss overlaps limited to mandatory assignment terminology, grammar symbols, API names, or short formulaic phrases.",
       "is_legacy": true,
       "ac_code": "COPY",
       "severity_weight": 0.1375
@@ -107,6 +108,7 @@
       "analyser_id": "structure_analyser",
       "course": null,
       "prompt_instruction": "The documentation fails to document the project due to its brevity or holds little substance.",
+      "judge_instruction": "The IFJ spec targets about 3-5 A4 pages, excluding mandatory tables and diagrams. Do not decide from page count alone; approve only when substance is clearly insufficient or major mandatory content is missing.",
       "is_legacy": true,
       "ac_code": "SHORT",
       "severity_weight": 0.15
@@ -116,6 +118,7 @@
       "analyser_id": "structure_analyser",
       "course": null,
       "prompt_instruction": "Consecutive headings appear without meaningful explanatory text between them.",
+      "judge_instruction": "Do not flag table-of-contents entries, appendix indexes, or heading-like labels used inside required lists/tables. Approve only when a real document section is empty in the main explanatory body.",
       "is_legacy": true,
       "ac_code": "KAPTXT",
       "severity_weight": 0.0
@@ -124,7 +127,8 @@
       "title": "Missing Document Structure",
       "analyser_id": "content_analyser",
       "course": null,
-      "prompt_instruction": "The document lacks basic organizational structure, specifically failing to use clear headings or sections to divide different topics.",
+      "prompt_instruction": "The document lacks basic organizational structure, specifically failing to use clear headings or sections to divide different topics, or failing to provide a clear implementation decomposition that helps locate main compiler parts.",
+      "judge_instruction": "Do not use STRUCT for isolated missing mandatory IFJ artefacts already covered by specific IFJ rules. Approve STRUCT only when overall document organization is materially poor.",
       "is_legacy": true,
       "ac_code": "STRUCT",
       "severity_weight": 0.2
@@ -134,6 +138,7 @@
       "analyser_id": "content_analyser",
       "course": null,
       "prompt_instruction": "Unnatural mixing of languages (Czech, Slovak, English). English terms in Czech/Slovak text are penalised unless they are standard technical terminology or exact identifiers from the source code.",
+      "judge_instruction": "Allow standard compiler terminology, rulebook/acronym tokens (for example LL, parser, token), and exact code/spec identifiers. Approve only for clear unnecessary language mixing in running prose.",
       "is_legacy": true,
       "ac_code": "LANG",
       "severity_weight": 0.05
@@ -142,7 +147,7 @@
       "title": "Grammar and Spelling",
       "analyser_id": "content_analyser",
       "course": null,
-      "prompt_instruction": "Spelling and grammar mistakes, including punctuation errors.",
+      "prompt_instruction": "Spelling and grammar mistakes, including punctuation errors. Do not flag likely OCR or extraction artefacts (for example broken diacritics or random intra-word spaces) unless the issue is clearly visible in the rendered document.",
       "is_legacy": true,
       "ac_code": "CH",
       "severity_weight": 0.05
@@ -152,6 +157,7 @@
       "analyser_id": "content_analyser",
       "course": null,
       "prompt_instruction": "Problematic, inaccurate, or incorrect technical terminology.",
+      "judge_instruction": "Approve only when terminology is clearly incorrect in context. Dismiss if notation is unusual but explicitly defined and used consistently by the team.",
       "is_legacy": true,
       "ac_code": "TERM",
       "severity_weight": 0.05
@@ -178,7 +184,8 @@
       "title": "Typography and Formatting",
       "analyser_id": "asset_analyser",
       "course": null,
-      "prompt_instruction": "Typography and formatting violations: (1) code identifiers such as variable names, function names, or class names appear in standard body font instead of a monospace/fixed-width font; (2) text paragraphs not justified to block alignment, appearing left-aligned as 'prapor'; (3) inconsistent font sizes or types within sections without semantic purpose; (4) incorrect spacing around brackets or punctuation, for example a space before a closing bracket or after an opening bracket; (5) broken Markdown rendering artefacts visible in the PDF output, such as raw asterisks or backticks.",
+      "prompt_instruction": "Typography and formatting violations in the rendered document: (1) inline code identifiers in running prose are not typeset in monospace/fixed-width font; (2) text paragraphs are not justified to block alignment, appearing left-aligned as 'prapor'; (3) inconsistent font sizes or types within a section without semantic purpose; (4) incorrect spacing around brackets or punctuation that is clearly visible on the rendered page; (5) broken Markdown rendering artefacts visible in the PDF output, such as raw asterisks or backticks. Do not flag UML class names, diagram labels, or table symbols solely for not being monospace.",
+      "judge_instruction": "Approve only for issues clearly visible on rendered page images. Do not rely on OCR artefacts. Do not flag UML labels, grammar symbols, or table cells solely for non-monospace rendering.",
       "is_legacy": true,
       "ac_code": "SAZBA",
       "severity_weight": 0.0,
@@ -188,7 +195,8 @@
       "title": "Insufficient Cover Page",
       "analyser_id": "content_analyser",
       "course": "ifj",
-      "prompt_instruction": "The cover page is missing required information, specifically: first and last name of all students, leader highlighted, point distribution, variant identifier.",
+      "prompt_instruction": "The first page is missing required IFJ metadata: names and surnames with logins for all team members, explicit leader marking, points distribution, variant identification in team/variant form, and identifiers of implemented extensions.",
+      "judge_instruction": "Judge against IFJ section 12.3 mandatory first-page items. Approve when any required item is truly absent. Accept semantically equivalent wording and layout.",
       "is_legacy": false,
       "ac_code": "COVER",
       "severity_weight": 0.0
@@ -197,7 +205,8 @@
       "title": "Lexical Analysis",
       "analyser_id": "content_analyser",
       "course": "ifj",
-      "prompt_instruction": "Missing or insufficient description of the lexical analysis, specifically lacking details about the finite automaton or how comments and complex lexemes are handled.",
+      "prompt_instruction": "Missing or insufficient lexical-analysis documentation, including finite automaton specification and handling of comments, escape sequences, and complex lexemes.",
+      "judge_instruction": "Approve when lexical-analysis content is missing key implementation details or when required finite automaton documentation is absent or unusable.",
       "is_legacy": true,
       "ac_code": "KA",
       "severity_weight": 0.0
@@ -206,7 +215,8 @@
       "title": "LL Table",
       "analyser_id": "content_analyser",
       "course": "ifj",
-      "prompt_instruction": "The documentation is missing the required top-down parser LL table, or the provided table is visibly flawed (e.g., ignoring FOLLOW sets for epsilon rules).",
+      "prompt_instruction": "The documentation is missing required LL artefacts for syntax analysis: LL grammar and LL table, or the provided LL table is visibly flawed (for example epsilon/FOLLOW handling).",
+      "judge_instruction": "Approve when LL grammar or LL table is missing, unreadable, or clearly wrong. Do not infer absence only from a short snippet; verify against the full attached document.",
       "is_legacy": true,
       "ac_code": "LLT",
       "severity_weight": 0.0
@@ -215,7 +225,8 @@
       "title": "LL Table Issues",
       "analyser_id": "content_analyser",
       "course": "ifj",
-      "prompt_instruction": "Errors or deficiencies in the LL table entries or structure.",
+      "prompt_instruction": "Errors or deficiencies in LL grammar/table quality, such as inconsistent productions, incorrect table entries, or mismatch between documented grammar and parsing strategy.",
+      "judge_instruction": "Approve only with concrete inconsistency evidence from the shown grammar/table content. Dismiss generic claims without specific mismatch.",
       "is_legacy": true,
       "ac_code": "LL",
       "severity_weight": 0.0
@@ -224,7 +235,8 @@
       "title": "Precedence Table",
       "analyser_id": "content_analyser",
       "course": "ifj",
-      "prompt_instruction": "The documentation is missing the precedence table required for expression analysis, or the provided table is unreadable or visibly incorrect.",
+      "prompt_instruction": "The documentation is missing the precedence table required for expression analysis, or the provided precedence table is unreadable or visibly incorrect.",
+      "judge_instruction": "Approve when precedence table is missing, unreadable, or clearly inconsistent with the described expression parser. Verify presence in the whole document before dismissing/approving.",
       "is_legacy": true,
       "ac_code": "PT",
       "severity_weight": 0.0
@@ -233,7 +245,8 @@
       "title": "Syntax Analysis",
       "analyser_id": "content_analyser",
       "course": "ifj",
-      "prompt_instruction": "Missing, insufficient, or inaccurate description of syntax analysis (e.g., falsely claiming that recursive descent is implemented by having a function for every grammar rule).",
+      "prompt_instruction": "Missing, insufficient, or inaccurate description of syntax analysis for non-expression constructs, including parser strategy, relation to LL grammar/table, and core parsing decisions.",
+      "judge_instruction": "Approve only when the non-expression syntax-analysis description is materially incomplete or incorrect. Distinguish this from expression-precedence details handled by SAV/PSA/PT.",
       "is_legacy": true,
       "ac_code": "SA",
       "severity_weight": 0.0
@@ -242,7 +255,8 @@
       "title": "Expression Syntax",
       "analyser_id": "content_analyser",
       "course": "ifj",
-      "prompt_instruction": "Missing or insufficient description regarding the syntax analysis of expressions.",
+      "prompt_instruction": "Missing or insufficient description of expression syntax analysis, including stack operations, shift/reduce flow, and acceptance/error behavior.",
+      "judge_instruction": "Approve when expression parsing is explained only at a slogan level (for example only 'we use precedence table and stack') without operational detail.",
       "is_legacy": true,
       "ac_code": "SAV",
       "severity_weight": 0.0
@@ -251,7 +265,8 @@
       "title": "Semantic Analysis",
       "analyser_id": "content_analyser",
       "course": "ifj",
-      "prompt_instruction": "Missing or insufficiently specific description of semantic analysis, typically failing to describe precisely what semantic checks are performed.",
+      "prompt_instruction": "Missing or insufficiently specific description of semantic analysis, especially when concrete checks are not enumerated (for example undefined symbols, call arity/type checks, redeclaration, return compatibility, type compatibility/inference issues).",
+      "judge_instruction": "Approve only when semantic-analysis checks are materially underspecified. If concrete checks are explicitly listed, dismiss broad insufficiency claims.",
       "is_legacy": true,
       "ac_code": "SEA",
       "severity_weight": 0.0
@@ -260,7 +275,8 @@
       "title": "Precedence Syntax",
       "analyser_id": "content_analyser",
       "course": "ifj",
-      "prompt_instruction": "Missing or insufficient description of precedence-based syntax analysis.",
+      "prompt_instruction": "Missing or insufficient description of precedence-based expression analysis, including precedence relations, parser actions, and reduction mechanics.",
+      "judge_instruction": "Approve when precedence-analysis behavior is unclear beyond naming the method or table. Require at least one concrete algorithmic explanation.",
       "is_legacy": true,
       "ac_code": "PSA",
       "severity_weight": 0.0
@@ -269,7 +285,8 @@
       "title": "Symbol Table",
       "analyser_id": "content_analyser",
       "course": "ifj",
-      "prompt_instruction": "Missing or insufficient description of the symbol table implementation, specifically lacking details about scoping and internal structure.",
+      "prompt_instruction": "Missing or insufficient description of symbol-table implementation, especially scoping behavior, internal structure, and variant-specific design rationale when deviating from prescribed approach.",
+      "judge_instruction": "Approve when symbol-table internals and scope behavior are not concretely explained. Dismiss if implementation structure and scope operations are sufficiently specified.",
       "is_legacy": true,
       "ac_code": "TS",
       "severity_weight": 0.0
@@ -278,7 +295,8 @@
       "title": "Code Generation",
       "analyser_id": "content_analyser",
       "course": "ifj",
-      "prompt_instruction": "Missing or insufficient description of code generation steps or target language mapping.",
+      "prompt_instruction": "Missing or insufficient description of code generation steps, mapping of source constructs to IFJcode24 instructions, or file-level decomposition showing where major compiler parts are implemented.",
+      "judge_instruction": "Approve when generation is described only superficially without concrete mapping/examples or when implementation decomposition is missing enough to track major compiler parts.",
       "is_legacy": true,
       "ac_code": "GK",
       "severity_weight": 0.0
@@ -287,7 +305,8 @@
       "title": "Team Split",
       "analyser_id": "content_analyser",
       "course": "ifj",
-      "prompt_instruction": "Missing description of the division of work among team members.",
+      "prompt_instruction": "Missing or insufficient description of division of work among team members, including who implemented which compiler parts and justification for any non-equal point split.",
+      "judge_instruction": "Approve when team split lacks either per-member contribution mapping or mandatory justification of unequal split. Dismiss when both are clearly documented.",
       "is_legacy": true,
       "ac_code": "RP",
       "severity_weight": 0.0

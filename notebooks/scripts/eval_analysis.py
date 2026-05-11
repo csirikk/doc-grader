@@ -365,7 +365,7 @@ def visualise_student_precision_by_variant(
     return _visualise_student_metric_by_variant(
         per_student_df,
         metric_col="student_precision",
-        title="Student Precision by Variant",
+        title="Student Precision by Benchmark Subset",
         ylabel="Precision",
         save_path=save_path,
     )
@@ -378,7 +378,7 @@ def visualise_student_recall_by_variant(
     return _visualise_student_metric_by_variant(
         per_student_df,
         metric_col="student_recall",
-        title="Student Recall by Variant",
+        title="Student Recall by Benchmark Subset",
         ylabel="Recall",
         save_path=save_path,
     )
@@ -406,7 +406,7 @@ def visualise_absolute_score_error_by_variant(
         order=variant_order,
         palette=TASK_VARIANT_PALETTE,
     )
-    ax.set_title("Absolute Score Error by Variant")
+    ax.set_title("Absolute Score Error Benchmark Subset")
     ax.set_xlabel("Task variant")
     ax.set_ylabel("Absolute score error (% points)")
     _save_or_show(fig, save_path)
@@ -446,7 +446,7 @@ def visualise_per_code_precision_recall(
     return render_plot(
         _plot_per_code_precision_recall,
         data=melted,
-        title="Per-code Precision and Recall (Top 15 by Gold Frequency)",
+        title="Per-code Precision and Recall",
         xlabel="Code",
         ylabel="Metric value (%)",
         save_path=save_path,
@@ -1113,7 +1113,7 @@ def visualise_judge_survival_rate(
 def visualise_cost_by_variant(
     per_student_df: pd.DataFrame, save_path: Path | None = None
 ) -> Axes | None:
-    """Strip and box plot of cost per document by variant."""
+    """Strip and box plot of cost per document by benchmark subset."""
     df = _validate_data(per_student_df, ["cost_eur"], "visualise_cost_by_variant")
     if df is None:
         return None
@@ -1162,7 +1162,7 @@ def visualise_cost_vs_doc_points(
 def visualise_latency_by_variant(
     per_student_df: pd.DataFrame, save_path: Path | None = None
 ) -> Axes | None:
-    """Strip and box plot of elapsed_seconds per document by variant."""
+    """Strip and box plot of elapsed_seconds per document by benchmark subset."""
     df = _validate_data(
         per_student_df, ["elapsed_seconds"], "visualise_latency_by_variant"
     )

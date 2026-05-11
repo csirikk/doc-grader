@@ -1,10 +1,9 @@
 {
     "course": "ifj",
     "rulebook_path": "config/rulebooks/ifj_2024_25.json",
-    "expected_filename": "documentation",
+    "expected_filename": "dokumentace",
     "allowed_extensions": [
-        ".pdf",
-        ".md"
+        ".pdf"
     ],
     "judge": true,
     "judge_model": "gpt-5.4",
