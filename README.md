@@ -28,9 +28,8 @@ Depending on the configured profile and rulebook, the tool analyses:
 - `config/`: presets, experiments, and rulebooks
 - `docs/`: project and architecture documentation
 - `notebooks/`: analysis and evaluation notebooks
-- `data/`: input datasets and reference material, not provided here
-- `sample_data/`: small bundled IFJ and IPP submissions for quick local runs
-- `outputs/`: generated evaluation outputs
+- `data/`: bundled IFJ/IPP samples, specs, and cleaned dataset
+- `out/`: generated runtime outputs and bundled demo runs
 
 ## Installation
 
@@ -59,38 +58,41 @@ doc-grader path/to/cohort-folder
 
 ### Example Runs
 
-Quick checks on `sample_data/`:
+Quick checks on bundled samples in `data/`:
 
 ```bash
 # IPP 2024/2025 individual preset
-doc-grader sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT -c config/presets/ipp_2024_25_int.json -o outputs/sample_ipp_int
+doc-grader data/ipp/ipp2425/int/int_REDACTED_STUDENT -c config/presets/ipp_2024_25_int.json -o out/sample_ipp_int
 
 # IPP 2024/2025 parser preset
-doc-grader sample_data/ipp/ipp2425/parser/parser_REDACTED_STUDENT -c config/presets/ipp_2024_25_par.json -o outputs/sample_ipp_par
+doc-grader data/ipp/ipp2425/parser/parser_REDACTED_STUDENT -c config/presets/ipp_2024_25_par.json -o out/sample_ipp_par
 
 # IFJ 2024/2025 preset
-doc-grader sample_data/ifj/ifj2425/REDACTED_STUDENT -c config/presets/ifj_2024_25.json -o outputs/sample_ifj
+doc-grader data/ifj/ifj2425/REDACTED_STUDENT -c config/presets/ifj_2024_25.json -o out/sample_ifj
 
 # External-friendly fallback (no private classifier dependency)
-doc-grader sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT -c config/experiments/generic_classifier_fallback.json -o outputs/sample_fallback
+doc-grader data/ipp/ipp2425/int/int_REDACTED_STUDENT -c config/experiments/generic_classifier_fallback.json -o out/sample_fallback
 
 # Parse-only smoke check
-doc-grader sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT -c config/experiments/parse_only.json -o outputs/sample_parse_only
+doc-grader data/ipp/ipp2425/int/int_REDACTED_STUDENT -c config/experiments/parse_only.json -o out/sample_parse_only
 
 # Local-only run (no LLM calls)
-doc-grader sample_data/ipp/ipp2425/int/int_REDACTED_STUDENT -c config/experiments/local_only.json -o outputs/sample_local_only
+doc-grader data/ipp/ipp2425/int/int_REDACTED_STUDENT -c config/experiments/local_only.json -o out/sample_local_only
 ```
+
+Note: the bundled IPP sample filenames (`readme1.pdf`, `readme2.md`) are intentionally non-canonical, so parser finding `DOCTYPE` appears in sample outputs.
 
 ### CLI options
 
-| Option              | Description                         |
-|---------------------|-------------------------------------|
-| `-h, --help`        | Show help message                   |
-| `-d, --debug`       | Enable debug logging                |
-| `-o, --out PATH`    | Output directory                    |
-| `-c, --config PATH` | Config file                         |
-| `--csv-out PATH`    | Write merged CSV findings           |
-| `--skip-existing`   | Skip students with existing outputs |
+| Option                 | Description                             |
+|------------------------|-----------------------------------------|
+| `-h, --help`           | Show help message                       |
+| `-d, --debug`          | Enable debug logging                    |
+| `-o, --out PATH`       | Output directory                        |
+| `-c, --config PATH`    | Config file                             |
+| `--csv-out PATH`       | Write merged CSV findings               |
+| `--clean-csv-out PATH` | Write all findings as dataset-style CSV |
+| `--skip-existing`      | Skip students with existing outputs     |
 
 ## Review UI
 
@@ -102,7 +104,9 @@ streamlit run doc_grader/ui/app.py
 
 In the sidebar, load any run directory under `out/` that contains `findings.json`.
 
-For immediate viewing, a pre-generated demo run output is available at `out/sample_par/` and `out/sample_int`
+For immediate viewing, bundled demo run outputs are available at `out/sample_par/` and `out/sample_int/`.
+
+The sample commands above create their own output folders (`out/sample_ipp_int/`, `out/sample_ipp_par/`, `out/sample_ifj/`, `out/sample_fallback/`, `out/sample_parse_only/`, and `out/sample_local_only/`).
 
 ## Quick Links
 

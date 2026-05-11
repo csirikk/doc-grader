@@ -96,7 +96,12 @@ During routine operation, the following caveats are the most important:
 
 The `notebooks/` folder is the analysis workspace. It contains experiment notebooks, evaluation notebooks, and exported reports.
 
-The `notebooks/scripts/` folder contains reusable Python modules used by notebooks. These scripts hold shared parsing, constants, and evaluation logic so notebooks stay focused on analysis.
+- `notebooks/evaluation.ipynb`: tool evaluation against the gold IPP dataset.
+- `notebooks/evaluation_ifj.ipynb`: tool evaluation against a 40-document IFJ subset.
+- `notebooks/ipp_doc_data_analysis.ipynb`: IPP historic assessment data analysis.
+
+Notebooks use helper scripts from `notebooks/scripts/`.
+These scripts hold shared parsing, constants, and evaluation logic so notebooks stay focused on analysis.
 
 Typical responsibilities in `notebooks/scripts/` include:
 

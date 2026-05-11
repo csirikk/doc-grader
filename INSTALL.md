@@ -1,17 +1,21 @@
 # Installation
 
-This tool requires **Python 3.14** or newer.
+This tool requires **Python 3.14** or newer, so it is not installable on FIT BUT CVT computers.
 
-## 1. Clone the Repository
+## External Dependencies
 
-Open your terminal and clone the project to your local machine and enter the root:
+Some libraries used by this tool have requirements beyond Python packages:
+
+- **Java:** `language-tool-python` requires a Java Runtime Environment (JRE). If not installed, you can usually get it via your package manager:
 
 ```bash
-git clone https://github.com/csirikk/doc-grader
-cd doc-grader
+# For Ubuntu/Debian
+sudo apt update && sudo apt install default-jre
 ```
 
-## 2. Package Managers
+- **NLP Models:** On the first run, `stanza` and `sentence-transformers` will attempt to download pre-trained models. Ensure you have an active internet connection.
+
+## Package Managers
 
 Choose one of the two installation methods below.
 
@@ -62,28 +66,13 @@ pip install -r requirements-lock.txt
 pip install -e .
 ```
 
-## 3. External Dependencies
-
-Some libraries used by this tool have requirements beyond Python packages:
-
-- **Java:** `language-tool-python` requires a Java Runtime Environment (JRE). If not installed, you can usually get it via your package manager:
-
-```bash
-# For Ubuntu/Debian
-sudo apt update && sudo apt install default-jre
-```
-
-- **NLP Models:** On the first run, `stanza` and `sentence-transformers` will attempt to download pre-trained models. Ensure you have an active internet connection.
-
-## 4. Environment Configuration
+## Environment Configuration
 
 The project uses `python-dotenv` to manage secrets. Create a `.env` file in the root directory to store your API keys and set the `OPENAI_API_KEY` variable to your OpenAI API key.
 
 ```bash
 touch .env
 ```
-
-## 5. Fallback Configurations
 
 By default, the tool attempts to use a private fine-tuned model. If you are an external user without access, use one of these fallback configurations to run the tool:
 
@@ -104,9 +93,5 @@ Before starting a run, ensure that:
 - The selected profile in `config/` matches the assessed course variant.
 - Java is installed whenever grammar analysis is enabled.
 - `OPENAI_API_KEY` is set whenever the selected profile enables LLM-backed analysers or judge review.
-
-## 6. Run And Review
-
-This guide focuses on environment setup and dependency requirements.
 
 For runnable sample commands and Streamlit review workflow, use [README.md](README.md).
