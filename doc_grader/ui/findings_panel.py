@@ -203,7 +203,10 @@ def _hydrate_summary_state(
 ) -> None:
     storage_key = _summary_storage_key(student_storage_id)
     signature_key = _summary_signature_key(student_storage_id)
-    raw_payload = _LOCAL_STORAGE.getItem(storage_key) or "{}"
+    try:
+        raw_payload = _LOCAL_STORAGE.getItem(storage_key) or "{}"
+    except TypeError:
+        raw_payload = "{}"
     payload_signature = raw_payload if isinstance(raw_payload, str) else ""
 
     overrides: dict[str, bool] = {}
