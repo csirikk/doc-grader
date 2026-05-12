@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 from urllib.parse import unquote
 
 import marko
+import nh3
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -95,7 +96,7 @@ def get_standalone_html(path: Path) -> str:
     opened in a new browser tab or saved as a standalone HTML file.
     """
     md_content = path.read_text(encoding="utf-8").replace("<", "&lt;")
-    raw_html = marko.Markdown().convert(md_content)
+    raw_html = marko.Markdown(extensions=["gfm"]).convert(md_content)
     full_body = _embed_html_images(raw_html, path.parent)
 
     return (
@@ -151,8 +152,9 @@ def render_markdown(path: Path, selected_finding: dict | None) -> None:
     Returns:
         None
     """
-    md_content = path.read_text(encoding="utf-8").replace("<", "&lt;")
-    html_body = marko.Markdown().convert(md_content)
+    md_content = path.read_text(encoding="utf-8")
+    raw_html = marko.Markdown(extensions=["gfm"]).convert(md_content)
+    safe_html = nh3.clean(raw_html)
 
     active_id = (selected_finding or {}).get("finding_id", "").replace(":", "-")
     ranges = [
@@ -161,8 +163,22 @@ def render_markdown(path: Path, selected_finding: dict | None) -> None:
     ]
 
     if ranges:
-        html_body = _inject_html_highlights(html_body, ranges, active_id)
-    html_body = _embed_html_images(html_body, path.parent)
+        final_html = _inject_html_highlights(safe_html, ranges, active_id)
+    else:
+        final_html = safe_html
+
+    final_html = _embed_html_images(final_html, path.parent)
+
+    tag_pattern = r"<\/?\s*([a-zA-Z0-9]+)[^>]*>"
+    raw_tags = [match.lower() for match in re.findall(tag_pattern, raw_html)]
+    safe_tags = [match.lower() for match in re.findall(tag_pattern, safe_html)]
+
+    if raw_tags != safe_tags:
+        st.info(
+            "Note: Unsafe or unsupported HTML tags were removed from this document. "
+            "The formatting here may differ slightly from the original submission. "
+            "For the most accurate raw view, download the document from the sidebar.",
+        )
 
     st.markdown(
         """
@@ -195,7 +211,7 @@ def render_markdown(path: Path, selected_finding: dict | None) -> None:
     )
 
     st.markdown(
-        f'<div class="markdown-surface">{html_body}</div>', unsafe_allow_html=True
+        f'<div class="markdown-surface">{final_html}</div>', unsafe_allow_html=True
     )
 
     if active_id and ranges:
