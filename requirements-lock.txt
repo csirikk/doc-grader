@@ -198,6 +198,8 @@ networkx==3.6.1
     # via
     #   stanza
     #   torch
+nh3==0.3.5
+    # via doc-grader (pyproject.toml)
 numpy==2.4.4
     # via
     #   accelerate

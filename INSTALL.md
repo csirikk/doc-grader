@@ -6,14 +6,25 @@ This tool requires **Python 3.14** or newer, so it is not installable on FIT BUT
 
 Some libraries used by this tool have requirements beyond Python packages:
 
-- **Java:** `language-tool-python` requires a Java Runtime Environment (JRE). If not installed, you can usually get it via your package manager:
+- **Java:** `language-tool-python` requires a Java Runtime Environment (JRE):
 
 ```bash
-# For Ubuntu/Debian
+# Ubuntu/Debian
 sudo apt update && sudo apt install default-jre
 ```
 
-- **NLP Models:** On the first run, `stanza` and `sentence-transformers` will attempt to download pre-trained models. Ensure you have an active internet connection.
+- **Cairo (pip path only):** `cairosvg` requires the system Cairo library. Conda installs this automatically; pip does not:
+
+```bash
+# Ubuntu/Debian
+sudo apt install libcairo2-dev
+```
+
+- **NLP Models:** On first run, `stanza`, `sentence-transformers`, and `docling` will each download pre-trained models (~3–4 GB total). An active internet connection is required.
+
+- **Disk space:** The full environment including CUDA packages and downloaded models requires approximately 10–15 GB.
+
+- **GPU:** CUDA packages are included and will be used automatically on Linux with an NVIDIA GPU. On CPU-only machines or macOS, the tool falls back to CPU inference, which is significantly slower.
 
 ## Package Managers
 
@@ -24,7 +35,7 @@ Choose one of the two installation methods below.
 Recommended. Conda will install the correct Python version and handle complex non-Python dependencies (like C++ components) inside the environment.
 
 To ensure exact reproducibility, use the strictly locked environment file.
-*(Note: The locked file is generated for Linux. If you are reviewing this on macOS or Windows, use the unpinned fallback command below to allow Conda to resolve the correct system binaries for your platform).*
+*(Note: The locked file is generated for Linux. On macOS or Windows, use `environment.yml` instead — it carries the same version pins but without Linux-specific build hashes, so Conda can resolve the correct binaries for your platform.)*
 
 Create the environment:
 
