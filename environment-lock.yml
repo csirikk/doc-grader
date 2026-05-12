@@ -431,6 +431,7 @@ dependencies:
       - latex2mathml==3.79.0
       - lxml==6.0.3
       - marko==2.2.2
+      - nh3==0.3.5
       - mpire==2.10.2
       - multiprocess==0.70.19
       - nvidia-cublas==13.1.0.3
