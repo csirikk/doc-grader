@@ -5,9 +5,9 @@
 ![Streamlit UI](https://img.shields.io/badge/UI-Streamlit-ff4b4b)
 [![Bachelor's Thesis](https://img.shields.io/badge/BUT%20FIT-Bachelor's%20Thesis-critical)](https://www.vut.cz/en/students/final-thesis/detail/169958)
 
-**An evidence-linked assistant for grading student project documentation** — built as a Bachelor's thesis at the Faculty of Information Technology, Brno University of Technology (FIT BUT).
+**An evidence-linked assistant for grading student project documentation** - built as a Bachelor's thesis at the Faculty of Information Technology, Brno University of Technology (FIT BUT).
 
-`doc-grader` reads a student's PDF or Markdown documentation, checks it against a course's grading rubric using a mix of deterministic rules, local ML models, and LLMs, and hands the grader a list of concrete, per-criterion findings — each one pointing at the exact passage or diagram it came from, with a confidence score and a reason. The grader stays in control of every point deducted; the tool just does the first, tedious pass.
+`doc-grader` reads a student's PDF or Markdown documentation, checks it against a course's grading rubric using a mix of deterministic rules, local ML models, and LLMs, and hands the grader a list of concrete, per-criterion findings - each one pointing at the exact passage or diagram it came from, with a confidence score and a reason. The grader stays in control of every point deducted; the tool just does the first, tedious pass.
 
 It's used for the *Formal Languages and Compilers* (IFJ) and *Principles of Programming Languages* (IPP) courses at FIT BUT, where documentation review previously meant manually re-reading hundreds of near-identical reports every semester.
 
@@ -15,11 +15,11 @@ It's used for the *Formal Languages and Compilers* (IFJ) and *Principles of Prog
   <img src="docs/img/ui_evidence_pdf.png" alt="doc-grader review UI: a flagged passage highlighted directly in the source PDF, next to the finding's severity, confidence, and reasoning" width="900">
 </p>
 
-<p align="center"><i>Every finding links back to exactly where it came from in the original document — no black-box scores.</i></p>
+<p align="center"><i>Every finding links back to exactly where it came from in the original document - no black-box scores.</i></p>
 
 ## Why this exists
 
-Grading code is largely automated; grading the documentation that goes with it is not. Student reports have a fixed structure, reference an external project specification, and mix prose with code snippets, tables, and formal diagrams (finite automata, UML class diagrams) — territory where generic essay-scoring tools fall short.
+Grading code is largely automated; grading the documentation that goes with it is not. Student reports have a fixed structure, reference an external project specification, and mix prose with code snippets, tables, and formal diagrams (finite automata, UML class diagrams) - territory where generic essay-scoring tools fall short.
 
 `doc-grader` is deliberately **not** a fully autonomous grader. It's a filter: it surfaces likely issues with evidence attached, and a human grader decides what actually costs points. That framing came directly from analysing 11 years of historical grading data, which showed real inconsistency in how the same mistakes were scored across graders and semesters.
 
@@ -29,18 +29,18 @@ Grading code is largely automated; grading the documentation that goes with it i
   <img src="docs/img/architecture.png" alt="Architecture diagram: raw document to DocumentParser (Docling) to Intermediate Representation, fanned out to a Structure/Integrity/Grammar/Asset/Content analyser suite, through a RuleEngine and Scorer, into the Review GUI" width="800">
 </p>
 
-1. **Parse** — [Docling](https://github.com/docling-project/docling) converts the PDF/Markdown submission into a single intermediate representation, preserving the exact coordinates of every text block and figure.
-2. **Analyse** — five analysers each own a slice of the rubric, routed to the cheapest technology that can do the job reliably:
+1. **Parse** - [Docling](https://github.com/docling-project/docling) converts the PDF/Markdown submission into a single intermediate representation, preserving the exact coordinates of every text block and figure.
+2. **Analyse** - five analysers each own a slice of the rubric, routed to the cheapest technology that can do the job reliably:
    - **Structure** & **Grammar** run local, deterministic checks (heuristics, LanguageTool).
    - **Integrity** uses a local bi-encoder (BAAI/bge-m3) to catch undisclosed overlap with the official assignment spec.
    - **Asset** runs a fine-tuned vision-language model plus GPT-4o to judge UML/diagram correctness.
    - **Content** uses the GPT-5.4 family for the criteria that need broader reading comprehension.
-3. **Judge** — an LLM judge pass reviews candidate findings and filters out false positives before they're scored.
-4. **Score & review** — findings are aggregated into calibrated point deductions and served through a Streamlit UI, where every finding stays anchored to its evidence in the original document.
+3. **Judge** - an LLM judge pass reviews candidate findings and filters out false positives before they're scored.
+4. **Score & review** - findings are aggregated into calibrated point deductions and served through a Streamlit UI, where every finding stays anchored to its evidence in the original document.
 
 ## Catching more than text
 
-The asset analyser doesn't just check that a diagram exists — it evaluates whether it's a *correct* UML class diagram for the student's own code, cross-referencing the rendered image against the rubric.
+The asset analyser doesn't just check that a diagram exists - it evaluates whether it's a *correct* UML class diagram for the student's own code, cross-referencing the rendered image against the rubric.
 
 <p align="center">
   <img src="docs/img/ui_diagram_check.png" alt="doc-grader flagging a UML class diagram directly in a rendered Markdown submission, with a linked finding explaining what's wrong" width="900">
