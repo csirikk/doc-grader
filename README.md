@@ -5,9 +5,9 @@
 ![Streamlit UI](https://img.shields.io/badge/UI-Streamlit-ff4b4b)
 [![Bachelor's Thesis](https://img.shields.io/badge/BUT%20FIT-Bachelor's%20Thesis-critical)](https://www.vut.cz/en/students/final-thesis/detail/169958)
 
-**An evidence-linked assistant for grading student project documentation** - built as a Bachelor's thesis at the Faculty of Information Technology, Brno University of Technology (FIT BUT).
+**An evidence-linked assistant for grading student project documentation**, built as a Bachelor's thesis at the Faculty of Information Technology, Brno University of Technology (FIT BUT).
 
-`doc-grader` reads a student's PDF or Markdown documentation, checks it against a course's grading rubric using a mix of deterministic rules, local ML models, and LLMs, and hands the grader a list of concrete, per-criterion findings - each one pointing at the exact passage or diagram it came from, with a confidence score and a reason. The grader stays in control of every point deducted; the tool just does the first, tedious pass.
+`doc-grader` reads a student's PDF or Markdown documentation, checks it against a course's grading rubric using a mix of deterministic rules, local ML models, and LLMs, and hands the grader a list of concrete, per-criterion findings, each one pointing at the exact passage or diagram it came from, with a confidence score and a reason. The grader stays in control of every point deducted; the tool just does the first, tedious pass.
 
 It's used for the *Formal Languages and Compilers* (IFJ) and *Principles of Programming Languages* (IPP) courses at FIT BUT, where documentation review previously meant manually re-reading hundreds of near-identical reports every semester.
 
@@ -16,13 +16,13 @@ It's used for the *Formal Languages and Compilers* (IFJ) and *Principles of Prog
        alt="doc-grader review UI: clicking a finding jumps to and highlights the exact flagged passage in the source document">
 </p>
 
-*Every finding links back to exactly where it came from in the original document - no black-box scores.*
+Every finding links back to exactly where it came from in the original document.
 
 ## Why this exists
 
 Grading code is largely automated; grading the documentation that goes with it is not. Student reports have a fixed structure, reference an external project specification, and mix prose with code snippets, tables, and formal diagrams (finite automata, UML class diagrams) - territory where generic essay-scoring tools fall short.
 
-`doc-grader` is deliberately **not** a fully autonomous grader. It's a filter: it surfaces likely issues with evidence attached, and a human grader decides what actually costs points. That framing came directly from analysing 11 years of historical grading data, which showed real inconsistency in how the same mistakes were scored across graders and semesters.
+`doc-grader` is deliberately **not** a fully autonomous grader. It's a filter: it surfaces likely issues with evidence attached, and a human grader decides what actually costs points. That framing came directly from analysing 12 years of historical grading data, which showed real inconsistency in how the same mistakes were scored across graders and semesters.
 
 ## How it works
 
@@ -32,14 +32,14 @@ Grading code is largely automated; grading the documentation that goes with it i
        width="820">
 </p>
 
-1. **Parse** - [Docling](https://github.com/docling-project/docling) converts the PDF/Markdown submission into a single intermediate representation, preserving the exact coordinates of every text block and figure.
-2. **Analyse** - five analysers each own a slice of the rubric, routed to the cheapest technology that can do the job reliably:
+1. **Parse**: [Docling](https://github.com/docling-project/docling) converts the PDF/Markdown submission into a single intermediate representation, preserving the exact coordinates of every element, such as text blocks and figures.
+2. **Analyse**: five analysers each own a portion of the rubric, routed to the cheapest technology that can do the job reliably:
    - **Structure** & **Grammar** run local, deterministic checks (heuristics, LanguageTool).
    - **Integrity** uses a local bi-encoder (BAAI/bge-m3) to catch undisclosed overlap with the official assignment spec.
    - **Asset** runs a fine-tuned vision-language model plus GPT-4o to judge UML/diagram correctness.
    - **Content** uses the GPT-5.4 family for the criteria that need broader reading comprehension.
-3. **Judge** - an LLM judge pass reviews candidate findings and filters out false positives before they're scored.
-4. **Score & review** - findings are aggregated into calibrated point deductions and served through a Streamlit UI, where every finding stays anchored to its evidence in the original document.
+3. **Judge**: an LLM judge pass reviews candidate findings and filters out false positives before they're scored.
+4. **Score & review**: findings are aggregated into calibrated point deductions and served through a Streamlit UI, where every finding stays anchored to its evidence in the original document.
 
 ## Catching more than text
 
@@ -54,12 +54,14 @@ The asset analyser doesn't just check that a diagram exists - it evaluates wheth
 
 Evaluated against 100 historical IPP submissions with known human-assigned grades:
 
-- **95.6% accuracy** on the visual UML/diagram correctness check against human grading.
+- **95.6% precision** on the visual UML/diagram correctness check against human grading.
 - Local, deterministic checks (structure, grammar) matched human judgement reliably at zero API cost.
 - For semantically harder criteria, **GPT-5.4 Mini for extraction + full GPT-5.4 as judge** came out as the best cost/quality trade-off among the configurations tested.
-- A live pilot deployment in an ongoing semester is evaluating real-world time savings and grader agreement.
+- A live pilot deployment during the IPP 2025/2026 semester demonstrated significant real-world efficiency gains. Evaluators utilized the tool on over 100 documentations, achieving an approximate 50% suggestion adoption rate. Most notably, the tool reduced manual grading time by up to half, dropping the time spent per document from 7-10 minutes down to just 3-5 minutes.
 
-Full methodology, dataset analysis, and limitations are in the thesis itself: **[Read the full thesis on VUT's digital library](https://www.vut.cz/en/students/final-thesis/detail/169958)** (defended 2026, won Dean's Award for Outstanding Bachelor's Thesis and State Final Examinations).
+Full methodology, dataset analysis, and limitations are in the thesis itself: **[Read the full thesis on BUT Digital Library](https://dspace.vut.cz/items/46d6877d-ae2a-449a-a09b-9a7532be8970)** (defended 2026, won Dean's Award for Outstanding Bachelor's Thesis and State Final Examinations).
+
+Also available through a persistent digital identifier [handle](https://hdl.handle.net/11012/258753).
 
 ## Repository layout
 
