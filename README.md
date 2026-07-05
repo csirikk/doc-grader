@@ -7,7 +7,7 @@
 
 **An evidence-linked assistant for grading student project documentation**, built as a Bachelor's thesis at the Faculty of Information Technology, Brno University of Technology (FIT BUT).
 
-`doc-grader` reads a student's PDF or Markdown documentation, checks it against a course's grading rubric using a mix of deterministic rules, local ML models, and LLMs, and hands the grader a list of concrete, per-criterion findings, each one pointing at the exact passage or diagram it came from, with a confidence score and a reason. The grader stays in control of every point deducted; the tool just does the first, tedious pass.
+`doc-grader` reads a student's PDF or Markdown documentation and checks it against a course's grading rubric using a mix of deterministic rules, local ML models, and LLMs. It hands the grader a list of concrete, per-criterion findings, each one pointing at the exact passage or diagram it came from, with a confidence score and a reason. The grader stays in control of every point deducted; the tool just does the tedious first pass.
 
 It's used for the *Formal Languages and Compilers* (IFJ) and *Principles of Programming Languages* (IPP) courses at FIT BUT, where documentation review previously meant manually re-reading hundreds of near-identical reports every semester.
 
