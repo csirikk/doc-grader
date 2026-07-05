@@ -97,7 +97,7 @@ doc-grader path/to/student-folder
 doc-grader path/to/cohort-folder
 ```
 
-### Example Runs
+### Example runs
 
 Quick checks on the bundled samples in `sample_data/`:
 
@@ -162,7 +162,7 @@ For immediate viewing, bundled demo run outputs are available at `out/sample_par
 
 The sample commands above create their own output folders (`out/sample_ipp_int/`, `out/sample_ipp_par/`, `out/sample_ifj/`, `out/sample_fallback/`, `out/sample_parse_only/`, and `out/sample_local_only/`).
 
-## Quick Links
+## Quick links
 
 - Architecture, model routing, and expected outputs: [docs/overview.md](docs/overview.md)
 - Setup and fallback configurations: [INSTALL.md](INSTALL.md)
