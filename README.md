@@ -49,7 +49,7 @@ Evaluated against 100 historical IPP submissions with known human-assigned grade
 - For semantically harder criteria, **GPT-5.4 Mini for extraction + full GPT-5.4 as judge** came out as the best cost/quality trade-off among the configurations tested.
 - A live pilot deployment in an ongoing semester is evaluating real-world time savings and grader agreement.
 
-Full methodology, dataset analysis, and limitations are in the thesis itself: **[Read the full thesis on VUT's digital library](https://www.vut.cz/en/students/final-thesis/detail/169958)** (defended 2026, grade A).
+Full methodology, dataset analysis, and limitations are in the thesis itself: **[Read the full thesis on VUT's digital library](https://www.vut.cz/en/students/final-thesis/detail/169958)** (defended 2026, won Dean's Award for Outstanding Bachelor's Thesis and State Final Examinations).
 
 ## Repository layout
 
