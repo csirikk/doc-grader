@@ -11,11 +11,9 @@
 
 It's used for the *Formal Languages and Compilers* (IFJ) and *Principles of Programming Languages* (IPP) courses at FIT BUT, where documentation review previously meant manually re-reading hundreds of near-identical reports every semester.
 
-<p align="center">
-  <img src="docs/img/ui_evidence_pdf.png" alt="doc-grader review UI: a flagged passage highlighted directly in the source PDF, next to the finding's severity, confidence, and reasoning" width="900">
-</p>
+![doc-grader review UI: a flagged passage highlighted directly in the source PDF, next to the finding's severity, confidence, and reasoning](docs/img/ui_evidence_pdf.png)
 
-<p align="center"><i>Every finding links back to exactly where it came from in the original document - no black-box scores.</i></p>
+*Every finding links back to exactly where it came from in the original document - no black-box scores.*
 
 ## Why this exists
 
@@ -25,9 +23,7 @@ Grading code is largely automated; grading the documentation that goes with it i
 
 ## How it works
 
-<p align="center">
-  <img src="docs/img/architecture.png" alt="Architecture diagram: raw document to DocumentParser (Docling) to Intermediate Representation, fanned out to a Structure/Integrity/Grammar/Asset/Content analyser suite, through a RuleEngine and Scorer, into the Review GUI" width="800">
-</p>
+![Architecture diagram: raw document to DocumentParser (Docling) to Intermediate Representation, fanned out to a Structure/Integrity/Grammar/Asset/Content analyser suite, through a RuleEngine and Scorer, into the Review GUI](docs/img/architecture.png)
 
 1. **Parse** - [Docling](https://github.com/docling-project/docling) converts the PDF/Markdown submission into a single intermediate representation, preserving the exact coordinates of every text block and figure.
 2. **Analyse** - five analysers each own a slice of the rubric, routed to the cheapest technology that can do the job reliably:
@@ -42,9 +38,7 @@ Grading code is largely automated; grading the documentation that goes with it i
 
 The asset analyser doesn't just check that a diagram exists - it evaluates whether it's a *correct* UML class diagram for the student's own code, cross-referencing the rendered image against the rubric.
 
-<p align="center">
-  <img src="docs/img/ui_diagram_check.png" alt="doc-grader flagging a UML class diagram directly in a rendered Markdown submission, with a linked finding explaining what's wrong" width="900">
-</p>
+![doc-grader flagging a UML class diagram directly in a rendered Markdown submission, with a linked finding explaining what's wrong](docs/img/ui_diagram_check.png)
 
 ## Results
 
@@ -137,9 +131,7 @@ A read-only Streamlit interface is available for inspecting saved runs:
 streamlit run doc_grader/ui/app.py
 ```
 
-<p align="center">
-  <img src="docs/img/ui_summary.png" alt="doc-grader summary panel showing per-code normalised deductions and counts for a submission" width="500">
-</p>
+![doc-grader summary panel showing per-code normalised deductions and counts for a submission](docs/img/ui_summary.png)
 
 In the sidebar, load any run directory under `out/` that contains `findings.json`.
 
