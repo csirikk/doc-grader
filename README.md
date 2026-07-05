@@ -11,7 +11,10 @@
 
 It's used for the *Formal Languages and Compilers* (IFJ) and *Principles of Programming Languages* (IPP) courses at FIT BUT, where documentation review previously meant manually re-reading hundreds of near-identical reports every semester.
 
-![doc-grader review UI: a flagged passage highlighted directly in the source PDF, next to the finding's severity, confidence, and reasoning](docs/img/ui_evidence_pdf.png)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/2a937c2d-6086-4106-8820-1d5baa424c9f"
+       alt="doc-grader review UI: clicking a finding jumps to and highlights the exact flagged passage in the source document">
+</p>
 
 *Every finding links back to exactly where it came from in the original document - no black-box scores.*
 
@@ -23,7 +26,11 @@ Grading code is largely automated; grading the documentation that goes with it i
 
 ## How it works
 
-![Architecture diagram: raw document to DocumentParser (Docling) to Intermediate Representation, fanned out to a Structure/Integrity/Grammar/Asset/Content analyser suite, through a RuleEngine and Scorer, into the Review GUI](docs/img/architecture.png)
+<p align="center">
+  <img src="docs/img/architecture.svg"
+       alt="Architecture diagram: raw document to DocumentParser (Docling) to Intermediate Representation, fanned out to a Structure/Integrity/Grammar/Asset/Content analyser suite, through a RuleEngine and Scorer, into the Review GUI"
+       width="820">
+</p>
 
 1. **Parse** - [Docling](https://github.com/docling-project/docling) converts the PDF/Markdown submission into a single intermediate representation, preserving the exact coordinates of every text block and figure.
 2. **Analyse** - five analysers each own a slice of the rubric, routed to the cheapest technology that can do the job reliably:
@@ -38,7 +45,10 @@ Grading code is largely automated; grading the documentation that goes with it i
 
 The asset analyser doesn't just check that a diagram exists - it evaluates whether it's a *correct* UML class diagram for the student's own code, cross-referencing the rendered image against the rubric.
 
-![doc-grader flagging a UML class diagram directly in a rendered Markdown submission, with a linked finding explaining what's wrong](docs/img/ui_diagram_check.png)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/dfc3aafd-6833-45f5-8e38-0dfed4e704c8"
+       alt="doc-grader flagging a UML class diagram directly in a rendered Markdown submission, with a linked finding explaining what's wrong">
+</p>
 
 ## Results
 
@@ -133,11 +143,18 @@ streamlit run doc_grader/ui/app.py
 
 In the sidebar, load any run directory under `out/` that contains `findings.json`:
 
-![doc-grader sidebar: picking a run directory and loading its saved findings](docs/img/ui_sidebar.png)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/d4b27257-358e-45e2-ad09-af52e4fecf85"
+       alt="doc-grader sidebar: picking a run directory and switching between a Markdown and a PDF submission">
+</p>
 
-The right panel then shows a per-code summary of normalised deductions, with filters for drilling into individual findings:
+The right panel then shows a per-code summary of normalised deductions, with filters and sorting for drilling into individual findings:
 
-![doc-grader right panel summary showing per-code normalised deductions and counts for a submission](docs/img/ui_summary.png)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/25a4fa1b-171e-4ed3-860f-446cd0b2d534"
+       alt="doc-grader right panel: sorting and filtering findings, with the per-code summary table updating live"
+       width="400">
+</p>
 
 For immediate viewing, bundled demo run outputs are available at `out/sample_par/` and `out/sample_int/`.
 
