@@ -1,26 +1,61 @@
 # doc-grader
 
-`doc-grader` is a tool to aid both graders and students by producing evidence-linked suggestions for documentation scoring in IFJ and IPP at FIT BUT.
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue)
+![Streamlit UI](https://img.shields.io/badge/UI-Streamlit-ff4b4b)
+[![Bachelor's Thesis](https://img.shields.io/badge/BUT%20FIT-Bachelor's%20Thesis-critical)](https://www.vut.cz/en/students/final-thesis/detail/169958)
 
-It parses PDF or Markdown submissions, runs configured analysers, and writes findings for human review.
+**An evidence-linked assistant for grading student project documentation** — built as a Bachelor's thesis at the Faculty of Information Technology, Brno University of Technology (FIT BUT).
 
-The project was built to reduce repetitive grading work while keeping the final decision with the grader.
+`doc-grader` reads a student's PDF or Markdown documentation, checks it against a course's grading rubric using a mix of deterministic rules, local ML models, and LLMs, and hands the grader a list of concrete, per-criterion findings — each one pointing at the exact passage or diagram it came from, with a confidence score and a reason. The grader stays in control of every point deducted; the tool just does the first, tedious pass.
 
-## Flow
+It's used for the *Formal Languages and Compilers* (IFJ) and *Principles of Programming Languages* (IPP) courses at FIT BUT, where documentation review previously meant manually re-reading hundreds of near-identical reports every semester.
 
-- Parses each document into a shared intermediate representation
-- Runs deterministic and machine learning based analysers
-- Optionally runs a judge LLM pass on selected findings
-- Aggregates and filters findings into final review artefacts
-- Exports machine-readable outputs and optional assessment CSVs
+<p align="center">
+  <img src="docs/img/ui_evidence_pdf.png" alt="doc-grader review UI: a flagged passage highlighted directly in the source PDF, next to the finding's severity, confidence, and reasoning" width="900">
+</p>
 
-Depending on the configured profile and rulebook, the tool analyses:
+<p align="center"><i>Every finding links back to exactly where it came from in the original document — no black-box scores.</i></p>
 
-- **Structure:** Required sections, heading organisation, and basic formatting constraints.
-- **Language:** Grammar, spelling, and typographic issues.
-- **Diagrams:** UML diagram presence and quality checks via vision, classifier, and deterministic paths.
-- **Content:** Technical coverage and language quality.
-- **Integrity:** Overlap with assignment specification.
+## Why this exists
+
+Grading code is largely automated; grading the documentation that goes with it is not. Student reports have a fixed structure, reference an external project specification, and mix prose with code snippets, tables, and formal diagrams (finite automata, UML class diagrams) — territory where generic essay-scoring tools fall short.
+
+`doc-grader` is deliberately **not** a fully autonomous grader. It's a filter: it surfaces likely issues with evidence attached, and a human grader decides what actually costs points. That framing came directly from analysing 11 years of historical grading data, which showed real inconsistency in how the same mistakes were scored across graders and semesters.
+
+## How it works
+
+<p align="center">
+  <img src="docs/img/architecture.png" alt="Architecture diagram: raw document to DocumentParser (Docling) to Intermediate Representation, fanned out to a Structure/Integrity/Grammar/Asset/Content analyser suite, through a RuleEngine and Scorer, into the Review GUI" width="800">
+</p>
+
+1. **Parse** — [Docling](https://github.com/docling-project/docling) converts the PDF/Markdown submission into a single intermediate representation, preserving the exact coordinates of every text block and figure.
+2. **Analyse** — five analysers each own a slice of the rubric, routed to the cheapest technology that can do the job reliably:
+   - **Structure** & **Grammar** run local, deterministic checks (heuristics, LanguageTool).
+   - **Integrity** uses a local bi-encoder (BAAI/bge-m3) to catch undisclosed overlap with the official assignment spec.
+   - **Asset** runs a fine-tuned vision-language model plus GPT-4o to judge UML/diagram correctness.
+   - **Content** uses the GPT-5.4 family for the criteria that need broader reading comprehension.
+3. **Judge** — an LLM judge pass reviews candidate findings and filters out false positives before they're scored.
+4. **Score & review** — findings are aggregated into calibrated point deductions and served through a Streamlit UI, where every finding stays anchored to its evidence in the original document.
+
+## Catching more than text
+
+The asset analyser doesn't just check that a diagram exists — it evaluates whether it's a *correct* UML class diagram for the student's own code, cross-referencing the rendered image against the rubric.
+
+<p align="center">
+  <img src="docs/img/ui_diagram_check.png" alt="doc-grader flagging a UML class diagram directly in a rendered Markdown submission, with a linked finding explaining what's wrong" width="900">
+</p>
+
+## Results
+
+Evaluated against 100 historical IPP submissions with known human-assigned grades:
+
+- **95.6% accuracy** on the visual UML/diagram correctness check against human grading.
+- Local, deterministic checks (structure, grammar) matched human judgement reliably at zero API cost.
+- For semantically harder criteria, **GPT-5.4 Mini for extraction + full GPT-5.4 as judge** came out as the best cost/quality trade-off among the configurations tested.
+- A live pilot deployment in an ongoing semester is evaluating real-world time savings and grader agreement.
+
+Full methodology, dataset analysis, and limitations are in the thesis itself: **[Read the full thesis on VUT's digital library](https://www.vut.cz/en/students/final-thesis/detail/169958)** (defended 2026, grade A).
 
 ## Repository layout
 
@@ -28,7 +63,7 @@ Depending on the configured profile and rulebook, the tool analyses:
 - `config/`: presets, experiments, and rulebooks
 - `docs/`: project and architecture documentation
 - `notebooks/`: analysis and evaluation notebooks
-- `data/`: bundled IFJ/IPP samples, specs, and cleaned dataset
+- `sample_data/`: bundled IFJ/IPP samples and specs
 - `out/`: generated runtime outputs and bundled demo runs
 
 ## Installation
@@ -58,26 +93,26 @@ doc-grader path/to/cohort-folder
 
 ### Example Runs
 
-Quick checks on bundled samples in `data/`:
+Quick checks on the bundled samples in `sample_data/`:
 
 ```bash
 # IPP 2024/2025 individual preset
-doc-grader data/ipp/ipp2425/int/int_REDACTED_STUDENT -c config/presets/ipp_2024_25_int.json -o out/sample_ipp_int
+doc-grader sample_data/ipp/ipp2425/int/int_xcsi-25ac8af4 -c config/presets/ipp_2024_25_int.json -o out/sample_ipp_int
 
 # IPP 2024/2025 parser preset
-doc-grader data/ipp/ipp2425/parser/parser_REDACTED_STUDENT -c config/presets/ipp_2024_25_par.json -o out/sample_ipp_par
+doc-grader sample_data/ipp/ipp2425/parser/parser_xcsi-25ac8af4 -c config/presets/ipp_2024_25_par.json -o out/sample_ipp_par
 
 # IFJ 2024/2025 preset
-doc-grader data/ifj/ifj2425/REDACTED_STUDENT -c config/presets/ifj_2024_25.json -o out/sample_ifj
+doc-grader sample_data/ifj/ifj2425/xcsi-25ac8af4 -c config/presets/ifj_2024_25.json -o out/sample_ifj
 
 # External-friendly fallback (no private classifier dependency)
-doc-grader data/ipp/ipp2425/int/int_REDACTED_STUDENT -c config/experiments/generic_classifier_fallback.json -o out/sample_fallback
+doc-grader sample_data/ipp/ipp2425/int/int_xcsi-25ac8af4 -c config/experiments/generic_classifier_fallback.json -o out/sample_fallback
 
 # Parse-only smoke check
-doc-grader data/ipp/ipp2425/int/int_REDACTED_STUDENT -c config/experiments/parse_only.json -o out/sample_parse_only
+doc-grader sample_data/ipp/ipp2425/int/int_xcsi-25ac8af4 -c config/experiments/parse_only.json -o out/sample_parse_only
 
 # Local-only run (no LLM calls)
-doc-grader data/ipp/ipp2425/int/int_REDACTED_STUDENT -c config/experiments/local_only.json -o out/sample_local_only
+doc-grader sample_data/ipp/ipp2425/int/int_xcsi-25ac8af4 -c config/experiments/local_only.json -o out/sample_local_only
 ```
 
 Note: the bundled IPP sample filenames (`readme1.pdf`, `readme2.md`) are intentionally non-canonical, so parser finding `DOCTYPE` appears in sample outputs.
@@ -101,6 +136,10 @@ A read-only Streamlit interface is available for inspecting saved runs:
 ```bash
 streamlit run doc_grader/ui/app.py
 ```
+
+<p align="center">
+  <img src="docs/img/ui_summary.png" alt="doc-grader summary panel showing per-code normalised deductions and counts for a submission" width="500">
+</p>
 
 In the sidebar, load any run directory under `out/` that contains `findings.json`.
 
