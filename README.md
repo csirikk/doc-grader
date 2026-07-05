@@ -131,9 +131,13 @@ A read-only Streamlit interface is available for inspecting saved runs:
 streamlit run doc_grader/ui/app.py
 ```
 
-![doc-grader summary panel showing per-code normalised deductions and counts for a submission](docs/img/ui_summary.png)
+In the sidebar, load any run directory under `out/` that contains `findings.json`:
 
-In the sidebar, load any run directory under `out/` that contains `findings.json`.
+![doc-grader sidebar: picking a run directory and loading its saved findings](docs/img/ui_sidebar.png)
+
+The right panel then shows a per-code summary of normalised deductions, with filters for drilling into individual findings:
+
+![doc-grader right panel summary showing per-code normalised deductions and counts for a submission](docs/img/ui_summary.png)
 
 For immediate viewing, bundled demo run outputs are available at `out/sample_par/` and `out/sample_int/`.
 
